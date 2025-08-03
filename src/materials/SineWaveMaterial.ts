@@ -20,7 +20,7 @@ export interface SineWaveParams extends WaterMaterialParams {
 
 // 正弦波水体材质类
 export class SineWaveMaterial extends WaterMaterial {
-  private sineWaveParams: SineWaveParams
+  private sineWaveParameters: SineWaveParams
 
   constructor(
     sineWaveParams: SineWaveParams,
@@ -28,10 +28,36 @@ export class SineWaveMaterial extends WaterMaterial {
     fragmentShaderContent: string
   ) {
     // 设置正弦波默认参数
-    const defaultSineWaveParams: SineWaveParams = {
+    let defaultSineWaveParameters: SineWaveParams = {
+      // 纹理使用标志
+      useDiffuseMap: 0,
+      useNormalMap: 0,
+      useEnvironmentMap: 0,
+      // 基础纹理
+      diffuseMap: null,
+      normalMap: null,
+      environmentMap: null,
+      // 水体颜色参数
+      waterColor: [0.1, 0.3, 0.5],
+      deepWaterColor: [0.0, 0.1, 0.2],
+      shallowWaterColor: [0.2, 0.6, 0.8],
+      // 水体物理参数
+      transparency: 0.8,
+      reflectance: 0.3,
+      refractiveIndex: 1.33,
+      // 波浪控制参数
+      time: 0.0,
+      // 光照参数
+      specularPower: 32.0,
+      fresnelPower: 5.0,
+
+      // 正弦波控制参数
       amplitude: 1.0,
       waveVector: 1.0,
-      angularFrequency: 2 * Math.PI,
+      angularFrequency: 2 * Math.PI
+    }
+    const sineWaveParameters = {
+      ...defaultSineWaveParameters,
       // 作用：覆盖默认值
       ...sineWaveParams
     }
@@ -39,38 +65,38 @@ export class SineWaveMaterial extends WaterMaterial {
     // 构建正弦波特有的uniforms
     const sineWaveUniforms: Uniforms = {
       // 正弦波基础参数
-      uAmplitude: { type: '1f', value: defaultSineWaveParams.amplitude }, // A
-      uWaveVector: { type: '1f', value: defaultSineWaveParams.waveVector }, // k
-      uAngularFreq: { type: '1f', value: defaultSineWaveParams.angularFrequency } // ω
+      uAmplitude: { type: '1f', value: sineWaveParameters.amplitude }, // A
+      uWaveVector: { type: '1f', value: sineWaveParameters.waveVector }, // k
+      uAngularFreq: { type: '1f', value: sineWaveParameters.angularFrequency } // ω
     }
 
-    super(defaultSineWaveParams, vertexShaderContent, fragmentShaderContent, sineWaveUniforms)
+    super(sineWaveParameters, vertexShaderContent, fragmentShaderContent, sineWaveUniforms)
 
-    this.sineWaveParams = defaultSineWaveParams
+    this.sineWaveParameters = sineWaveParameters
   }
 
-  // // 设置振幅
-  // setAmplitude(amplitude: number) {
-  //   this.sineWaveParams.amplitude = amplitude
-  //   this.uniforms.uAmplitude.value = amplitude
-  // }
+  // 设置振幅
+  setAmplitude(amplitude: number) {
+    this.sineWaveParameters.amplitude = amplitude
+    this.uniforms['uAmplitude'].value = amplitude
+  }
 
-  // // 设置波矢
-  // setWaveVector(waveVector: number) {
-  //   this.sineWaveParams.waveVector = waveVector
-  //   this.uniforms.uWaveVector.value = waveVector
-  // }
+  // 设置波矢
+  setWaveVector(waveVector: number) {
+    this.sineWaveParameters.waveVector = waveVector
+    this.uniforms['uWaveVector'].value = waveVector
+  }
 
-  // // 设置角频率
-  // setAngularFrequency(omega: number) {
-  //   this.sineWaveParams.angularFrequency = omega
-  //   this.uniforms.uAngularFrequency.value = omega
-  // }
+  // 设置角频率
+  setAngularFrequency(omega: number) {
+    this.sineWaveParameters.angularFrequency = omega
+    this.uniforms['uAngularFrequency'].value = omega
+  }
 
-  // // 获取正弦波参数
-  // getSineWaveParams() {
-  //   return { ...this.sineWaveParams }
-  // }
+  // 获取正弦波参数
+  getSineWaveParams() {
+    return { ...this.sineWaveParameters }
+  }
 }
 
 export async function buildSineWaveMaterial(
@@ -78,16 +104,8 @@ export async function buildSineWaveMaterial(
   vertexPath: string,
   fragmentPath: string
 ): Promise<SineWaveMaterial> {
-  const waveParams: SineWaveParams = {
-    amplitude: 0.1,
-    waveVector: 0.1 * 2 * Math.PI,
-    angularFrequency: 2 * Math.PI,
-    // 作用：覆盖默认值
-    ...sineWaveParams
-  }
-
   let vertexShaderContent = await getShaderString(vertexPath)
   let fragmentShaderContent = await getShaderString(fragmentPath)
 
-  return new SineWaveMaterial(waveParams, vertexShaderContent, fragmentShaderContent)
+  return new SineWaveMaterial(sineWaveParams, vertexShaderContent, fragmentShaderContent)
 }

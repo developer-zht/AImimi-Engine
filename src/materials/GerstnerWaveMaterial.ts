@@ -32,7 +32,30 @@ export class GerstnerWaveMaterial extends WaterMaterial {
     }
 
     // 设置默认参数
-    const defaultGerstnereMaterialWaveParams: GerstnerWaveMaterialParams = {
+    let defaultGerstnereMaterialWaveParams: GerstnerWaveMaterialParams = {
+      // 纹理使用标志
+      useDiffuseMap: 0,
+      useNormalMap: 0,
+      useEnvironmentMap: 0,
+      // 基础纹理
+      diffuseMap: null,
+      normalMap: null,
+      environmentMap: null,
+      // 水体颜色参数
+      waterColor: [0.1, 0.3, 0.5],
+      deepWaterColor: [0.0, 0.1, 0.2],
+      shallowWaterColor: [0.2, 0.6, 0.8],
+      // 水体物理参数
+      transparency: 0.8,
+      reflectance: 0.3,
+      refractiveIndex: 1.33,
+      // 波浪控制参数
+      time: 0.0,
+      // 光照参数
+      specularPower: 32.0,
+      fresnelPower: 5.0,
+
+      // Gestner Wave 属性
       waves: [
         {
           direction: [1.0, 0.0],
@@ -42,7 +65,13 @@ export class GerstnerWaveMaterial extends WaterMaterial {
           phase: 0.0
         }
       ],
-      waveCount: 1,
+      waveCount: 1
+      // ...gerstnerWaveMaterialParams
+    }
+
+    defaultGerstnereMaterialWaveParams = {
+      ...defaultGerstnereMaterialWaveParams,
+      // 作用：覆盖默认值
       ...gerstnerWaveMaterialParams
     }
 
@@ -97,30 +126,9 @@ export async function buildGerstnerWaveMaterial(
   let vertexShaderContent = await getShaderString(vertexPath)
   let fragmentShaderContent = await getShaderString(fragmentPath)
 
-  // 设置默认波浪参数
-  const defaultGerstnerWaveParams: GerstnerWaveParams[] = [
-    {
-      direction: [1.0, 0.0],
-      steepness: 0.3,
-      wavelength: 10.0,
-      speedMultiplier: 1.0,
-      phase: 0.0
-    },
-    {
-      direction: [0.7, 0.7],
-      steepness: 0.2,
-      wavelength: 8.0,
-      speedMultiplier: 1.2,
-      phase: Math.PI * 0.5
-    }
-  ]
-
-  const params: GerstnerWaveMaterialParams = {
-    waves: defaultGerstnerWaveParams,
-    waveCount: 2,
-    // 覆盖默认值
-    ...gerstnerWaveMaterialParams
-  }
-
-  return new GerstnerWaveMaterial(params, vertexShaderContent, fragmentShaderContent)
+  return new GerstnerWaveMaterial(
+    gerstnerWaveMaterialParams,
+    vertexShaderContent,
+    fragmentShaderContent
+  )
 }
