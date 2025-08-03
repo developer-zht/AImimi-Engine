@@ -16,6 +16,10 @@ export class WebGLRenderer {
 
   private startTime: number
 
+  private drawControlParams = {
+    globalTextureNum: 0
+  }
+
   constructor(
     gl: WebGLRenderingContext,
     gl_draw_buffers: WEBGL_draw_buffers,
@@ -55,6 +59,8 @@ export class WebGLRenderer {
     gl.depthFunc(gl.LEQUAL)
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT)
 
+    this.drawControlParams.globalTextureNum = 0
+
     /**
      * 更新参数
      * Update light parameters
@@ -80,7 +86,13 @@ export class WebGLRenderer {
 
     // Draw light
     light.meshRender.mesh.transform.translate = light.entity.lightPos
-    light.meshRender.draw(this.camera, this.gl_draw_buffers, null, updatedParameters)
+    light.meshRender.draw(
+      this.camera,
+      this.gl_draw_buffers,
+      null,
+      updatedParameters,
+      this.drawControlParams
+    )
     // console.log(light.meshRender)
 
     // Shadow pass
@@ -92,7 +104,8 @@ export class WebGLRenderer {
         this.camera,
         this.gl_draw_buffers,
         light.entity.fbo,
-        updatedParameters
+        updatedParameters,
+        this.drawControlParams
       )
       // this.shadowMeshes[i].draw(this.camera);
     }
@@ -105,14 +118,21 @@ export class WebGLRenderer {
         this.camera,
         this.gl_draw_buffers,
         this.camera.fbo,
-        updatedParameters
+        updatedParameters,
+        this.drawControlParams
       )
       // this.bufferMeshes[i].draw(this.camera);
     }
 
     // Camera pass
     for (let i = 0; i < this.meshRenders.length; i++) {
-      this.meshRenders[i].draw(this.camera, this.gl_draw_buffers, null, updatedParameters)
+      this.meshRenders[i].draw(
+        this.camera,
+        this.gl_draw_buffers,
+        null,
+        updatedParameters,
+        this.drawControlParams
+      )
     }
   }
 }
