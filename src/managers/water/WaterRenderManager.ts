@@ -34,6 +34,9 @@ export interface WaterRenderManagerConfig {
   enableRefraction?: boolean
   enableFoam?: boolean
   enableCaustics?: boolean
+  // 是否开启 shadow map 和 SSR
+  enableShadowMap?: boolean // 启用阴影贴图
+  enableSSR?: boolean // 启用屏幕空间反射
 }
 
 /**
@@ -62,7 +65,7 @@ export class WaterRenderManager {
   }
 
   // 创建 Water Material
-  private async createsMaterial(
+  private async createWaterMaterial(
     renderType: WaterRenderManagerConfig['renderType']
   ): Promise<WaterMaterial> {
     switch (renderType) {
@@ -86,10 +89,11 @@ export class WaterRenderManager {
     }
   }
 
+  // 初始化 MeshRender
   async initMeshRender() {
     try {
       this.waterSurface = this.createWaterSurface()
-      this.waterMaterial = await this.createsMaterial(this.config.renderType)
+      this.waterMaterial = await this.createWaterMaterial(this.config.renderType)
       this.meshRender = new MeshRender(this.gl, this.waterSurface, this.waterMaterial)
 
       console.log(`Water renderer initialized with type: ${this.config.renderType}`)
@@ -105,10 +109,18 @@ export class WaterRenderManager {
   }
 }
 
-export async function loadWater(renderer: WebGLRenderer, config: WaterRenderManagerConfig) {
-  const waterRenderManager = new WaterRenderManager(renderer.gl, config)
-  await waterRenderManager.initMeshRender()
+export async function loadWater(
+  renderer: WebGLRenderer,
+  configPromise: Promise<WaterRenderManagerConfig>
+) {
+  try {
+    const config = await configPromise
+    const waterRenderManager = new WaterRenderManager(renderer.gl, config)
+    await waterRenderManager.initMeshRender()
 
-  // 将MeshRender添加到WebGLRenderer中
-  renderer.addMeshRender(waterRenderManager.getMeshRender())
+    // 将MeshRender添加到WebGLRenderer中
+    renderer.addMeshRender(waterRenderManager.getMeshRender())
+  } catch (error) {
+    console.log('Load water failed: ', error)
+  }
 }
