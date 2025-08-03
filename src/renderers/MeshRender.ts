@@ -175,10 +175,10 @@ export class MeshRender {
    * 利用 material 修改（写入）shader 中的 uniform 数据
    * @param {Record<string, WebGLUniformLocation>} this.shader.program.uniforms 简单举例 {name:uniformLocation}，因此 this.shader.program.uniforms[k] 就是 uniformLocation
    */
-  bindMaterialParameters() {
+  bindMaterialParameters(drawControlParams) {
     const gl = this.gl
 
-    let textureNum = 0
+    // let textureNum = drawControlParams.globalTextureNum
     for (let k in this.material.uniforms) {
       if (this.material.uniforms[k].type == 'matrix4fv') {
         gl.uniformMatrix4fv(this.shader.program.uniforms[k], false, this.material.uniforms[k].value)
@@ -195,15 +195,40 @@ export class MeshRender {
       } else if (this.material.uniforms[k].type == '1i') {
         gl.uniform1i(this.shader.program.uniforms[k], this.material.uniforms[k].value)
       } else if (this.material.uniforms[k].type == 'texture') {
-        gl.activeTexture(this.gl.TEXTURE0 + textureNum)
-        gl.bindTexture(this.gl.TEXTURE_2D, this.material.uniforms[k].value)
-        gl.uniform1i(this.shader.program.uniforms[k], textureNum)
-        textureNum += 1
+        console.log(this.material.uniforms[k])
+        // gl.activeTexture(this.gl.TEXTURE0 + textureNum)
+        // gl.bindTexture(this.gl.TEXTURE_2D, this.material.uniforms[k].value)
+        // gl.uniform1i(this.shader.program.uniforms[k], textureNum)
+        // textureNum += 1
+        if (this.material.uniforms[k].value && this.material.uniforms[k].value !== null) {
+          gl.activeTexture(this.gl.TEXTURE0 + drawControlParams.globalTextureNum)
+          gl.bindTexture(this.gl.TEXTURE_2D, this.material.uniforms[k].value)
+          gl.uniform1i(this.shader.program.uniforms[k], drawControlParams.globalTextureNum)
+          drawControlParams.globalTextureNum += 1
+        } else {
+          // 不增加textureNum，也不绑定纹理
+          console.warn(`跳过null值的立方体贴图: ${k}`)
+        }
       } else if (this.material.uniforms[k].type == 'textureCube') {
-        gl.activeTexture(this.gl.TEXTURE0 + textureNum)
-        gl.bindTexture(this.gl.TEXTURE_CUBE_MAP, this.material.uniforms[k].value)
-        gl.uniform1i(this.shader.program.uniforms[k], textureNum)
-        textureNum += 1
+        console.log(this.material.uniforms[k].value)
+        // gl.activeTexture(this.gl.TEXTURE0 + textureNum)
+        // gl.bindTexture(this.gl.TEXTURE_CUBE_MAP, this.material.uniforms[k].value)
+        // console.log(textureNum)
+        // gl.uniform1i(this.shader.program.uniforms[k], textureNum)
+        // textureNum += 1
+        // console.log(textureNum)
+        // 检查纹理值是否有效
+        if (this.material.uniforms[k].value && this.material.uniforms[k].value !== null) {
+          gl.activeTexture(this.gl.TEXTURE0 + drawControlParams.globalTextureNum)
+          gl.bindTexture(this.gl.TEXTURE_CUBE_MAP, this.material.uniforms[k].value)
+          console.log(drawControlParams.globalTextureNum)
+          console.log(this.shader.program.uniforms[k])
+          gl.uniform1i(this.shader.program.uniforms[k], drawControlParams.globalTextureNum)
+          drawControlParams.globalTextureNum += 1
+        } else {
+          // 不增加textureNum，也不绑定纹理
+          console.warn(`跳过null值的立方体贴图: ${k}`)
+        }
       }
     }
   }
@@ -219,11 +244,22 @@ export class MeshRender {
     }
   }
 
+  resetTextureBindings() {
+    const gl = this.gl
+    // 清理前几个纹理单元的绑定
+    for (let i = 0; i < 8; i++) {
+      gl.activeTexture(gl.TEXTURE0 + i)
+      gl.bindTexture(gl.TEXTURE_2D, null)
+      gl.bindTexture(gl.TEXTURE_CUBE_MAP, null)
+    }
+  }
+
   draw(
     camera: PerspectiveCamera,
     gl_draw_buffers: WEBGL_draw_buffers,
     fbo: WebGLFramebuffer | null,
-    updatedParamters: UpdatedParamters
+    updatedParamters: UpdatedParamters,
+    drawControlParams
   ) {
     const gl = this.gl
 
@@ -240,9 +276,12 @@ export class MeshRender {
     // Bind Camera parameters
     this.bindCameraParameters(camera)
 
+    // 4. **关键**：重置纹理绑定状态
+    this.resetTextureBindings()
+
     // Bind material parameters
     this.updateMaterialParameters(updatedParamters)
-    this.bindMaterialParameters()
+    this.bindMaterialParameters(drawControlParams)
 
     // Draw
     {
