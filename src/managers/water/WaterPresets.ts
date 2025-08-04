@@ -2,20 +2,58 @@ import { WaterRenderManagerConfig, WaterRenderType } from '@/managers/water/Wate
 import type { SineWaveParams } from '@/materials/SineWaveMaterial'
 import { setTransform } from '@/utils/transformation'
 import { GerstnerWaveMaterialParams, GerstnerWaveParams } from '@/materials/GerstnerWaveMaterial'
+import { CubeMapTexture } from '@/textures/CubeMapTexture'
+import { TextureManager } from '@/textures/TextureManager'
 
 export class WaterPresets {
+  private static instance: WaterPresets
+  private gl: WebGLRenderingContext
+
+  private constructor(gl: WebGLRenderingContext) {
+    this.gl = gl
+  }
+
+  public static getInstance(gl: WebGLRenderingContext) {
+    if (!WaterPresets.instance) {
+      return new WaterPresets(gl)
+    } else {
+      return WaterPresets.instance
+    }
+  }
+
+  async createSkybox(): Promise<WebGLTexture> {
+    const skybox = new CubeMapTexture(this.gl)
+    await skybox.createCubeMapFromImages({
+      basePath: '/assets/skybox/sky_09_cubemap/',
+      extension: '.png'
+    })
+    console.log(skybox.texture)
+
+    return skybox.texture
+  }
+
   /**
    * 平静的湖水 - 使用正弦波
    * @param {number} size 水面大小
    * @param {number} resolution 水面分辨率，不要超过 255，因为 WebGL1.0 中 vertex 的索引范围为 0 ~ 65535（2^16bit）
    * */
-  static createCalmLake(size: number = 50, resolution: number = 250): WaterRenderManagerConfig {
+  async createCalmLake(
+    size: number = 50,
+    resolution: number = 250
+  ): Promise<WaterRenderManagerConfig> {
+    const skyboxTexture = await this.createSkybox()
     return {
       size,
       resolution,
       tranformation: setTransform(0, 0, 0, 1, 1, 1, 0, 0, 0),
       renderType: WaterRenderType.SINE_WAVE,
       materialParams: {
+        // 纹理使用标志
+        useDiffuseMap: 0,
+        useNormalMap: 0,
+        useEnvironmentMap: 1,
+        // 基础纹理
+        environmentMap: skyboxTexture,
         // 水体颜色参数
         waterColor: [0.1, 0.3, 0.5],
         deepWaterColor: [0.0, 0.1, 0.2],
@@ -33,10 +71,7 @@ export class WaterPresets {
   }
 
   //海洋波浪 - 使用Gerstner波
-  static createGerstnerWaves(
-    size: number = 50,
-    resolution: number = 250
-  ): WaterRenderManagerConfig {
+  createGerstnerWaves(size: number = 50, resolution: number = 250): WaterRenderManagerConfig {
     const calm: GerstnerWaveParams[] = [
       {
         direction: [1.0, 0.0],
