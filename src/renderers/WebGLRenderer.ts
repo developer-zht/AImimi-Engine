@@ -17,6 +17,7 @@ export class WebGLRenderer {
   private startTime: number
 
   private drawControlParams = {
+    // TEXTUREi 计数器
     globalTextureNum: 0
   }
 
@@ -59,6 +60,7 @@ export class WebGLRenderer {
     gl.depthFunc(gl.LEQUAL)
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT)
 
+    // TEXTUREi 的默认偏移量为 0
     this.drawControlParams.globalTextureNum = 0
 
     /**
@@ -74,6 +76,7 @@ export class WebGLRenderer {
       uLightVP: lightVP,
       uLightDir: lightDir
     }
+
     // 动画需要时间更新
     let updatedTimeParameter = {
       uTime: (Date.now() - this.startTime) / 10000
