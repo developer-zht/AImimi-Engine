@@ -39,7 +39,7 @@ export class CubeMapTexture {
     if (!this.texture) {
       throw new Error('Failed to create WebGL texture')
     }
-    // this.gl.bindTexture(this.gl.TEXTURE_CUBE_MAP, this.texture)
+    this.gl.bindTexture(this.gl.TEXTURE_CUBE_MAP, this.texture)
 
     // Promise 数组
     const imagePromises = faceKeys.map((faceKey) => {
@@ -65,7 +65,6 @@ export class CubeMapTexture {
 
       this.setupTextureParameters()
       console.log(`✅ CubeMap loaded successfully from ${cubeMapConfig.basePath}`)
-      console.log(this.texture)
     } catch (error) {
       throw error
     }
