@@ -2,7 +2,7 @@ import {
   buildGerstnerWaveMaterial,
   GerstnerWaveMaterialParams
 } from '@/materials/GerstnerWaveMaterial'
-import { buildSineWaveMaterial, SineWaveParams } from '@/materials/SineWaveMaterial'
+import { buildSineWaveMaterial, SineWaveMaterialParams } from '@/materials/SineWaveMaterial'
 import { WaterMaterial } from '@/materials/WaterMaterial'
 import { WaterSurface } from '@/objects/WaterSurface'
 import { TransformationParams } from '@/types/transformation'
@@ -27,7 +27,7 @@ export interface WaterRenderManagerConfig {
   renderType: WaterRenderType
 
   // 材质参数
-  materialParams: SineWaveParams | GerstnerWaveMaterialParams | any
+  materialParams: SineWaveMaterialParams | GerstnerWaveMaterialParams
 
   // 渲染选项
   enableReflection?: boolean
@@ -71,13 +71,13 @@ export class WaterRenderManager {
     switch (renderType) {
       case WaterRenderType.SINE_WAVE:
         return await buildSineWaveMaterial(
-          this.config.materialParams, // 作用：覆盖默认值
+          this.config.materialParams as SineWaveMaterialParams, // 作用：覆盖默认值
           'src/shaders/waterShader/SinWaveVertex.glsl',
           'src/shaders/waterShader/SinWaveFragment.glsl'
         )
       case WaterRenderType.GERSTNER_WAVE:
         return await buildGerstnerWaveMaterial(
-          this.config.materialParams, // 作用：覆盖默认值
+          this.config.materialParams as GerstnerWaveMaterialParams, // 作用：覆盖默认值
           'src/shaders/waterShader/GerstnerWaveVertex.glsl',
           'src/shaders/waterShader/GerstnerWaveFragment.glsl'
         )
@@ -118,7 +118,7 @@ export async function loadWater(
     const waterRenderManager = new WaterRenderManager(renderer.gl, config)
     await waterRenderManager.initMeshRender()
 
-    // 将MeshRender添加到WebGLRenderer中
+    // 将 MeshRender 添加到 WebGLRenderer 中
     renderer.addMeshRender(waterRenderManager.getMeshRender())
   } catch (error) {
     console.log('Load water failed: ', error)
