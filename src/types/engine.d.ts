@@ -11,7 +11,8 @@ export enum SceneType {
 }
 export enum LightType {
   CUBE_LIGHT = 'CubeLight',
-  CAVE_LIGHT = 'CaveLight'
+  CAVE_LIGHT = 'CaveLight',
+  WAVE_LIGHT = 'WaveLight'
 }
 
 declare module 'three' {
