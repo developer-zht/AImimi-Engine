@@ -52,6 +52,9 @@ export class GerstnerWaveMaterial extends WaterMaterial {
       // 波浪控制参数
       time: 0.0,
       // 光照参数
+      lightIntensity: [20, 20, 20],
+      lightPos: [2, 2, 2],
+      lightDir: [-1, -1, 1],
       specularPower: 32.0,
       fresnelPower: 5.0,
 

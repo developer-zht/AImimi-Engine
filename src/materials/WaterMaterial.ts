@@ -53,6 +53,9 @@ export interface WaterMaterialParams {
   time: number
 
   // 光照参数
+  lightIntensity: Vec3
+  lightPos: Vec3
+  lightDir: Vec3
   specularPower: number
   fresnelPower: number // 菲涅尔强度，控制视角相关的反射变化
 }
@@ -88,7 +91,10 @@ export abstract class WaterMaterial extends Material {
       // 波浪控制参数
       time: 0.0,
       // 光照参数
-      specularPower: 32.0,
+      lightIntensity: [20, 20, 20],
+      lightPos: [2, 2, 2],
+      lightDir: [-1, -1, 1],
+      specularPower: 2.0,
       fresnelPower: 5.0
     }
 
@@ -122,19 +128,22 @@ export abstract class WaterMaterial extends Material {
         : null),
 
       // 水体颜色参数
-      uWaterColor: { type: '3fv', value: defaultParameters.waterColor },
-      uDeepWaterColor: { type: '3fv', value: defaultParameters.deepWaterColor },
-      uShallowWaterColor: { type: '3fv', value: defaultParameters.shallowWaterColor },
+      uWaterColor: { type: '3fv', value: waterParameters.waterColor },
+      uDeepWaterColor: { type: '3fv', value: waterParameters.deepWaterColor },
+      uShallowWaterColor: { type: '3fv', value: waterParameters.shallowWaterColor },
 
       // 水体物理参数
-      uTransparency: { type: '1f', value: defaultParameters.transparency },
-      uReflectance: { type: '1f', value: defaultParameters.reflectance },
-      uRefractiveIndex: { type: '1f', value: defaultParameters.refractiveIndex },
+      uTransparency: { type: '1f', value: waterParameters.transparency },
+      uReflectance: { type: '1f', value: waterParameters.reflectance },
+      uRefractiveIndex: { type: '1f', value: waterParameters.refractiveIndex },
 
       // 波浪控制参数
       uTime: { type: '1f', value: defaultParameters.time },
 
       // 光照参数
+      uLightRadiance: { type: '3fv', value: waterParameters.lightIntensity },
+      uLightDir: { type: '3fv', value: waterParameters.lightDir },
+      uLightPos: { type: '3fv', value: waterParameters.lightPos },
       uSpecularPower: { type: '1f', value: defaultParameters.specularPower },
       uFresnelPower: { type: '1f', value: defaultParameters.fresnelPower },
 
@@ -142,7 +151,7 @@ export abstract class WaterMaterial extends Material {
       ...additionalUniforms
     }
 
-    console.log(waterUniforms['uEnvironmentMap'])
+    // console.log(waterUniforms)
 
     // 构建基础 attributes
     const waterAttributes = [...additionalAttribs]

@@ -3,7 +3,7 @@ import { WaterMaterial, WaterMaterialParams } from '@/materials/WaterMaterial'
 import { Uniforms } from '@/types/Material'
 
 // 正弦波特有的参数接口
-export interface SineWaveParams extends WaterMaterialParams {
+export interface SineWaveMaterialParams extends WaterMaterialParams {
   // 正弦波控制参数
   amplitude: number
   waveVector: number
@@ -20,15 +20,15 @@ export interface SineWaveParams extends WaterMaterialParams {
 
 // 正弦波水体材质类
 export class SineWaveMaterial extends WaterMaterial {
-  private sineWaveParameters: SineWaveParams
+  private sineWaveParameters: SineWaveMaterialParams
 
   constructor(
-    sineWaveParams: SineWaveParams,
+    sineWaveParams: SineWaveMaterialParams,
     vertexShaderContent: string,
     fragmentShaderContent: string
   ) {
     // 设置正弦波默认参数
-    let defaultSineWaveParameters: SineWaveParams = {
+    let defaultSineWaveParameters: SineWaveMaterialParams = {
       // 纹理使用标志
       useDiffuseMap: 0,
       useNormalMap: 0,
@@ -48,6 +48,9 @@ export class SineWaveMaterial extends WaterMaterial {
       // 波浪控制参数
       time: 0.0,
       // 光照参数
+      lightIntensity: [20, 20, 20],
+      lightPos: [2, 2, 2],
+      lightDir: [-1, -1, 1],
       specularPower: 32.0,
       fresnelPower: 5.0,
 
@@ -100,7 +103,7 @@ export class SineWaveMaterial extends WaterMaterial {
 }
 
 export async function buildSineWaveMaterial(
-  sineWaveParams: SineWaveParams,
+  sineWaveParams: SineWaveMaterialParams,
   vertexPath: string,
   fragmentPath: string
 ): Promise<SineWaveMaterial> {
