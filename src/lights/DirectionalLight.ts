@@ -1,7 +1,6 @@
 import { mat4 } from 'gl-matrix'
 
 import type { Vec3 } from '@/types/math'
-import type { vec3 } from 'gl-matrix'
 import type { LightUp, LightParams } from '@/types/light'
 import type { Light } from '@/types/light'
 import { FBO } from '@/textures/FBO'
