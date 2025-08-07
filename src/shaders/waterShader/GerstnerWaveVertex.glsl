@@ -81,7 +81,7 @@ vec3 calculateGerstnerWave(
  * x' = x + d.x * Amplitude * cos(f);
  * y' = Amplitude * sin(f);
  * z' = z + d.y * Amplitude * cos(f);
- *  ∂x'/∂x = 1 - d.x * d.x * (Amplitude * k) * sin(f) = 1 - d.x * d.x * steepness * sin(f)
+ * ∂x'/∂x = 1 - d.x * d.x * (Amplitude * k) * sin(f) = 1 - d.x * d.x * steepness * sin(f)
  */
   tangent += vec3(
     -dir.x * dir.x * wave.steepness * sinPhase,
