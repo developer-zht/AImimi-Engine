@@ -11,10 +11,12 @@ import { loadGLTF } from '@/loaders/loadGLTF'
 import { DirectionalLight } from '@/lights/DirectionalLight'
 
 import type { LightParams } from '@/types/light'
-import type { CameraType, SceneType, LightType } from '@/types/engine'
+import { CameraType, SceneType, LightType } from '@/types/engine'
 import { Vec3 } from '@/types/math'
 
 import { PerformanceMonitor } from '@/monitors/PerformanceMonitor'
+import { loadCubeMap } from './managers/cubemap/CubeMapRenderManager'
+import { CubeMapPreset } from './managers/cubemap/CubeMapPreset'
 
 export class Engine {
   // public
@@ -53,30 +55,33 @@ export class Engine {
     console.log('Class Engine has initialized')
   }
 
-  init() {
+  async init() {
     // 初始化上下文
     this.initGL()
     // 初始化相机和控制参数
     // this.initCameraParams('CubeSceneCamera')
-    this.initCameraParams('CaveSceneCamera')
+    this.initCameraParams(CameraType.WATER_SCENE_CAMERA)
     this.initCamera()
     this.initCameraControls()
 
     // 初始化渲染器
     this.initRenderer()
-    // 加载场景
-    // this.loadSceneGLTF('CubeScene')
-    // this.loadSceneGLTF('CaveScene')
-    // 加载水场景
-    // loadWater(this.renderer, WaterPresets.createCalmLake())
-    loadWater(this.renderer, WaterPresets.createGerstnerWaves())
+
     // 加载灯光
-    // this.addLight('CubeLight')
-    this.addLight('CaveLight')
+    // this.addLight(LightType.CUBE_LIGHT)
+    this.addLight(LightType.WAVE_LIGHT)
     // 加载调参面板
     this.initGUI()
     // 初始化性能检测器
     this.initPerformanceMonitor()
+
+    // 加载场景
+    // this.loadSceneGLTF(SceneType.CUBE_SCENE)
+    // this.loadSceneGLTF(SceneType.CAVE_SCENE)
+    // 加载 skybox
+    await loadCubeMap(this.renderer, CubeMapPreset.createSkybox())
+    // 加载水场景
+    loadWater(this.renderer, WaterPresets.getInstance(this.renderer.gl).createSineWave())
   }
 
   // 初始化上下文
@@ -109,6 +114,10 @@ export class Engine {
         this.cameraPosition = [4.18927, 1.0313, 2.07331]
         this.cameraTarget = [2.92191, 0.98, 1.55037]
         break
+      case 'WaterSceneCamera':
+        this.cameraPosition = [10, 10, 10]
+        this.cameraTarget = [0, 0, 0]
+        break
       default:
         this.cameraPosition = [6, 1, 0]
         this.cameraTarget = [0, 0, 0]
@@ -120,7 +129,7 @@ export class Engine {
       75,
       this.canvas.clientWidth / this.canvas.clientHeight,
       1e-3,
-      1000
+      10000
     )
 
     camera.position.set(this.cameraPosition[0], this.cameraPosition[1], this.cameraPosition[2])
@@ -181,7 +190,6 @@ export class Engine {
   addLight(lightType: LightType) {
     let lightUp: Vec3 = [1, 0, 0]
     let lightParams = this.getLightParams(lightType)
-    // console.log(lightParams)
 
     const directionLight = new DirectionalLight(
       lightParams.lightRadiance,
@@ -191,13 +199,14 @@ export class Engine {
       this.gl,
       this.gl_draw_buffers
     )
+
     this.renderer.addLight(directionLight)
     // console.log(this.renderer.lights)
   }
   // 返回灯光参数
   getLightParams(lightType: LightType): LightParams {
     switch (lightType) {
-      case 'CubeLight':
+      case LightType.CUBE_LIGHT:
         return {
           lightRadiance: [1, 1, 1],
           lightPos: [-2, 4, 1],
@@ -207,10 +216,20 @@ export class Engine {
             z: -0.2
           }
         }
-      case 'CaveLight':
+      case LightType.CAVE_LIGHT:
         return {
           lightRadiance: [20, 20, 20],
           lightPos: [-0.45, 5.40507, 0.637043],
+          lightDir: {
+            x: 0.39048811,
+            y: -0.89896828,
+            z: 0.19843153
+          }
+        }
+      case LightType.WAVE_LIGHT:
+        return {
+          lightRadiance: [200, 200, 200],
+          lightPos: [1, 5, 0],
           lightDir: {
             x: 0.39048811,
             y: -0.89896828,

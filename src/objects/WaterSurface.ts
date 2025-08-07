@@ -1,7 +1,7 @@
 import { Mesh } from '@/objects/Mesh'
 import type { TransformationParams } from '@/types/transformation'
 
-interface MeshData {
+export interface MeshData {
   positions: { name: string; array: Float32Array }
   normals: { name: string; array: Float32Array }
   texCoords: { name: string; array: Float32Array }

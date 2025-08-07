@@ -195,38 +195,36 @@ export class MeshRender {
       } else if (this.material.uniforms[k].type == '1i') {
         gl.uniform1i(this.shader.program.uniforms[k], this.material.uniforms[k].value)
       } else if (this.material.uniforms[k].type == 'texture') {
-        console.log(this.material.uniforms[k])
         // gl.activeTexture(this.gl.TEXTURE0 + textureNum)
         // gl.bindTexture(this.gl.TEXTURE_2D, this.material.uniforms[k].value)
         // gl.uniform1i(this.shader.program.uniforms[k], textureNum)
         // textureNum += 1
         if (this.material.uniforms[k].value && this.material.uniforms[k].value !== null) {
+          // console.log(this.material.uniforms[k])
           gl.activeTexture(this.gl.TEXTURE0 + drawControlParams.globalTextureNum)
           gl.bindTexture(this.gl.TEXTURE_2D, this.material.uniforms[k].value)
           gl.uniform1i(this.shader.program.uniforms[k], drawControlParams.globalTextureNum)
           drawControlParams.globalTextureNum += 1
         } else {
-          // 不增加textureNum，也不绑定纹理
+          // 不增加 drawControlParams.globalTextureNum，也不绑定纹理
           console.warn(`跳过null值的立方体贴图: ${k}`)
         }
       } else if (this.material.uniforms[k].type == 'textureCube') {
-        console.log(this.material.uniforms[k].value)
         // gl.activeTexture(this.gl.TEXTURE0 + textureNum)
         // gl.bindTexture(this.gl.TEXTURE_CUBE_MAP, this.material.uniforms[k].value)
-        // console.log(textureNum)
         // gl.uniform1i(this.shader.program.uniforms[k], textureNum)
         // textureNum += 1
-        // console.log(textureNum)
         // 检查纹理值是否有效
         if (this.material.uniforms[k].value && this.material.uniforms[k].value !== null) {
+          // console.log(this.material.uniforms[k].value)
           gl.activeTexture(this.gl.TEXTURE0 + drawControlParams.globalTextureNum)
           gl.bindTexture(this.gl.TEXTURE_CUBE_MAP, this.material.uniforms[k].value)
-          console.log(drawControlParams.globalTextureNum)
-          console.log(this.shader.program.uniforms[k])
+          // console.log(drawControlParams.globalTextureNum)
+          // console.log(this.shader.program.uniforms[k])
           gl.uniform1i(this.shader.program.uniforms[k], drawControlParams.globalTextureNum)
           drawControlParams.globalTextureNum += 1
         } else {
-          // 不增加textureNum，也不绑定纹理
+          // 不增加 drawControlParams.globalTextureNum，也不绑定纹理
           console.warn(`跳过null值的立方体贴图: ${k}`)
         }
       }
