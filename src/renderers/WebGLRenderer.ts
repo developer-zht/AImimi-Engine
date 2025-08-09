@@ -4,6 +4,10 @@ import { PerspectiveCamera } from 'three'
 import type { LightObj } from '@/types/WebGLRenderer'
 import type { UpdatedLightParamters } from '@/types/light'
 
+export interface DrawControlParams {
+  globalTextureNum: number // TEXTUREi 计数器
+}
+
 export class WebGLRenderer {
   public gl: WebGLRenderingContext
   public gl_draw_buffers: WEBGL_draw_buffers
@@ -16,7 +20,7 @@ export class WebGLRenderer {
 
   private startTime: number
 
-  private drawControlParams = {
+  private drawControlParams: DrawControlParams = {
     // TEXTUREi 计数器
     globalTextureNum: 0
   }

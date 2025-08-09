@@ -6,6 +6,7 @@ import { Shader } from '@/shaders/Shader'
 import { PerspectiveCamera } from 'three'
 
 import type { UpdatedParamters } from '@/types/MeshRender'
+import type { DrawControlParams } from '@/renderers/WebGLRenderer'
 
 export class MeshRender {
   // public
@@ -242,22 +243,12 @@ export class MeshRender {
     }
   }
 
-  resetTextureBindings() {
-    const gl = this.gl
-    // 清理前几个纹理单元的绑定
-    for (let i = 0; i < 8; i++) {
-      gl.activeTexture(gl.TEXTURE0 + i)
-      gl.bindTexture(gl.TEXTURE_2D, null)
-      gl.bindTexture(gl.TEXTURE_CUBE_MAP, null)
-    }
-  }
-
   draw(
     camera: PerspectiveCamera,
     gl_draw_buffers: WEBGL_draw_buffers,
     fbo: WebGLFramebuffer | null,
     updatedParamters: UpdatedParamters,
-    drawControlParams
+    drawControlParams: DrawControlParams
   ) {
     const gl = this.gl
 
@@ -273,9 +264,6 @@ export class MeshRender {
 
     // Bind Camera parameters
     this.bindCameraParameters(camera)
-
-    // 4. **关键**：重置纹理绑定状态
-    this.resetTextureBindings()
 
     // Bind material parameters
     this.updateMaterialParameters(updatedParamters)
