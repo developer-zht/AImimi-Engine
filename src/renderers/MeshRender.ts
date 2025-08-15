@@ -5,8 +5,9 @@ import { Material } from '@/materials/Material'
 import { Shader } from '@/shaders/Shader'
 import { PerspectiveCamera } from 'three'
 
-import type { UpdatedParamters } from '@/types/MeshRender'
 import type { DrawControlParams } from '@/renderers/WebGLRenderer'
+import { FFTOceanRenderManager } from '@/managers/fftOcean/FFTOceanRenderManager'
+import { UpdatedParamters } from '@/types/WebGLRenderer'
 
 export class MeshRender {
   // public
@@ -20,7 +21,14 @@ export class MeshRender {
   #texcoordBuffer: WebGLBuffer
   #indicesBuffer: WebGLBuffer
 
-  constructor(gl: WebGLRenderingContext, mesh: Mesh, material: Material) {
+  private manager: FFTOceanRenderManager | null
+
+  constructor(
+    gl: WebGLRenderingContext,
+    mesh: Mesh,
+    material: Material,
+    manager: FFTOceanRenderManager = null
+  ) {
     this.gl = gl
     this.mesh = mesh
     this.material = material
@@ -29,6 +37,8 @@ export class MeshRender {
     this.#normalBuffer = this.gl.createBuffer()
     this.#texcoordBuffer = this.gl.createBuffer()
     this.#indicesBuffer = this.gl.createBuffer()
+
+    this.manager = manager
 
     // 处理 Mesh 中的数据
     let extraAttribs = []
@@ -176,7 +186,7 @@ export class MeshRender {
    * 利用 material 修改（写入）shader 中的 uniform 数据
    * @param {Record<string, WebGLUniformLocation>} this.shader.program.uniforms 简单举例 {name:uniformLocation}，因此 this.shader.program.uniforms[k] 就是 uniformLocation
    */
-  bindMaterialParameters(drawControlParams) {
+  bindMaterialParameters(drawControlParams: DrawControlParams) {
     const gl = this.gl
 
     // let textureNum = drawControlParams.globalTextureNum
@@ -201,7 +211,7 @@ export class MeshRender {
         // gl.uniform1i(this.shader.program.uniforms[k], textureNum)
         // textureNum += 1
         if (this.material.uniforms[k].value && this.material.uniforms[k].value !== null) {
-          // console.log(this.material.uniforms[k])
+          // console.log(k, this.material.uniforms[k], this.shader.program.uniforms[k])
           gl.activeTexture(this.gl.TEXTURE0 + drawControlParams.globalTextureNum)
           gl.bindTexture(this.gl.TEXTURE_2D, this.material.uniforms[k].value)
           gl.uniform1i(this.shader.program.uniforms[k], drawControlParams.globalTextureNum)
@@ -264,6 +274,11 @@ export class MeshRender {
 
     // Bind Camera parameters
     this.bindCameraParameters(camera)
+
+    if (this.manager) {
+      this.manager.update(updatedParamters.uTime)
+      // console.log(this.manager)
+    }
 
     // Bind material parameters
     this.updateMaterialParameters(updatedParamters)

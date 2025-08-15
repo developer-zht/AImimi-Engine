@@ -1,7 +1,7 @@
 import { Material } from '@/materials/Material'
 
-import type { Uniforms } from '@/types/Material'
-import { Vec3 } from '@/types/math'
+import { UniformType, type Uniforms } from '@/types/Material'
+import { Vec2, Vec3 } from '@/types/math'
 
 export enum WaterTextureMapUniformType {
   U_DIFFUSE_MAP = 'useDiffuseMap',
@@ -48,12 +48,19 @@ export interface WaterMaterialParams {
   reflectance: number // 反射强度（0-1），控制镜面反射程度
   refractiveIndex: number // 折射率（通常1.33），用于菲涅尔计算
 
+  // 水深模型参数
+  depthModel: number // 深度模型类型：0=平坦, 1=坡度, 2=径向, 3=复合
+  maxDepth: number // 最大深度（米）
+  minDepth: number // 最小深度（海岸线，米）
+  depthCenter: Vec2 // 深度中心点（世界坐标）
+  depthFalloff: number // 深度衰减系数（影响深度变化的陡峭程度）
+
   // 波浪控制参数 (会被具体的波浪材质类重写)
   // amplitude、frequency、angularFrequency、speed 留给子类扩展
   time: number
 
   // 光照参数
-  lightIntensity: Vec3
+  lightColor: Vec3
   lightPos: Vec3
   lightDir: Vec3
   specularPower: number
@@ -88,10 +95,16 @@ export abstract class WaterMaterial extends Material {
       transparency: 0.8,
       reflectance: 0.3,
       refractiveIndex: 1.33,
+      // 水深模型参数
+      depthModel: 2,
+      maxDepth: 50.0,
+      minDepth: 1.0,
+      depthCenter: [0, 0],
+      depthFalloff: 1.5,
       // 波浪控制参数
       time: 0.0,
       // 光照参数
-      lightIntensity: [20, 20, 20],
+      lightColor: [2, 2, 2],
       lightPos: [2, 2, 2],
       lightDir: [-1, -1, 1],
       specularPower: 2.0,
@@ -107,45 +120,55 @@ export abstract class WaterMaterial extends Material {
     // 构建基础 uniforms
     const waterUniforms: Uniforms = {
       // 纹理使用标志
-      uUseDiffuseMap: { type: '1i', value: waterParameters.useDiffuseMap },
-      uUseNormalMap: { type: '1i', value: waterParameters.useNormalMap },
-      uUseEnvironmentMap: { type: '1i', value: waterParameters.useEnvironmentMap },
+      uUseDiffuseMap: { type: UniformType.ONE_I, value: waterParameters.useDiffuseMap },
+      uUseNormalMap: { type: UniformType.ONE_I, value: waterParameters.useNormalMap },
+      uUseEnvironmentMap: { type: UniformType.ONE_I, value: waterParameters.useEnvironmentMap },
       // 基础纹理
       ...(waterParameters.useDiffuseMap
         ? {
-            uDiffuseMap: { type: 'texture', value: waterParameters.diffuseMap }
+            uDiffuseMap: { type: UniformType.TEXTURE_2D, value: waterParameters.diffuseMap }
           }
         : null),
       ...(waterParameters.useNormalMap
         ? {
-            uNormalMap: { type: 'texture', value: waterParameters.normalMap }
+            uNormalMap: { type: UniformType.TEXTURE_2D, value: waterParameters.normalMap }
           }
         : null),
       ...(waterParameters.useEnvironmentMap
         ? {
-            uEnvironmentMap: { type: 'textureCube', value: waterParameters.environmentMap }
+            uEnvironmentMap: {
+              type: UniformType.TEXTURE_CUBE,
+              value: waterParameters.environmentMap
+            }
           }
         : null),
 
       // 水体颜色参数
-      uWaterColor: { type: '3fv', value: waterParameters.waterColor },
-      uDeepWaterColor: { type: '3fv', value: waterParameters.deepWaterColor },
-      uShallowWaterColor: { type: '3fv', value: waterParameters.shallowWaterColor },
+      uWaterColor: { type: UniformType.THREE_FV, value: waterParameters.waterColor },
+      uDeepWaterColor: { type: UniformType.THREE_FV, value: waterParameters.deepWaterColor },
+      uShallowWaterColor: { type: UniformType.THREE_FV, value: waterParameters.shallowWaterColor },
 
       // 水体物理参数
-      uTransparency: { type: '1f', value: waterParameters.transparency },
-      uReflectance: { type: '1f', value: waterParameters.reflectance },
-      uRefractiveIndex: { type: '1f', value: waterParameters.refractiveIndex },
+      uTransparency: { type: UniformType.ONE_F, value: waterParameters.transparency },
+      uReflectance: { type: UniformType.ONE_F, value: waterParameters.reflectance },
+      uRefractiveIndex: { type: UniformType.ONE_F, value: waterParameters.refractiveIndex },
+
+      // 水深模型参数
+      uDepthModel: { type: UniformType.ONE_I, value: waterParameters.depthModel },
+      uMaxDepth: { type: UniformType.ONE_F, value: waterParameters.maxDepth },
+      uMinDepth: { type: UniformType.ONE_F, value: waterParameters.minDepth },
+      uDepthCenter: { type: UniformType.TWO_FV, value: waterParameters.depthCenter },
+      uDepthFalloff: { type: UniformType.ONE_F, value: waterParameters.depthFalloff },
 
       // 波浪控制参数
-      uTime: { type: '1f', value: defaultParameters.time },
+      uTime: { type: UniformType.ONE_F, value: waterParameters.time },
 
       // 光照参数
-      uLightRadiance: { type: '3fv', value: waterParameters.lightIntensity },
-      uLightDir: { type: '3fv', value: waterParameters.lightDir },
-      uLightPos: { type: '3fv', value: waterParameters.lightPos },
-      uSpecularPower: { type: '1f', value: defaultParameters.specularPower },
-      uFresnelPower: { type: '1f', value: defaultParameters.fresnelPower },
+      uLightColor: { type: UniformType.THREE_FV, value: waterParameters.lightColor },
+      uLightDir: { type: UniformType.THREE_FV, value: waterParameters.lightDir },
+      uLightPos: { type: UniformType.THREE_FV, value: waterParameters.lightPos },
+      uSpecularPower: { type: UniformType.ONE_F, value: defaultParameters.specularPower },
+      uFresnelPower: { type: UniformType.ONE_F, value: defaultParameters.fresnelPower },
 
       // 合并额外的uniforms
       ...additionalUniforms
