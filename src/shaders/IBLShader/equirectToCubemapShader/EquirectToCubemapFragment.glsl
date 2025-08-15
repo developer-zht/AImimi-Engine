@@ -23,7 +23,7 @@ const vec2 invAtan = vec2(0.1591, 0.3183); // 1/(2π), 1/π
  */
 vec2 sampleSphericalMap(vec3 worldPos) {
   vec3 vector = normalize(worldPos);
-  vec2 uv = vec2(atan(worldPos.z, worldPos.x), asin(worldPos.y));
+  vec2 uv = vec2(atan(vector.z, vector.x), asin(vector.y));
   uv *= invAtan;
   uv += 0.5;
 
