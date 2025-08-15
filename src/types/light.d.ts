@@ -16,7 +16,7 @@ export interface LightParams {
   lightDir: LightDir
 }
 
-export interface UpdatedLightParamters extends UpdatedParamters {
+export interface UpdatedLightParamters {
   uLightVP: mat4
   uLightDir: Vec3
 }
