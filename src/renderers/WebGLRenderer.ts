@@ -1,7 +1,7 @@
 import { MeshRender } from '@/renderers/MeshRender'
 import { PerspectiveCamera } from 'three'
 
-import type { LightObj } from '@/types/WebGLRenderer'
+import type { LightObj, UpdatedParamters, UpdatedTimeParameter } from '@/types/WebGLRenderer'
 import type { UpdatedLightParamters } from '@/types/light'
 
 export interface DrawControlParams {
@@ -82,11 +82,11 @@ export class WebGLRenderer {
     }
 
     // 动画需要时间更新
-    let updatedTimeParameter = {
-      uTime: (Date.now() - this.startTime) / 10000
+    let updatedTimeParameter: UpdatedTimeParameter = {
+      uTime: (Date.now() - this.startTime) / 1000
     }
     // 合并参数
-    let updatedParameters = {
+    let updatedParameters: UpdatedParamters = {
       ...updatedLightParamters,
       ...updatedTimeParameter
     }
