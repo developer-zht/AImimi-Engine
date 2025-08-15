@@ -1,6 +1,6 @@
 import { getShaderString } from '@/loaders/loadShader'
 import { WaterMaterial, WaterMaterialParams } from '@/materials/WaterMaterial'
-import { Uniforms } from '@/types/Material'
+import { Uniforms, UniformType } from '@/types/Material'
 
 // 正弦波特有的参数接口
 export interface SineWaveMaterialParams extends WaterMaterialParams {
@@ -45,12 +45,18 @@ export class SineWaveMaterial extends WaterMaterial {
       transparency: 0.8,
       reflectance: 0.3,
       refractiveIndex: 1.33,
+      // 水深模型参数
+      depthModel: 2,
+      maxDepth: 50.0,
+      minDepth: 1.0,
+      depthCenter: [0, 0],
+      depthFalloff: 1.5,
       // 波浪控制参数
       time: 0.0,
       // 光照参数
-      lightIntensity: [20, 20, 20],
+      lightColor: [0.9, 0.9, 0.9],
       lightPos: [2, 2, 2],
-      lightDir: [-1, -1, 1],
+      lightDir: [0.3, -0.7, 0.2],
       specularPower: 32.0,
       fresnelPower: 5.0,
 
@@ -65,12 +71,12 @@ export class SineWaveMaterial extends WaterMaterial {
       ...sineWaveParams
     }
 
-    // 构建正弦波特有的uniforms
+    // 构建正弦波特有的 uniforms
     const sineWaveUniforms: Uniforms = {
       // 正弦波基础参数
-      uAmplitude: { type: '1f', value: sineWaveParameters.amplitude }, // A
-      uWaveVector: { type: '1f', value: sineWaveParameters.waveVector }, // k
-      uAngularFreq: { type: '1f', value: sineWaveParameters.angularFrequency } // ω
+      uAmplitude: { type: UniformType.ONE_F, value: sineWaveParameters.amplitude }, // A
+      uWaveVector: { type: UniformType.ONE_F, value: sineWaveParameters.waveVector }, // k
+      uAngularFreq: { type: UniformType.ONE_F, value: sineWaveParameters.angularFrequency } // ω
     }
 
     super(sineWaveParameters, vertexShaderContent, fragmentShaderContent, sineWaveUniforms)
