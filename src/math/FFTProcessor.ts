@@ -31,7 +31,7 @@ class ButterflyElement {
  * 2.对输入序列进行bit reverse 重排序
  * 3.按照蝶形网络的模式进行 f1(x) + Wnk * f2(x) 形式的加和
  */
-class FFTProcessor {
+export class FFTProcessor {
   constructor() {}
 
   /**
@@ -247,7 +247,7 @@ class FFTProcessor {
     return this.fft1DInterface(input, true)
   }
 
-  // ------------------------------------------------------------------
+  // =============== 以下：二维快速傅里叶变换 ===============
 
   public fft2DInterface(matrix: (number | Complex)[][], inverse: boolean = false): Complex[][] {
     const rows = matrix.length
