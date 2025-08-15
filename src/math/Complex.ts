@@ -1,4 +1,5 @@
 export class Complex {
+  // ---------- 静态工厂方法 ----------
   /**
    * 利用欧拉公式创建指数形式的复数 e^(i*theta) = cos(theta) + i*sin(theta)
    * @param angle 角度（弧度）
@@ -17,11 +18,13 @@ export class Complex {
     return new Complex(real, 0)
   }
 
+  // ---------- 实例属性 ----------
   // 实部
   public real: number
   // 虚部
   public imag: number
 
+  // ---------- 构造函数 ----------
   /**
    * 构造函数
    * @param real 实部，默认为0
@@ -32,6 +35,7 @@ export class Complex {
     this.imag = imag
   }
 
+  // ---------- 实例运算方法 ----------
   /**
    * 复数加法：(a + bi) + (c + di) = (a+c) + (b+d)i
    * @param other 另一个复数
