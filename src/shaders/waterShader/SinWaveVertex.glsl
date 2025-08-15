@@ -40,8 +40,8 @@ float calculateSineWavesHeight(vec2 pos, float time, float amplitude, float wave
   wave += cos(pos.x * waveVector * 3.0 - pos.y * waveVector * 2.5 + time * angularFreq * 2.5) * amplitude * 0.3;
 
   // 微细节层
-  // wave += sin(pos.x * waveVector * 8.0 + time * angularFreq * 4.0) * amplitude * 0.2;
-  // wave += cos(pos.y * waveVector * 6.0 + time * angularFreq * 3.5) * amplitude * 0.15;
+  wave += sin(pos.x * waveVector * 8.0 + time * angularFreq * 4.0) * amplitude * 0.2;
+  wave += cos(pos.y * waveVector * 6.0 + time * angularFreq * 3.5) * amplitude * 0.15;
 
   return wave;
 }
@@ -90,12 +90,14 @@ void main() {
   vec2 pos = aVertexPosition.xz;
   vec3 finalPosition = aVertexPosition;
 
+  float time = uTime / 10.0;
+
   // 计算正弦波高度
-  float height = calculateSineWavesHeight(pos, uTime, uAmplitude, uWaveVector, uAngularFreq);
+  float height = calculateSineWavesHeight(pos, time, uAmplitude, uWaveVector, uAngularFreq);
   finalPosition.y = height;
 
   // 计算法线
-  vec3 normal = calculateSineNormal(pos, uTime, uAmplitude, uWaveVector, uAngularFreq);
+  vec3 normal = calculateSineNormal(pos, time, uAmplitude, uWaveVector, uAngularFreq);
 
   // 设置输出变量
   vPosition = finalPosition;

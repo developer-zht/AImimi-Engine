@@ -20,18 +20,62 @@ uniform GerstnerWave uWaves[8];
 uniform int uWaveCount; // Gerstner Wave 的个数
 uniform float uTime; // t
 
+// 水深模型参数
+uniform int uDepthModel; // 深度模型类型：0=平坦, 1=坡度, 2=径向, 3=复合
+uniform float uMaxDepth; // 最大深度
+uniform float uMinDepth; // 最小深度（海岸线）
+uniform vec2 uDepthCenter; // 深度中心点
+uniform float uDepthFalloff; // 深度衰减系数
+
 // 传入 Fragment 中的 Varying
 varying vec3 vPosition;
 varying vec3 vNormal;
 varying vec2 vTexCoord;
 varying vec3 vWorldPosition;
 varying float vWaveHeight;
+varying float vWaterDepth;
+varying float vJacobian;
 
 // constant variable
 const float PI = 3.141592653589793;
 const float TWO_PI = 6.283185307179586;
 const float HALF_PI = 1.570796326794896;
 const float g = 9.8;
+
+/**
+ * 计算Gerstner波的雅可比行列式
+ */
+float calculateJacobian(GerstnerWave wave, vec2 position, float time) {
+  // [amplitude, wavelength, speed, direction]
+
+  // 计算波数 k = 2π/λ
+  float k = TWO_PI / wave.wavelength;
+
+  // 计算波速 c = √(g/k)，g = 9.8
+  float c = sqrt(g / k) * wave.speedMultiplier;
+
+  // 归一化方向向量
+  vec2 dir = normalize(wave.direction);
+
+  // 计算振幅
+  float amplitude = wave.steepness / k;
+
+  // jacobian 初始值
+  float jacobian = 1.0;
+
+  for (int i = 0; i < 4; i++) {
+    float phase = k * dot(dir, position) - c * time;
+    float steepness = 0.8 / (wave.steepness + 0.001);
+
+    // 雅可比行列式的贡献
+    float dPhaseDx = k * dir.x;
+    float dPhaseDz = k * dir.y;
+
+    jacobian -= steepness * amplitude * k * cos(phase);
+  }
+
+  return jacobian;
+}
 
 /**
  * Gerstner 波函数
@@ -46,10 +90,10 @@ vec3 calculateGerstnerWave(
   inout vec3 binormal,
   vec2 pos,
   float time,
-  float stepnessSum
+  float steepnessSum
 ) {
   // 计算波数 k = 2π/λ
-  float k = 2.0 * PI / wave.wavelength;
+  float k = TWO_PI / wave.wavelength;
 
   // 计算波速 c = √(g/k)，g = 9.8
   float c = sqrt(g / k) * wave.speedMultiplier;
@@ -60,12 +104,14 @@ vec3 calculateGerstnerWave(
   vec2 dir = normalize(wave.direction);
 
   // 计算 phase = k * (p.x - wavespeed * time) * d.x + k * (p.z - wavespeed * time) * d.y;
-  float phase = k * (dot(dir, pos) - c * time);
+  float phase = k * (dot(dir, pos) - c * time) + wave.phase;
   // float phase = k * (pos.x - c * time) * dir.x + k * (pos.y - c * time) * dir.y;
 
   // 计算振幅 A = steepness / k
   // 为了规避 a * k > 1 所产生的错误情况，使用权重的方式设置所有波的 stepness ​​​​之和不大于 1
-  float amplitude = wave.steepness / stepnessSum / k;
+  // float amplitude = wave.steepness / steepnessSum / k;
+  float normalizedSteepness = wave.steepness / max(steepnessSum, 1.0);
+  float amplitude = normalizedSteepness / k;
 
   // 计算三角函数值
   float cosPhase = cos(phase);
@@ -83,15 +129,27 @@ vec3 calculateGerstnerWave(
  * z' = z + d.y * Amplitude * cos(f);
  * ∂x'/∂x = 1 - d.x * d.x * (Amplitude * k) * sin(f) = 1 - d.x * d.x * steepness * sin(f)
  */
+  float norSteepnessSinPhase = normalizedSteepness * sinPhase;
+  float norSteepnessCosPhase = normalizedSteepness * cosPhase;
+  // tangent += vec3(
+  //   -dir.x * dir.x * wave.steepness * sinPhase,
+  //   dir.x * wave.steepness * cosPhase,
+  //   -dir.y * dir.x * wave.steepness * sinPhase
+  // );
+  // binormal += vec3(
+  //   -dir.x * dir.y * wave.steepness * sinPhase,
+  //   dir.y * wave.steepness * cosPhase,
+  //   -dir.y * dir.y * wave.steepness * sinPhase
+  // );
   tangent += vec3(
-    -dir.x * dir.x * wave.steepness * sinPhase,
-    dir.x * wave.steepness * cosPhase,
-    -dir.y * dir.x * wave.steepness * sinPhase
+    -dir.x * dir.x * norSteepnessSinPhase,
+    dir.x * norSteepnessCosPhase,
+    -dir.y * dir.x * norSteepnessSinPhase
   );
   binormal += vec3(
-    -dir.x * dir.y * wave.steepness * sinPhase,
-    dir.y * wave.steepness * cosPhase,
-    -dir.y * dir.y * wave.steepness * sinPhase
+    -dir.x * dir.y * norSteepnessSinPhase,
+    dir.y * norSteepnessCosPhase,
+    -dir.y * dir.y * norSteepnessSinPhase
   );
 
   return vec3(
@@ -102,25 +160,96 @@ vec3 calculateGerstnerWave(
   );
 }
 
+/**
+ * 水深计算模型 （基于真实海洋地形的数学模型）
+ *
+ * 模型类型：
+ * 0 - 平坦海底：固定深度
+ * 1 - 坡度模型：线性坡度 depth = minDepth + slope * distance
+ * 2 - 径向模型：以中心为最深点的径向衰减
+ * 3 - 复合模型：结合多种地形特征
+ */
+float calculateWaterDepth(vec2 position, int depthModel) {
+  // 计算相对于深度中心的位置
+  vec2 relativePos = position - uDepthCenter;
+  float distanceFromCenter = length(relativePos);
+
+  if (depthModel == 0) {
+    // === 模型0：平坦海底 ===
+    return uMaxDepth;
+
+  } else if (depthModel == 1) {
+    // === 模型1：简单坡度模型 ===
+    // 基于x坐标的线性坡度（模拟海岸线到深海的过渡）
+    float normalizedX = (position.x + 400.0) / 800.0; // 归一化到[0,1]
+    return mix(uMinDepth, uMaxDepth, normalizedX);
+
+  } else if (depthModel == 2) {
+    // === 模型2：径向深度模型 ===
+    // 中心最深，向边缘变浅（模拟海盆或湖泊）
+    float maxDistance = 400.0 * sqrt(2.0); // 对角线距离
+    float normalizedDistance = clamp(distanceFromCenter / maxDistance, 0.0, 1.0);
+
+    // 使用指数函数模拟真实的深度分布
+    float depthFactor = 1.0 - pow(normalizedDistance, uDepthFalloff);
+    return uMinDepth + (uMaxDepth - uMinDepth) * depthFactor;
+
+  } else if (depthModel == 3) {
+    // === 模型3：复合地形模型 ===
+    // 结合坡度和径向特征，模拟真实海洋地形
+
+    // 基础径向深度
+    float maxDistance = 600.0; // 调整影响范围
+    float normalizedDistance = clamp(distanceFromCenter / maxDistance, 0.0, 1.0);
+    float radialDepth = uMinDepth + (uMaxDepth - uMinDepth) * (1.0 - pow(normalizedDistance, 2.0));
+
+    // 添加方向性坡度（模拟大陆架）
+    float slopeInfluence = (position.x + 400.0) / 800.0; // x方向坡度
+    float slopeDepth = mix(uMinDepth * 0.5, uMaxDepth * 1.2, slopeInfluence);
+
+    // 添加地形起伏（海底山脊、海沟）
+    float ridge1 = sin(position.x * 0.008 + position.y * 0.005) * 15.0;
+    float ridge2 = cos(position.y * 0.012 - position.x * 0.003) * 10.0;
+    float terrain = ridge1 + ridge2;
+
+    // 组合所有因素
+    float combinedDepth = mix(radialDepth, slopeDepth, 0.3) + terrain;
+
+    return clamp(combinedDepth, uMinDepth, uMaxDepth * 1.5);
+
+  } else {
+    // 默认返回平均深度
+    return (uMinDepth + uMaxDepth) * 0.5;
+  }
+}
+
 void main() {
   vec2 pos = aVertexPosition.xz;
   vec3 tangent = vec3(1, 0, 0);
   vec3 binormal = vec3(0, 0, 1);
   vec3 finalPosition = aVertexPosition;
   vec3 finalNormal = vec3(0, 0, 0);
-  float stepnessSum = 0.0;
+  float steepnessSum = 0.0;
+  float jacobian = 0.0;
+  // 对时间进行缩放，使得波动频率更加适合
+  float time = uTime / 1.0;
+
+  // 计算水深
+  float waterDepth = calculateWaterDepth(pos, 1);
 
   // 为了规避 a * k > 1 所产生的错误情况，使用权重的方式设置所有波的 stepness ​​​​之和不大于 1
   for (int i = 0; i < 8; i++) {
     if (i >= uWaveCount) break;
-    stepnessSum += uWaves[i].steepness;
+    steepnessSum += uWaves[i].steepness;
   }
 
   for (int i = 0; i < 8; i++) {
     if (i >= uWaveCount) break;
-    finalPosition += calculateGerstnerWave(uWaves[i], tangent, binormal, pos, uTime, stepnessSum);
+    finalPosition += calculateGerstnerWave(uWaves[i], tangent, binormal, pos, time, steepnessSum);
+    jacobian = calculateJacobian(uWaves[i], pos, time);
   }
   finalNormal = normalize(cross(binormal, tangent));
+  jacobian = jacobian / float(uWaveCount);
 
   /**
  * Debug Code
@@ -141,6 +270,8 @@ void main() {
   vNormal = finalNormal;
   vTexCoord = aTextureCoord;
   vWaveHeight = finalPosition.y;
+  vWaterDepth = waterDepth;
+  vJacobian = jacobian;
 
   gl_Position = uProjectionMatrix * uViewMatrix * uModelMatrix * vec4(finalPosition, 1.0);
 }

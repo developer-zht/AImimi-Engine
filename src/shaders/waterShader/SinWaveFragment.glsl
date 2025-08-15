@@ -21,7 +21,7 @@ uniform float uTransparency;
 uniform float uReflectance;
 uniform float uRefractiveIndex;
 // 光照参数
-uniform vec3 uLightRadiance;
+uniform vec3 uLightColor;
 uniform vec3 uLightPos;
 uniform vec3 uLightDir;
 uniform float uSpecularPower;
@@ -254,7 +254,9 @@ vec3 calculateVolumeScattering(float depth, vec3 lightDir, vec3 viewDir) {
  * 计算环境光照 IBL
  */
 vec3 sampleEnvironment(vec3 reflectDir) {
-  return textureCube(uEnvironmentMap, reflectDir).rgb;
+  vec3 envReflect = textureCube(uEnvironmentMap, reflectDir).rgb;
+  envReflect = pow(envReflect, vec3(1.0 / 2.2));
+  return envReflect;
 }
 vec3 sampleEnvironment(vec3 reflectDir, float roughness) {
   // 根据粗糙度选择mipmap level
@@ -438,39 +440,75 @@ vec3 calculateDirectDiffuse(
  * // TOFIX: 
  * 计算环境光 Diffuse 部分
  */
-// vec3 calculateEnvDiffuse(vec3 normal, vec3 lightDir, vec3 viewDir, float depth, float metallic) {
-//   vec3 F0 = vec3(0.02);
-//   F0 = mix(F0, albedo, metallic);
-//   float NdotV = max(dot(normal, viewDir), 0.0);
-//   vec3 F = fresnelSchlick(NdotV, F0, 5.0);
-//   vec3 kd = (vec3(1.0) - F) * (1.0 - metallic);
-//   vec3 reflectDir = reflect(-viewDir, normal);
+vec3 calculateEnvDiffuse(vec3 albedo, vec3 normal, vec3 lightDir, vec3 viewDir, float depth, float metallic) {
+  vec3 F0 = vec3(0.02);
+  F0 = mix(F0, albedo, metallic);
+  float NdotV = max(dot(normal, viewDir), 0.0);
+  vec3 F = fresnelSchlick(NdotV, F0, 5.0);
+  vec3 kd = (vec3(1.0) - F) * (1.0 - metallic);
+  // vec3 reflectDir = reflect(-viewDir, normal);
 
-//   // TOFIX: 这里的环境光计算不对
-//   vec3 envRadiance = sampleEnvironment(reflectDir);
-//   vec3 volumeScattering = calculateVolumeScattering(depth, lightDir, viewDir);
+  // // TOFIX: 这里的环境光计算不对
+  // vec3 envRadiance = sampleEnvironment(reflectDir);
+  // vec3 volumeScattering = calculateVolumeScattering(depth, lightDir, viewDir);
 
-//   vec3 envDiffuse = kd * albedo * envRadiance + volumeScattering;
+  // vec3 envDiffuse = kd * albedo * envRadiance + volumeScattering;
 
-//   return envDiffuse;
-// }
+  // return envDiffuse;
+
+  vec3 radiance = vec3(0.0, 0.0, 0.0);
+
+  vec3 up = vec3(0.0, 1.0, 0.0);
+  vec3 right = normalize(cross(up, normal));
+  up = normalize(cross(normal, right));
+
+  // 不能直接用 phi += 0.25 和 theta += 0.25，会报错：Loop index cannot be modified by non-constant expression
+  // float delta = 0.5;
+  float sampleCounts = 0.0;
+  // Σᵢ Σⱼ f(θᵢ,φⱼ) sin(θᵢ) × Δθ × Δφ, Δθ = π/(2×n2), Δφ = 2π/n1
+  //  = Σᵢⱼ f(θᵢ,φⱼ) sin(θᵢ) × (π/2n2) × (2π/n1)
+  //  = (π²/n1n2) × Σᵢⱼ f(θᵢ,φⱼ) sin(θᵢ)
+  //  = (π²/sampleCounts) × Σᵢⱼ f(θᵢ,φⱼ) sin(θᵢ)
+  for (float phi = 0.0; phi < 2.0 * M_PI; phi += 1.0) {
+    for (float theta = 0.0; theta < M_PI / 2.0; theta += 1.0) {
+      // 球坐标 -> 笛卡尔坐标（正切空间）
+      // z 轴向上，θ 是与 z 轴的夹角，φ 是与 x 轴的夹角
+      vec3 tangentSample = vec3(sin(theta) * cos(phi), sin(theta) * sin(phi), cos(theta));
+      // 正切空间 -> 世界坐标  基变换：从"标准坐标系"到"世界坐标系"
+      // localSample.x * right：局部X轴方向的贡献
+      // localSample.y * up：   局部Y轴方向的贡献
+      // localSample.z * normal：局部Z轴方向的贡献
+      vec3 sampleVec = tangentSample.x * right + tangentSample.y * up + tangentSample.z * normal;
+
+      radiance += textureCube(uEnvironmentMap, sampleVec).rgb * cos(theta) * sin(theta);
+
+      sampleCounts++;
+    }
+  }
+
+  // sampleCounts = n1 * n2
+  radiance = M_PI * M_PI * radiance * (1.0 / sampleCounts);
+
+  vec3 envDiffuse = kd * albedo / M_PI * radiance;
+
+  return envDiffuse * 0.3;
+}
 
 /**
- * // TOFIX: 
  * 计算环境光 Specular 部分
  */
-// vec3 calculateEnvSpecular(vec3 normal, vec3 viewDir) {
-//   vec3 F0 = vec3(0.02);
-//   F0 = mix(F0, albedo, metallic);
-//   float NdotV = max(dot(normal, viewDir), 0.0);
-//   vec3 reflectDir = reflect(-viewDir, normal);
+vec3 calculateEnvSpecular(vec3 albedo, vec3 normal, vec3 viewDir, float reflectance, float metallic) {
+  vec3 F0 = vec3(0.02);
+  F0 = mix(F0, albedo, metallic);
+  float NdotV = max(dot(normal, viewDir), 0.0);
+  vec3 reflectDir = reflect(-viewDir, normal);
 
-//   vec3 envReflection = sampleEnvironment(reflectDir);
-//   vec3 envFresnel = fresnelSchlick(NdotV, F0, 5.0);
-//   vec3 envSpecular = envReflection * envFresnel * reflectance;
+  vec3 envReflection = sampleEnvironment(reflectDir);
+  vec3 envFresnel = fresnelSchlick(NdotV, F0, 5.0);
+  vec3 envSpecular = envReflection * envFresnel * reflectance;
 
-//   return envSpecular;
-// }
+  return envSpecular;
+}
 
 void main() {
   // 归一化法线
@@ -489,13 +527,13 @@ void main() {
   float foam = calculateFoam(normal, vWaveHeight);
   albedo = mix(uWaterColor, vec3(1.0), foam * 0.2);
   // 设置金属度
-  float metallic = 0.0;
+  float metallic = 0.02;
   // 设置粗糙度
   float roughness = 0.1;
 
-  vec3 ctRadiance = CookTorranceRadiance(albedo, metallic, roughness, normal, viewDir, lightDir, uLightRadiance, 5.0);
+  vec3 ctRadiance = CookTorranceRadiance(albedo, metallic, roughness, normal, viewDir, lightDir, uLightColor, 5.0);
 
-  // 计算直接光照的出射 Radiance
+  // 计算直接光照 Radiance
   float NdotL = max(dot(normal, lightDir), 0.0);
   vec3 directDiffuse = calculateDirectDiffuse(
     albedo,
@@ -509,10 +547,20 @@ void main() {
   );
   vec3 directSpecular = CookTorranceSpecularBRDF(albedo, roughness, metallic, normal, viewDir, lightDir, 5.0);
   vec3 directBRDF = directDiffuse + directSpecular;
-  vec3 directRadiance = directBRDF * uLightRadiance * NdotL;
+  vec3 directRadiance = directBRDF * uLightColor * NdotL;
+
+  // 计算环境光照 Radiance
+  // FIXME: 预留
+  vec3 envRadiance = vec3(0.0);
+  vec3 envDiffuse = calculateEnvDiffuse(albedo, normal, lightDir, viewDir, 0.0, metallic);
+  vec3 envSpecular = calculateEnvSpecular(albedo, normal, viewDir, uReflectance, metallic);
+  envRadiance = envSpecular;
+
+  // 计算直接光照 + 环境光照
+  vec3 radiance = directRadiance + envRadiance;
 
   // 一定不要忘记做 Gamma 校正
-  vec3 radiance = pow(clamp(directRadiance, 0.0, 1.0), vec3(1.0 / 2.2));
+  radiance = pow(clamp(radiance, 0.0, 1.0), vec3(1.0 / 2.2));
 
   gl_FragColor = vec4(radiance, 1.0);
 }
