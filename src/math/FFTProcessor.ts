@@ -65,11 +65,11 @@ export class FFTProcessor {
   private bitReverse(value: number, bitCount: number): number {
     // 如果 value 为 0，则无需翻转，直接返回
     if (value === 0) return 0
-    let result = value
+    let result = 0
     for (let i = 0; i < bitCount; i++) {
-      // 如果 value 的第 i 位为 1，那么就将其与第  位进行翻转
+      // 如果 value 的第 i 位为 1，那么就将其与第 bitCount - 1 - i 位进行翻转
       // 如果 value 的第 i 位为 0 则可不用进行翻转（节省运算次数）
-      if (this.isBitSet(result, i)) {
+      if (this.isBitSet(value, i)) {
         // bitCount - 1 为最高位索引，减 i 表示从最高索引开始的偏移
         result = this.setBit(result, bitCount - 1 - i)
       }
@@ -163,10 +163,18 @@ export class FFTProcessor {
       // 获取当前位置对应的蝶形元素
       const curButterfly = precomputedData[stage * size + i]
 
-      // 执行蝶形运算：f1(x) + Wnk * f2(x)
-      output[i] = input[curButterfly.upIndex].add(
-        curButterfly.wnk.multiply(input[curButterfly.downIndex])
-      )
+      const up = input[curButterfly.upIndex]
+      const down = input[curButterfly.downIndex]
+      const twiddle = curButterfly.wnk.multiply(down)
+
+      // Debug Code
+      // if (i == 0 || i == 1) {
+      //   console.log(curButterfly.upIndex, curButterfly.downIndex)
+      // }
+
+      // output[curButterfly.upIndex] = up.add(twiddle)
+      // output[curButterfly.downIndex] = up.subtract(twiddle)
+      output[i] = up.add(twiddle)
     }
   }
 
@@ -195,6 +203,9 @@ export class FFTProcessor {
       // 按位反转顺序重新排列输入数据
       bitReversedValues[i] = input[reversedIndex]
     }
+
+    // Debug Code
+    // console.log(bitReversedValues)
 
     // 初始化ping-pong缓冲区（双缓冲避免数据覆盖）
     let pingpong0: Complex[] = [...bitReversedValues]
@@ -238,13 +249,34 @@ export class FFTProcessor {
     return result
   }
 
+  // 临时的简单递归FFT实现
+  private simpleFFT(input: Complex[], inverse: boolean = false): Complex[] {
+    const N = input.length
+    if (N <= 1) return input
+
+    const even = input.filter((_, i) => i % 2 === 0)
+    const odd = input.filter((_, i) => i % 2 === 1)
+
+    const evenFFT = this.simpleFFT(even, inverse)
+    const oddFFT = this.simpleFFT(odd, inverse)
+
+    const result = new Array(N)
+    for (let k = 0; k < N / 2; k++) {
+      const t = this.calculateWnk(N, k, inverse).multiply(oddFFT[k])
+      result[k] = evenFFT[k].add(t)
+      result[k + N / 2] = evenFFT[k].subtract(t)
+    }
+
+    return result
+  }
+
   /**
    * 一维逆FFT (IFFT)
    * @param input 频域输入
    * @returns 时域输出
    */
   public ifft1DInterface(input: Complex[]): Complex[] {
-    return this.fft1DInterface(input, true)
+    return this.calculateFFT1D(input, true)
   }
 
   // =============== 以下：二维快速傅里叶变换 ===============
@@ -270,9 +302,9 @@ export class FFTProcessor {
     for (let i = 0; i < rows; i++) {
       result[i] = this.calculateFFT1D(result[i], inverse)
       // 如果是逆变换，对行进行归一化
-      if (inverse) {
-        result[i] = result[i].map((x) => x.dividedBy(cols))
-      }
+      // if (inverse) {
+      //   result[i] = result[i].map((x) => x.dividedBy(cols))
+      // }
     }
 
     // 第二步：对每一列进行一维FFT（使用迭代版本）
@@ -284,17 +316,21 @@ export class FFTProcessor {
       }
 
       // 对列进行FFT
-      const transformedColumn = this.calculateFFT1D(column, inverse)
+      // const transformedColumn = this.calculateFFT1D(column, inverse)
 
-      // 如果是逆变换，对列进行归一化
-      const finalColumn = inverse
-        ? transformedColumn.map((x) => x.dividedBy(rows))
-        : transformedColumn
+      // // 如果是逆变换，对列进行归一化
+      // const finalColumn = inverse
+      //   ? transformedColumn.map((x) => x.dividedBy(rows))
+      //   : transformedColumn
 
-      // 将结果写回矩阵
-      for (let i = 0; i < rows; i++) {
-        result[i][j] = finalColumn[i]
-      }
+      // // 将结果写回矩阵
+      // for (let i = 0; i < rows; i++) {
+      //   result[i][j] = finalColumn[i]
+      // }
+
+      const transformedColumn = this.calculateFFT1D(column, inverse) // 同样不缩放
+
+      for (let i = 0; i < rows; i++) result[i][j] = transformedColumn[i]
     }
 
     return result
@@ -302,7 +338,11 @@ export class FFTProcessor {
 
   // 二维逆FFT
   public ifft2DInterface(matrix: Complex[][]): Complex[][] {
-    return this.fft2DInterface(matrix, true)
+    // return this.fft2DInterface(matrix, true)
+    const N = matrix.length
+    const out = this.fft2DInterface(matrix, true)
+    const scale = 1 / (N * N)
+    return out.map((row) => row.map((x) => x.multiply(new Complex(scale, 0))))
   }
 
   /**
