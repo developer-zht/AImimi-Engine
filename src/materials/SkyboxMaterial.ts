@@ -3,6 +3,7 @@ import { CubeMapTexture } from '@/textures/CubeMapTexture'
 import { Material } from '@/materials/Material'
 import { Uniforms, UniformType } from '@/types/Material'
 import { HDRCubeMapTexture } from '@/textures/HDRCubeMapTexture'
+import { TextureType } from '@/managers/cubemap/CubeMapRenderManager'
 
 export class SkyboxMaterial extends Material {
   private gl: WebGLRenderingContext
@@ -23,15 +24,18 @@ export class SkyboxMaterial extends Material {
     this.cubeMapTexture = new CubeMapTexture(this.gl)
   }
 
-  async setTexUniform() {
+  async setTexUniform(textureType: TextureType = TextureType.HDR_FILE) {
     try {
-      await this.cubeMapTexture.createCubeMapFromImages({
-        basePath: '/assets/textures/skyboxes/sky_09_cubemap/',
-        extension: '.png'
-      })
-      // this.uniforms['uSkyboxMap'].value = this.cubeMapTexture.texture
-      this.uniforms['uSkyboxMap'].value = HDRCubeMapTexture.getInstance(this.gl).envCubemap
-      console.log(this.cubeMapTexture.texture)
+      switch (textureType) {
+        case TextureType.CUBE_MAP:
+          await this.cubeMapTexture.createCubeMapFromImages({
+            basePath: '/assets/textures/skyboxes/sky_09_cubemap/',
+            extension: '.png'
+          })
+          this.uniforms['uSkyboxMap'].value = this.cubeMapTexture.texture
+        case TextureType.HDR_FILE:
+          this.uniforms['uSkyboxMap'].value = HDRCubeMapTexture.getInstance(this.gl).envCubemap
+      }
     } catch (error) {
       throw new Error(error)
     }
@@ -41,13 +45,14 @@ export class SkyboxMaterial extends Material {
 export async function buildSkyboxMaterial(
   gl: WebGLRenderingContext,
   vertexPath: string,
-  fragmentPath: string
+  fragmentPath: string,
+  textureType: TextureType
 ): Promise<SkyboxMaterial> {
   let vertexShaderContent = await getShaderString(vertexPath)
   let fragmentShaderContent = await getShaderString(fragmentPath)
 
   const skyboxMaterial = new SkyboxMaterial(gl, vertexShaderContent, fragmentShaderContent)
-  await skyboxMaterial.setTexUniform()
+  await skyboxMaterial.setTexUniform(textureType)
   // console.log(skyboxMaterial.uniforms['uSkyboxMap'].value)
 
   return skyboxMaterial
