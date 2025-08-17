@@ -76,7 +76,8 @@ export default defineConfig(({ command, mode }) => {
     define: {
       __APP_VERSION__: JSON.stringify(process.env.npm_package_version),
       __BUILD_TIME__: JSON.stringify(new Date().toISOString()),
-      __APP_ROOT_PATH__: JSON.stringify(fileURLToPath(new URL('./', import.meta.url)))
+      __APP_ROOT_PATH__: JSON.stringify(fileURLToPath(new URL('./', import.meta.url))),
+      __DEBUG__: JSON.stringify(false)
     },
     // 优化依赖
     optimizeDeps: {
