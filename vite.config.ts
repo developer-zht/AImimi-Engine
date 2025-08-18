@@ -1,9 +1,11 @@
 import { fileURLToPath, URL } from 'url'
 import { defineConfig, loadEnv, UserConfig } from 'vite'
-import { ViteConfigEnv } from './env'
 
+// Debug Code
 // console.log(new URL('./src', import.meta.url))
 // console.log(import.meta.url)
+
+type ViteConfigEnv = 'staging' | 'production'
 
 // 构建配置
 const buildConfigMap: Record<ViteConfigEnv, UserConfig> = {
