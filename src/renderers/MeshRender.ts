@@ -5,7 +5,9 @@ import { Material } from '@/materials/Material'
 import { Shader } from '@/shaders/Shader'
 import { PerspectiveCamera } from 'three'
 
-import type { UpdatedParamters } from '@/types/MeshRender'
+import type { DrawControlParams } from '@/renderers/WebGLRenderer'
+import { FFTOceanRenderManager } from '@/managers/fftOcean/FFTOceanRenderManager'
+import { UpdatedParamters } from '@/types/WebGLRenderer'
 
 export class MeshRender {
   // public
@@ -19,7 +21,14 @@ export class MeshRender {
   #texcoordBuffer: WebGLBuffer
   #indicesBuffer: WebGLBuffer
 
-  constructor(gl: WebGLRenderingContext, mesh: Mesh, material: Material) {
+  private manager: FFTOceanRenderManager | null
+
+  constructor(
+    gl: WebGLRenderingContext,
+    mesh: Mesh,
+    material: Material,
+    manager: FFTOceanRenderManager = null
+  ) {
     this.gl = gl
     this.mesh = mesh
     this.material = material
@@ -28,6 +37,8 @@ export class MeshRender {
     this.#normalBuffer = this.gl.createBuffer()
     this.#texcoordBuffer = this.gl.createBuffer()
     this.#indicesBuffer = this.gl.createBuffer()
+
+    this.manager = manager
 
     // 处理 Mesh 中的数据
     let extraAttribs = []
@@ -175,10 +186,10 @@ export class MeshRender {
    * 利用 material 修改（写入）shader 中的 uniform 数据
    * @param {Record<string, WebGLUniformLocation>} this.shader.program.uniforms 简单举例 {name:uniformLocation}，因此 this.shader.program.uniforms[k] 就是 uniformLocation
    */
-  bindMaterialParameters() {
+  bindMaterialParameters(drawControlParams: DrawControlParams) {
     const gl = this.gl
 
-    let textureNum = 0
+    // let textureNum = drawControlParams.globalTextureNum
     for (let k in this.material.uniforms) {
       if (this.material.uniforms[k].type == 'matrix4fv') {
         gl.uniformMatrix4fv(this.shader.program.uniforms[k], false, this.material.uniforms[k].value)
@@ -195,10 +206,38 @@ export class MeshRender {
       } else if (this.material.uniforms[k].type == '1i') {
         gl.uniform1i(this.shader.program.uniforms[k], this.material.uniforms[k].value)
       } else if (this.material.uniforms[k].type == 'texture') {
-        gl.activeTexture(this.gl.TEXTURE0 + textureNum)
-        gl.bindTexture(this.gl.TEXTURE_2D, this.material.uniforms[k].value)
-        gl.uniform1i(this.shader.program.uniforms[k], textureNum)
-        textureNum += 1
+        // gl.activeTexture(this.gl.TEXTURE0 + textureNum)
+        // gl.bindTexture(this.gl.TEXTURE_2D, this.material.uniforms[k].value)
+        // gl.uniform1i(this.shader.program.uniforms[k], textureNum)
+        // textureNum += 1
+        if (this.material.uniforms[k].value && this.material.uniforms[k].value !== null) {
+          // console.log(k, this.material.uniforms[k], this.shader.program.uniforms[k])
+          gl.activeTexture(this.gl.TEXTURE0 + drawControlParams.globalTextureNum)
+          gl.bindTexture(this.gl.TEXTURE_2D, this.material.uniforms[k].value)
+          gl.uniform1i(this.shader.program.uniforms[k], drawControlParams.globalTextureNum)
+          drawControlParams.globalTextureNum += 1
+        } else {
+          // 不增加 drawControlParams.globalTextureNum，也不绑定纹理
+          console.warn(`跳过null值的立方体贴图: ${k}`)
+        }
+      } else if (this.material.uniforms[k].type == 'textureCube') {
+        // gl.activeTexture(this.gl.TEXTURE0 + textureNum)
+        // gl.bindTexture(this.gl.TEXTURE_CUBE_MAP, this.material.uniforms[k].value)
+        // gl.uniform1i(this.shader.program.uniforms[k], textureNum)
+        // textureNum += 1
+        // 检查纹理值是否有效
+        if (this.material.uniforms[k].value && this.material.uniforms[k].value !== null) {
+          // console.log(this.material.uniforms[k].value)
+          gl.activeTexture(this.gl.TEXTURE0 + drawControlParams.globalTextureNum)
+          gl.bindTexture(this.gl.TEXTURE_CUBE_MAP, this.material.uniforms[k].value)
+          // console.log(drawControlParams.globalTextureNum)
+          // console.log(this.shader.program.uniforms[k])
+          gl.uniform1i(this.shader.program.uniforms[k], drawControlParams.globalTextureNum)
+          drawControlParams.globalTextureNum += 1
+        } else {
+          // 不增加 drawControlParams.globalTextureNum，也不绑定纹理
+          console.warn(`跳过null值的立方体贴图: ${k}`)
+        }
       }
     }
   }
@@ -218,7 +257,8 @@ export class MeshRender {
     camera: PerspectiveCamera,
     gl_draw_buffers: WEBGL_draw_buffers,
     fbo: WebGLFramebuffer | null,
-    updatedParamters: UpdatedParamters
+    updatedParamters: UpdatedParamters,
+    drawControlParams: DrawControlParams
   ) {
     const gl = this.gl
 
@@ -235,9 +275,14 @@ export class MeshRender {
     // Bind Camera parameters
     this.bindCameraParameters(camera)
 
+    if (this.manager) {
+      this.manager.update(updatedParamters.uTime)
+      // console.log(this.manager)
+    }
+
     // Bind material parameters
     this.updateMaterialParameters(updatedParamters)
-    this.bindMaterialParameters()
+    this.bindMaterialParameters(drawControlParams)
 
     // Draw
     {

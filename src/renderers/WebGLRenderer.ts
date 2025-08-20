@@ -1,8 +1,12 @@
 import { MeshRender } from '@/renderers/MeshRender'
 import { PerspectiveCamera } from 'three'
 
-import type { LightObj } from '@/types/WebGLRenderer'
+import type { LightObj, UpdatedParamters, UpdatedTimeParameter } from '@/types/WebGLRenderer'
 import type { UpdatedLightParamters } from '@/types/light'
+
+export interface DrawControlParams {
+  globalTextureNum: number // TEXTUREi 计数器
+}
 
 export class WebGLRenderer {
   public gl: WebGLRenderingContext
@@ -15,6 +19,11 @@ export class WebGLRenderer {
   private bufferMesheRenders: MeshRender[] = []
 
   private startTime: number
+
+  private drawControlParams: DrawControlParams = {
+    // TEXTUREi 计数器
+    globalTextureNum: 0
+  }
 
   constructor(
     gl: WebGLRenderingContext,
@@ -55,6 +64,9 @@ export class WebGLRenderer {
     gl.depthFunc(gl.LEQUAL)
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT)
 
+    // TEXTUREi 的默认偏移量为 0
+    this.drawControlParams.globalTextureNum = 0
+
     /**
      * 更新参数
      * Update light parameters
@@ -68,19 +80,26 @@ export class WebGLRenderer {
       uLightVP: lightVP,
       uLightDir: lightDir
     }
+
     // 动画需要时间更新
-    let updatedTimeParameter = {
-      uTime: (Date.now() - this.startTime) / 10000
+    let updatedTimeParameter: UpdatedTimeParameter = {
+      uTime: (Date.now() - this.startTime) / 1000
     }
     // 合并参数
-    let updatedParameters = {
+    let updatedParameters: UpdatedParamters = {
       ...updatedLightParamters,
       ...updatedTimeParameter
     }
 
     // Draw light
     light.meshRender.mesh.transform.translate = light.entity.lightPos
-    light.meshRender.draw(this.camera, this.gl_draw_buffers, null, updatedParameters)
+    light.meshRender.draw(
+      this.camera,
+      this.gl_draw_buffers,
+      null,
+      updatedParameters,
+      this.drawControlParams
+    )
     // console.log(light.meshRender)
 
     // Shadow pass
@@ -92,7 +111,8 @@ export class WebGLRenderer {
         this.camera,
         this.gl_draw_buffers,
         light.entity.fbo,
-        updatedParameters
+        updatedParameters,
+        this.drawControlParams
       )
       // this.shadowMeshes[i].draw(this.camera);
     }
@@ -105,14 +125,21 @@ export class WebGLRenderer {
         this.camera,
         this.gl_draw_buffers,
         this.camera.fbo,
-        updatedParameters
+        updatedParameters,
+        this.drawControlParams
       )
       // this.bufferMeshes[i].draw(this.camera);
     }
 
     // Camera pass
     for (let i = 0; i < this.meshRenders.length; i++) {
-      this.meshRenders[i].draw(this.camera, this.gl_draw_buffers, null, updatedParameters)
+      this.meshRenders[i].draw(
+        this.camera,
+        this.gl_draw_buffers,
+        null,
+        updatedParameters,
+        this.drawControlParams
+      )
     }
   }
 }

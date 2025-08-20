@@ -11,10 +11,16 @@ import { loadGLTF } from '@/loaders/loadGLTF'
 import { DirectionalLight } from '@/lights/DirectionalLight'
 
 import type { LightParams } from '@/types/light'
-import type { CameraType, SceneType, LightType } from '@/types/engine'
+import { CameraType, SceneType, LightType } from '@/types/engine'
 import { Vec3 } from '@/types/math'
 
 import { PerformanceMonitor } from '@/monitors/PerformanceMonitor'
+import { loadCubeMap } from './managers/cubemap/CubeMapRenderManager'
+import { CubeMapPreset } from './managers/cubemap/CubeMapPreset'
+import { loadFFTOcean } from './managers/fftOcean/FFTOceanRenderManager'
+import { FFTOceanPresets } from './managers/fftOcean/FFTOceanPresets'
+import { HDRCubeMapTexture } from './textures/HDRCubeMapTexture'
+import { HDRTextureLoader, TextureFileType } from '@/loaders/loadHDR'
 
 export class Engine {
   // public
@@ -53,34 +59,52 @@ export class Engine {
     console.log('Class Engine has initialized')
   }
 
-  init() {
+  async init() {
     // 初始化上下文
     this.initGL()
     // 初始化相机和控制参数
     // this.initCameraParams('CubeSceneCamera')
-    this.initCameraParams('CaveSceneCamera')
+    this.initCameraParams(CameraType.WATER_SCENE_CAMERA)
     this.initCamera()
     this.initCameraControls()
 
     // 初始化渲染器
     this.initRenderer()
-    // 加载场景
-    // this.loadSceneGLTF('CubeScene')
-    // this.loadSceneGLTF('CaveScene')
-    // 加载水场景
-    // loadWater(this.renderer, WaterPresets.createCalmLake())
-    loadWater(this.renderer, WaterPresets.createGerstnerWaves())
+
     // 加载灯光
-    // this.addLight('CubeLight')
-    this.addLight('CaveLight')
+    // this.addLight(LightType.CUBE_LIGHT)
+    this.addLight(LightType.WAVE_LIGHT)
     // 加载调参面板
-    this.initGUI()
+    // this.initGUI()
     // 初始化性能检测器
     this.initPerformanceMonitor()
+
+    // 加载 IBL 预计算的 Texture
+    // EXR file path: 'public/assets/textures/environment/skies/qwantani_moonrise_puresky_2k/puresky.exr'
+    // HDR file path: 'public/assets/textures/environment/skies/qwantani_moonrise_puresky_2k/puresky.hdr'
+    // EXR file path: 'public/assets/textures/environment/skies/EveningSkyHDRI039B/EveningSkyHDRI039B_2K-HDR.exr'
+    const hdrTextureLoader = new HDRTextureLoader(this.gl)
+    const hdrTexture = await hdrTextureLoader.loadHDRTexture(
+      'public/assets/textures/environment/skies/EveningSkyHDRI039B/EveningSkyHDRI039B_2K-HDR.exr',
+      TextureFileType.EXR
+    )
+    const hdrCubeMapTexture = HDRCubeMapTexture.getInstance(this.gl)
+    hdrCubeMapTexture.init(hdrTexture)
+
+    // 加载场景
+    // this.loadSceneGLTF(SceneType.CUBE_SCENE)
+    // this.loadSceneGLTF(SceneType.CAVE_SCENE)
+    // 加载 skybox
+    await loadCubeMap(this.renderer, CubeMapPreset.createSkybox())
+    // 加载水场景
+    // loadWater(this.renderer, WaterPresets.getInstance(this.renderer.gl).createSineWave())
+    // loadWater(this.renderer, WaterPresets.getInstance(this.renderer.gl).createGerstnerWaves())
+    // 加载 FFT Ocean
+    // loadFFTOcean(this.renderer, FFTOceanPresets.getInstance(this.gl).createFFTOceanParams())
   }
 
   // 初始化上下文
-  initGL() {
+  private initGL() {
     let gl = this.canvas.getContext('webgl')
     if (!gl) {
       alert('Unable to initialize WebGL. Your browser or machine may not support it.')
@@ -88,7 +112,26 @@ export class Engine {
     }
     // 以下功能不需要额外库，都是 WebGL 的标准扩展（这些扩展只在 WebGL1 中需要显式启用，在 WebGL2 中都是默认可用的）
     // 启用 OES_texture_float 扩展，该扩展允许 WebGL 使用浮点数像素类型的纹理
-    gl.getExtension('OES_texture_float')
+    const extFloat = gl.getExtension('OES_texture_float')
+    if (!extFloat) {
+      throw new Error(
+        '❌ OES_texture_float extension not supported - Your browser/GPU may not support floating-point textures.'
+      )
+    }
+    // 启用 OES_texture_half_float 扩展，该扩展允许 WebGL 使用 16 位浮点数（半精度）像素类型的纹理
+    const extHalfFloat = gl.getExtension('OES_texture_half_float')
+    if (!extHalfFloat) {
+      throw new Error(
+        '❌ OES_texture_half_float extension not supported - Half-float textures are required for HDR rendering.'
+      )
+    }
+    // 允许对浮点纹理使用线性过滤（LINEAR），否则只能 NEAREST
+    const extTexFloatLinear = gl.getExtension('OES_texture_float_linear')
+    if (!extTexFloatLinear) {
+      throw new Error(
+        '❌ OES_texture_float_linear extension not supported - Linear filtering for float textures is disabled (fallback to NEAREST).'
+      )
+    }
     // 启用 WEBGL_draw_buffers 扩展
     this.gl_draw_buffers = gl.getExtension('WEBGL_draw_buffers')
     // 查询系统支持的最大绘制缓冲区数量
@@ -99,7 +142,7 @@ export class Engine {
   }
 
   // 初始化场景中的相机和控件参数
-  initCameraParams(CameraType: CameraType) {
+  private initCameraParams(CameraType: CameraType) {
     switch (CameraType) {
       case 'CubeSceneCamera':
         this.cameraPosition = [6, 1, 0]
@@ -109,18 +152,22 @@ export class Engine {
         this.cameraPosition = [4.18927, 1.0313, 2.07331]
         this.cameraTarget = [2.92191, 0.98, 1.55037]
         break
+      case 'WaterSceneCamera':
+        this.cameraPosition = [100, 100, 100]
+        this.cameraTarget = [0, 0, 0]
+        break
       default:
         this.cameraPosition = [6, 1, 0]
         this.cameraTarget = [0, 0, 0]
     }
   }
   // 初始化相机
-  initCamera() {
+  private initCamera() {
     const camera = new PerspectiveCamera(
       75,
       this.canvas.clientWidth / this.canvas.clientHeight,
       1e-3,
-      1000
+      100000
     )
 
     camera.position.set(this.cameraPosition[0], this.cameraPosition[1], this.cameraPosition[2])
@@ -134,12 +181,12 @@ export class Engine {
     })
   }
   // 重置相机 FOV 和投影矩阵
-  resetCameraSize(width: number, height: number) {
+  private resetCameraSize(width: number, height: number) {
     this.camera.aspect = width / height
     this.camera.updateProjectionMatrix()
   }
   // 初始化相机控制对象
-  initCameraControls() {
+  private initCameraControls() {
     const cameraControls = new OrbitControls(this.camera, this.canvas)
     // 启用鼠标缩放，缩放速度为 1.0 倍标准速度
     cameraControls.enableZoom = true
@@ -157,7 +204,7 @@ export class Engine {
   }
 
   // 加载场景
-  loadSceneGLTF(sceneType: SceneType) {
+  private loadSceneGLTF(sceneType: SceneType) {
     switch (sceneType) {
       case 'CubeScene':
         loadGLTF(this.renderer, 'assets/cube/', 'cube1', 'SSRMaterial')
@@ -172,16 +219,15 @@ export class Engine {
   }
 
   // 初始化渲染器
-  initRenderer() {
+  private initRenderer() {
     const renderer = new WebGLRenderer(this.gl, this.gl_draw_buffers, this.camera)
     this.renderer = renderer
   }
 
   // 添加灯光
-  addLight(lightType: LightType) {
+  private addLight(lightType: LightType) {
     let lightUp: Vec3 = [1, 0, 0]
     let lightParams = this.getLightParams(lightType)
-    // console.log(lightParams)
 
     const directionLight = new DirectionalLight(
       lightParams.lightRadiance,
@@ -191,13 +237,14 @@ export class Engine {
       this.gl,
       this.gl_draw_buffers
     )
+
     this.renderer.addLight(directionLight)
     // console.log(this.renderer.lights)
   }
   // 返回灯光参数
-  getLightParams(lightType: LightType): LightParams {
+  private getLightParams(lightType: LightType): LightParams {
     switch (lightType) {
-      case 'CubeLight':
+      case LightType.CUBE_LIGHT:
         return {
           lightRadiance: [1, 1, 1],
           lightPos: [-2, 4, 1],
@@ -207,10 +254,20 @@ export class Engine {
             z: -0.2
           }
         }
-      case 'CaveLight':
+      case LightType.CAVE_LIGHT:
         return {
           lightRadiance: [20, 20, 20],
           lightPos: [-0.45, 5.40507, 0.637043],
+          lightDir: {
+            x: 0.39048811,
+            y: -0.89896828,
+            z: 0.19843153
+          }
+        }
+      case LightType.WAVE_LIGHT:
+        return {
+          lightRadiance: [200, 200, 200],
+          lightPos: [1, 5, 0],
           lightDir: {
             x: 0.39048811,
             y: -0.89896828,
@@ -230,8 +287,16 @@ export class Engine {
     }
   }
 
+  // 初始化 IBL（只在程序启动时执行一次）
+  private initIBL() {
+    console.log('🌅 Initializing IBL system...')
+
+    // 加载HDR纹理
+    // const hdrLoader = new
+  }
+
   // 初始化 GUI 调参面板
-  initGUI() {
+  private initGUI() {
     const gui = new GUI()
     const lightPanel = gui.addFolder('Directional Light')
 
@@ -248,7 +313,7 @@ export class Engine {
   }
 
   // 启动渲染
-  mainLoop() {
+  public mainLoop() {
     this.cameraControls.update()
     this.renderer.render()
     this.perfMonitor.update()

@@ -5,19 +5,12 @@ export function loadShaderFile(filename: string) {
     const loader = new FileLoader()
 
     loader.load(filename, (data) => {
+      // Debug Code
       // console.log('data', data)
       resolve(data)
     })
   })
 }
-
-// export async function getShaderString(filename) {
-//   let val = ''
-//   await loadShaderFile(filename).then((result) => {
-//     val = result
-//   })
-//   return val
-// }
 
 export async function getShaderString(filename: string): Promise<string> {
   try {
