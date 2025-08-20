@@ -13,6 +13,17 @@ export enum UniformType {
   TEXTURE_CUBE = 'textureCube'
 }
 
+export type UniformEntry =
+  | { type: UniformType.ONE_I; value: number }
+  | { type: UniformType.TWO_IV; value: Int32Array | number[] }
+  | { type: UniformType.THREE_IV; value: Int32Array | number[] }
+  | { type: UniformType.ONE_F; value: number }
+  | { type: UniformType.TWO_FV; value: Float32Array | number[] }
+  | { type: UniformType.THREE_FV; value: Float32Array | number[] }
+  | { type: UniformType.MATRIX_4FV; value: Float32Array | number[] }
+  | { type: UniformType.TEXTURE_2D; value: WebGLTexture | null }
+  | { type: UniformType.TEXTURE_CUBE; value: WebGLTexture | null }
+
 export interface Uniforms {
-  [name: string]: { type: UniformType; value: any }
+  [name: string]: UniformEntry
 }
