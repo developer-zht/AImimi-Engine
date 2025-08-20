@@ -21,6 +21,19 @@
         "bracketSpacing": true,
         "bracketSameLine": true
       }
+    },
+    {
+      "files": "*.{js,ts}",
+      "options": {
+        "semi": false,
+        "singleQuote": true
+      }
+    },
+    {
+      "files": "*.json",
+      "options": {
+        "printWidth": 80
+      }
     }
   ]
 }

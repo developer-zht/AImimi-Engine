@@ -1,3 +1,6 @@
-dist
-node_modules
+# .prettierignore
+dist/
+node_modules/
 *.min.js
+*.min.css
+package-lock.json
