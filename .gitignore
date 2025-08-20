@@ -29,11 +29,11 @@ prt/
 
 # 前端构建相关
 # npm依赖包目录
-node_modules
+node_modules/
 # 生产构建输出目录       
-dist        
+dist/
 # SSR构建输出目录 
-dist-ssr
+dist-ssr/
 # 测试覆盖率报告目录    
 coverage
 # 本地环境配置文件（如.env.local）
@@ -42,6 +42,9 @@ coverage
 # 测试相关
 /cypress/videos/
 /cypress/screenshots/
+
+# vscode counter 插件相关路径
+/.VSCodeCounter/
 
 # macOS
 **/.DS_Store
