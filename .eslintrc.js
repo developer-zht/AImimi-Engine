@@ -28,5 +28,13 @@ module.exports = {
     '@typescript-eslint/explicit-function-return-type': 'off' // 不强制写函数返回值
   },
   // 忽略的文件
-  ignorePatterns: ['node_modules', 'dist', '*.min.js', 'coverage']
+  ignorePatterns: [
+    'node_modules',
+    'dist',
+    '*.min.js',
+    'coverage',
+    'package.json',
+    'package-lock.json',
+    'stats.html'
+  ]
 }
