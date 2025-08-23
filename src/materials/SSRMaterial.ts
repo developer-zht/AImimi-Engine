@@ -3,6 +3,7 @@ import { getShaderString } from '@/loaders/loadShader'
 import { Light } from '@/types/light'
 import { PerspectiveCamera } from 'three'
 import { Texture } from '@/textures/Texture'
+import { UniformType } from '@/types/Material'
 
 export class SSRMaterial extends Material {
   constructor(
@@ -19,13 +20,13 @@ export class SSRMaterial extends Material {
 
     super(
       {
-        uLightRadiance: { type: '3fv', value: lightIntensity },
-        uLightDir: { type: '3fv', value: lightDir },
-        uGDiffuse: { type: 'texture', value: camera.fbo.textures[0] },
-        uGDepth: { type: 'texture', value: camera.fbo.textures[1] },
-        uGNormalWorld: { type: 'texture', value: camera.fbo.textures[2] },
-        uGShadow: { type: 'texture', value: camera.fbo.textures[3] },
-        uGPosWorld: { type: 'texture', value: camera.fbo.textures[4] }
+        uLightRadiance: { type: UniformType.THREE_FV, value: lightIntensity },
+        uLightDir: { type: UniformType.THREE_FV, value: lightDir },
+        uGDiffuse: { type: UniformType.TEXTURE_2D, value: camera.fbo.textures[0] },
+        uGDepth: { type: UniformType.TEXTURE_2D, value: camera.fbo.textures[1] },
+        uGNormalWorld: { type: UniformType.TEXTURE_2D, value: camera.fbo.textures[2] },
+        uGShadow: { type: UniformType.TEXTURE_2D, value: camera.fbo.textures[3] },
+        uGPosWorld: { type: UniformType.TEXTURE_2D, value: camera.fbo.textures[4] }
       },
       [],
       vertexShader,

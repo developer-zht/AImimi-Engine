@@ -1,14 +1,15 @@
 import { Material } from '@/materials/Material'
 import { getShaderString } from '@/loaders/loadShader'
 import { Light } from '@/types/light'
+import { UniformType } from '@/types/Material'
 
 export class ShadowMaterial extends Material {
   constructor(light: Light, vertexShader: string, fragmentShader: string) {
-    let lightVP = light.CalcDirectionalLightVP()
+    const lightVP = light.CalcDirectionalLightVP()
 
     super(
       {
-        uLightVP: { type: 'matrix4fv', value: lightVP }
+        uLightVP: { type: UniformType.MATRIX_4FV, value: lightVP }
       },
       [],
       vertexShader,
@@ -23,8 +24,8 @@ export async function buildShadowMaterial(
   vertexPath: string,
   fragmentPath: string
 ): Promise<ShadowMaterial> {
-  let vertexShader = await getShaderString(vertexPath)
-  let fragmentShader = await getShaderString(fragmentPath)
+  const vertexShader = await getShaderString(vertexPath)
+  const fragmentShader = await getShaderString(fragmentPath)
 
   return new ShadowMaterial(light, vertexShader, fragmentShader)
 }
