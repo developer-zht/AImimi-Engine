@@ -17,11 +17,10 @@ export class Shader {
     const fs = this.compileShader(fragmentShaderContent, gl.FRAGMENT_SHADER)
 
     this.program = this.addShaderLocations(this.linkShader(vs, fs), shaderParameters)
-    // console.log(this.program)
   }
 
   private compileShader(shaderSource: string, shaderType: GLenum): WebGLShader {
-    let shader = this.gl.createShader(shaderType)
+    const shader = this.gl.createShader(shaderType)
     this.gl.shaderSource(shader, shaderSource)
     this.gl.compileShader(shader)
 
