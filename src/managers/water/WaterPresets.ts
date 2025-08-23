@@ -4,6 +4,8 @@ import { setTransform } from '@/utils/transformation'
 import { GerstnerWaveMaterialParams, GerstnerWaveParams } from '@/materials/GerstnerWaveMaterial'
 import { CubeMapTexture } from '@/textures/CubeMapTexture'
 import { WaterMaterialParams } from '@/materials/WaterMaterial'
+import { HDRCubeMapTexture } from '@/textures/HDRCubeMapTexture'
+import { FileExtensions, TexturePaths } from '@/config/resourcePaths'
 
 // 水体类型
 export enum WaterType {
@@ -36,14 +38,18 @@ export class WaterPresets {
   }
 
   async createSkybox(): Promise<WebGLTexture> {
-    const skybox = new CubeMapTexture(this.gl)
-    await skybox.createCubeMapFromImages({
-      basePath: '/assets/textures/skyboxes/sky_09_cubemap/',
-      extension: '.png'
-    })
+    // const skybox = new CubeMapTexture(this.gl)
+    // await skybox.createCubeMapFromImages({
+    //   basePath: TexturePaths.SKY_09_CUBEMAP,
+    //   extension: FileExtensions.PNG
+    // })
+    // const skyboxTexture = skybox.texture
+
+    const skyboxTexture = HDRCubeMapTexture.getInstance(this.gl).envCubemap
+
     // console.log(skybox.texture)
 
-    return skybox.texture
+    return skyboxTexture
   }
 
   createWaterColorParams(
