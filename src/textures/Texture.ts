@@ -110,6 +110,6 @@ export class Texture {
   }
 }
 
-function isPowerOf2(value: number) {
+export function isPowerOf2(value: number) {
   return (value & (value - 1)) == 0
 }
