@@ -35,6 +35,6 @@ module.exports = {
     'coverage',
     'package.json',
     'package-lock.json',
-    'stats.html'
+    '*.html'
   ]
 }
