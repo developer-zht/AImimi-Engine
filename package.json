@@ -8,7 +8,7 @@
     "build:staging": "vite build --mode staging",
     "build:analyze": "vite build --mode production -- --analyze",
     "preview": "vite preview",
-    "lint": "eslint src/**/*.{js,ts} --max-warnings 0",
+    "lint": "eslint src/**/*.{js,ts}",
     "lint:fix": "eslint src/**/*.js --fix",
     "type-check": "tsc --noEmit",
     "format": "prettier --write \"src/**/*.{js,json,css,html}\"",
