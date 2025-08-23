@@ -1,6 +1,6 @@
 import { WaterSurface } from '@/objects/WaterSurface'
 import { TransformationParams } from '@/types/transformation'
-import { OceanParams } from './OceanSpectrum'
+import { OceanParams } from '@/managers/fftOcean/PhillipsSpectrum'
 import { Mesh } from '@/objects/Mesh'
 import {
   buildFFTOceanMaterial,
@@ -45,7 +45,7 @@ export class FFTOceanRenderManager {
     this.fftOceanGenerator = new FFTOceanGenerator(config.oceanParams)
 
     // 创建纹理管理器
-    this.oceanTextureManager = new OceanTextureManager(gl, config.oceanParams.size)
+    this.oceanTextureManager = new OceanTextureManager(gl, config.oceanParams.resolution)
 
     this.config.materialParams.displacementMap = this.oceanTextureManager.getDisplacementTexture()
     this.config.materialParams.normalMap = this.oceanTextureManager.getNormalTexture()
@@ -73,6 +73,7 @@ export class FFTOceanRenderManager {
 
   // 创建材质
   private async createFFTOceanMaterial(): Promise<FFTOceanMaterial> {
+    // Debug Code
     // console.log(this.config.materialParams)
     return await buildFFTOceanMaterial(
       this.config.materialParams,
