@@ -7,6 +7,14 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
+# 本地环境配置文件（如.env.local）
+*.local
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
 # Editor directories and files
 # 忽略项目中任何位置的.vscode文件夹
 **/.vscode/
@@ -36,15 +44,15 @@ dist/
 dist-ssr/
 # 测试覆盖率报告目录    
 coverage
-# 本地环境配置文件（如.env.local）
-*.local          
+
 
 # 测试相关
 /cypress/videos/
 /cypress/screenshots/
 
-# vscode counter 插件相关路径
+# vscode counter 插件相关
 /.VSCodeCounter/
+stats.html
 
 # macOS
 **/.DS_Store
