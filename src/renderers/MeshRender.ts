@@ -73,7 +73,8 @@ export class MeshRender {
     this.gl.bindBuffer(this.gl.ELEMENT_ARRAY_BUFFER, this.#indicesBuffer)
     this.gl.bufferData(
       this.gl.ELEMENT_ARRAY_BUFFER,
-      new Uint16Array(mesh.indices),
+      // new Uint16Array(mesh.indices),
+      mesh.indicesData,
       this.gl.STATIC_DRAW
     )
     this.gl.bindBuffer(this.gl.ELEMENT_ARRAY_BUFFER, null)
@@ -287,7 +288,8 @@ export class MeshRender {
     // Draw
     {
       const vertexCount = this.mesh.count
-      const type = gl.UNSIGNED_SHORT
+      // const type = gl.UNSIGNED_SHORT // 启动了 OES_element_index_uint 扩展，别忘记把 indices 的类型改成 gl.UNSIGNED_INT
+      const type = gl.UNSIGNED_INT
       const offset = 0
       gl.drawElements(gl.TRIANGLES, vertexCount, type, offset)
     }
