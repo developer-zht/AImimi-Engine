@@ -1,8 +1,10 @@
+import { isPowerOf2 } from '@/textures/Texture'
+
 export class imageUrlTexture {
   constructor(gl, url) {
     this.gl = gl
     this.url = url
-    this.texture
+    this.texture = null
   }
 
   async init() {
