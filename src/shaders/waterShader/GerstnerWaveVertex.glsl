@@ -28,7 +28,6 @@ uniform vec2 uDepthCenter; // 深度中心点
 uniform float uDepthFalloff; // 深度衰减系数
 
 // 传入 Fragment 中的 Varying
-varying vec3 vPosition;
 varying vec3 vNormal;
 varying vec2 vTexCoord;
 varying vec3 vWorldPosition;
@@ -60,21 +59,29 @@ float calculateJacobian(GerstnerWave wave, vec2 position, float time) {
   // 计算振幅
   float amplitude = wave.steepness / k;
 
+  // 计算相位
+  float phase = k * dot(dir, position) - c * time + wave.phase;
+
   // jacobian 初始值
-  float jacobian = 1.0;
+  // float jacobian = 1.0;
 
-  for (int i = 0; i < 4; i++) {
-    float phase = k * dot(dir, position) - c * time;
-    float steepness = 0.8 / (wave.steepness + 0.001);
+  // for (int i = 0; i < 4; i++) {
+  // float phase = k * dot(dir, position) - c * time;
+  // float steepness = 0.8 / (wave.steepness + 0.001);
 
-    // 雅可比行列式的贡献
-    float dPhaseDx = k * dir.x;
-    float dPhaseDz = k * dir.y;
+  // // 雅可比行列式的贡献
+  // float dPhaseDx = k * dir.x;
+  // float dPhaseDz = k * dir.y;
 
-    jacobian -= steepness * amplitude * k * cos(phase);
-  }
+  // jacobian -= steepness * amplitude * k * cos(phase);
+  // }
 
-  return jacobian;
+  float cosP = cos(phase);
+
+  // 简化公式：det ≈ 1 - steepness * cos(phase)
+  float det = 1.0 - wave.steepness * cosP;
+
+  return det;
 }
 
 /**
@@ -86,7 +93,7 @@ float calculateJacobian(GerstnerWave wave, vec2 position, float time) {
  */
 vec3 calculateGerstnerWave(
   GerstnerWave wave,
-  vec3 tangent,
+  inout vec3 tangent,
   inout vec3 binormal,
   vec2 pos,
   float time,
@@ -225,53 +232,53 @@ float calculateWaterDepth(vec2 position, int depthModel) {
 
 void main() {
   vec2 pos = aVertexPosition.xz;
-  vec3 tangent = vec3(1, 0, 0);
-  vec3 binormal = vec3(0, 0, 1);
-  vec3 finalPosition = aVertexPosition;
-  vec3 finalNormal = vec3(0, 0, 0);
-  float steepnessSum = 0.0;
-  float jacobian = 0.0;
   // 对时间进行缩放，使得波动频率更加适合
   float time = uTime / 1.0;
+
+  vec3 displacedPosition = vec3(pos.x, 0.0, pos.y);
+  vec3 tangent = vec3(1, 0, 0);
+  vec3 binormal = vec3(0, 0, 1);
+  vec3 normal = vec3(0, 0, 0);
 
   // 计算水深
   float waterDepth = calculateWaterDepth(pos, 1);
 
   // 为了规避 a * k > 1 所产生的错误情况，使用权重的方式设置所有波的 stepness ​​​​之和不大于 1
+  float steepnessSum = 0.0;
   for (int i = 0; i < 8; i++) {
     if (i >= uWaveCount) break;
     steepnessSum += uWaves[i].steepness;
   }
 
+  float jacobian = 0.0; // 设定 jacobian 的初始值
   for (int i = 0; i < 8; i++) {
     if (i >= uWaveCount) break;
-    finalPosition += calculateGerstnerWave(uWaves[i], tangent, binormal, pos, time, steepnessSum);
-    jacobian = calculateJacobian(uWaves[i], pos, time);
+    displacedPosition += calculateGerstnerWave(uWaves[i], tangent, binormal, pos, time, steepnessSum);
+    jacobian += calculateJacobian(uWaves[i], pos, time / 10.0);
   }
-  finalNormal = normalize(cross(binormal, tangent));
-  jacobian = jacobian / float(uWaveCount);
+  // 通过 binormal 和 tangent 的叉积求 normal
+  normal = normalize(cross(binormal, tangent));
+  // 平均 Jacobian
+  jacobian /= float(uWaveCount);
 
-  /**
- * Debug Code
- *   finalPosition += calculateGerstnerWave(uWaves[0], tangent, binormal, pos, uTime);
- *   if (uWaveCount > 0) {
- *     // 只使用第一个波，并限制参数
- *     float k = 1.0; // 固定的小波数
- *     float phase = k * aVertexPosition.x - uTime;
- *     float amplitude = 1.0; // 固定的小振幅
- *
- *     finalPosition.y += amplitude * sin(phase);
- *     finalPosition.x += amplitude * 0.1 * cos(phase);
- *   }
- */
+  // Debug Code
+  // finalPosition += calculateGerstnerWave(uWaves[0], tangent, binormal, pos, uTime);
+  // if (uWaveCount > 0) {
+  //   // 只使用第一个波，并限制参数
+  //   float k = 1.0; // 固定的小波数
+  //   float phase = k * aVertexPosition.x - uTime;
+  //   float amplitude = 1.0; // 固定的小振幅
 
-  vPosition = finalPosition;
-  vWorldPosition = (uModelMatrix * vec4(finalPosition, 1.0)).xyz;
-  vNormal = finalNormal;
+  //   finalPosition.y += amplitude * sin(phase);
+  //   finalPosition.x += amplitude * 0.1 * cos(phase);
+  // }
+
+  vWorldPosition = (uModelMatrix * vec4(displacedPosition, 1.0)).xyz;
+  vNormal = normal;
   vTexCoord = aTextureCoord;
-  vWaveHeight = finalPosition.y;
+  vWaveHeight = displacedPosition.y;
   vWaterDepth = waterDepth;
   vJacobian = jacobian;
 
-  gl_Position = uProjectionMatrix * uViewMatrix * uModelMatrix * vec4(finalPosition, 1.0);
+  gl_Position = uProjectionMatrix * uViewMatrix * uModelMatrix * vec4(displacedPosition, 1.0);
 }
