@@ -1,8 +1,25 @@
+interface Performance {
+  memory?: {
+    jsHeapSizeLimit: number
+    totalJSHeapSize: number
+    usedJSHeapSize: number
+  }
+}
+
 // 性能监控工具
 export class PerformanceMonitor {
+  private frameCount: number
+  private lastTime: number
+  private fps: number
+  private frameTimeHistory: number[]
+  private maxHistoryLength: number
+  private perfDiv: HTMLElement
+
+  private glExtension: WEBGL_debug_renderer_info | null
+  private memoryInfo: string | null
   constructor() {
     this.frameCount = 0
-    this.lastTime = performance.now()
+    this.lastTime = window.performance.now()
     this.fps = 0
     this.frameTimeHistory = []
     this.maxHistoryLength = 60 // 保留60帧的历史数据
@@ -17,8 +34,10 @@ export class PerformanceMonitor {
 
   initGPUMonitoring() {
     // 尝试获取WebGL内存信息扩展
-    const canvas = document.getElementById('glcanvas')
-    const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl')
+    const canvas = document.getElementById('glcanvas') as HTMLCanvasElement
+    const gl =
+      canvas.getContext('webgl') ||
+      (canvas.getContext('experimental-webgl') as WebGLRenderingContext)
 
     if (gl) {
       // 检查内存信息扩展
@@ -107,8 +126,10 @@ export class PerformanceMonitor {
     }
   }
 
-  getMemoryInfo() {
+  getMemoryInfo(): string {
     let memoryInfo = ''
+
+    const performance = window.performance as Performance
 
     // 尝试获取JavaScript内存信息
     if (performance.memory) {
@@ -125,7 +146,7 @@ export class PerformanceMonitor {
   }
 
   // 记录特定操作的性能
-  measureOperation(name, operation) {
+  measureOperation(name: string, operation) {
     const startTime = performance.now()
     const result = operation()
     const endTime = performance.now()
@@ -135,7 +156,7 @@ export class PerformanceMonitor {
   }
 
   // GPU绘制调用计数器
-  trackDrawCalls(gl) {
+  trackDrawCalls(gl: WebGLRenderingContext) {
     let drawCallCount = 0
 
     // 包装drawElements和drawArrays方法
