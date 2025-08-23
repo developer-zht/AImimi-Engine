@@ -64,7 +64,7 @@ export class DirectionalLight implements Light {
    * @returns {Array<number>} 着色方向向量，格式为[x, y, z]
    */
   CalcDirectionalShadingDirection(): Vec3 {
-    let lightDir: Vec3 = [-this.lightDir['x'], -this.lightDir['y'], -this.lightDir['z']]
+    const lightDir: Vec3 = [-this.lightDir['x'], -this.lightDir['y'], -this.lightDir['z']]
     return lightDir
   }
 
@@ -74,12 +74,12 @@ export class DirectionalLight implements Light {
    * @returns {mat4} 光源的视图投影矩阵
    */
   CalcDirectionalLightVP(): mat4 {
-    let lightViewProjectMatrix = mat4.create()
-    let viewMatrix = mat4.create()
-    let projectionMatrix = mat4.create()
+    const lightViewProjectMatrix = mat4.create()
+    const viewMatrix = mat4.create()
+    const projectionMatrix = mat4.create()
 
     // View transform
-    let focalPoint: Vec3 = [
+    const focalPoint: Vec3 = [
       this.lightDir['x'] + this.lightPos[0],
       this.lightDir['y'] + this.lightPos[1],
       this.lightDir['z'] + this.lightPos[2]
@@ -94,13 +94,13 @@ export class DirectionalLight implements Light {
   }
 
   CalcDirectionalLightMVP(translate: Vec3, scale: Vec3): mat4 {
-    let modelMatrix = mat4.create()
+    const modelMatrix = mat4.create()
     mat4.translate(modelMatrix, modelMatrix, translate)
     mat4.scale(modelMatrix, modelMatrix, scale)
 
-    let lightViewProjectMatrix = this.CalcDirectionalLightVP()
+    const lightViewProjectMatrix = this.CalcDirectionalLightVP()
 
-    let lightModelViewProjectionMatrix = mat4.create()
+    const lightModelViewProjectionMatrix = mat4.create()
     mat4.multiply(lightModelViewProjectionMatrix, lightViewProjectMatrix, modelMatrix)
     return lightModelViewProjectionMatrix
   }

@@ -1,7 +1,9 @@
+import { pathJoin } from '@/utils/pathHelper'
+
 // 基础路径
 const BASES = {
-  shaders: import.meta.env.VITE_SHADER_BASE,
-  textures: import.meta.env.VITE_TEXTURE_BASE
+  shaders: pathJoin(import.meta.env.VITE_SHADER_BASE, import.meta.env.BASE_URL),
+  textures: pathJoin(import.meta.env.VITE_TEXTURE_BASE, import.meta.env.BASE_URL)
 }
 
 // 纹理资源路径配置
@@ -16,30 +18,30 @@ export const TexturePaths = {
 
 // Shader 路径配置
 export const ShaderPaths = {
-  DIRECT_LIGHT_VERTEXT: `${import.meta.env.VITE_SHADER_BASE}/directLightShader/directVertex.glsl`,
-  DIRECT_LIGHT_FRAGMENT: `${import.meta.env.VITE_SHADER_BASE}/directLightShader/directFragment.glsl`,
-  FFT_OCEAN_VERTEX: `${import.meta.env.VITE_SHADER_BASE}/fftOceanShader/FFTOceanVertex.glsl`,
-  FFT_OCEAN_FRAGMENT: `${import.meta.env.VITE_SHADER_BASE}/fftOceanShader/FFTOceanFragment.glsl`,
-  GBUFFER_VERTEX: `${import.meta.env.VITE_SHADER_BASE}/gbufferShader/gbufferVertex.glsl`,
-  GBUFFER_FRAGMENT: `${import.meta.env.VITE_SHADER_BASE}/gbufferShader/gbufferFragment.glsl`,
-  EQUIRECT_TO_CUBEMAP_VERTEX: `${import.meta.env.VITE_SHADER_BASE}/IBLShader/equirectToCubemapShader/EquirectToCubemapVertex.glsl`,
-  EQUIRECT_TO_CUBEMAP_FRAGMENT: `${import.meta.env.VITE_SHADER_BASE}/IBLShader/equirectToCubemapShader/EquirectToCubemapFragment.glsl`,
-  IRRADIANCE_VERTEX: `${import.meta.env.VITE_SHADER_BASE}/IBLShader/irradianceShader/IrradianceVertex.glsl`,
-  IRRADIANCE_FRAGMENT: `${import.meta.env.VITE_SHADER_BASE}/IBLShader/irradianceShader/IrradianceVertex.glsl`,
-  LIGHT_VERTEX: `${import.meta.env.VITE_SHADER_BASE}/lightShader/lightCubeVertexShader.glsl`,
-  LIGHT_FRAGMENT: `${import.meta.env.VITE_SHADER_BASE}/lightShader/lightCubeFragment.glsl`,
-  SCENE_DEPTH_VERTEX: `${import.meta.env.VITE_SHADER_BASE}/sceneDepthShader/depthVertex.glsl`,
-  SCENE_DEPTH_FRAGMENT: `${import.meta.env.VITE_SHADER_BASE}/sceneDepthShader/depthFragment.glsl`,
-  SHADOW_VERTEX: `${import.meta.env.VITE_SHADER_BASE}/shadowShader/shadowVertex.glsl`,
-  SHADOW_FRAGMENT: `${import.meta.env.VITE_SHADER_BASE}/shadowShader/shadowFragment.glsl`,
-  SKYBOX_VERTEX: `${import.meta.env.VITE_SHADER_BASE}/skyboxShader/SkyboxVertex.glsl`,
-  SKYBOX_FRAGMENT: `${import.meta.env.VITE_SHADER_BASE}/skyboxShader/SkyboxFragment.glsl`,
-  SSR_VERTEX: `${import.meta.env.VITE_SHADER_BASE}/ssrShader/ssrVertex.glsl`,
-  SSR_FRAGMENT: `${import.meta.env.VITE_SHADER_BASE}/ssrShader/ssrFragment.glsl`,
-  SINE_WAVE_VERTEX: `${import.meta.env.VITE_SHADER_BASE}/waterShader/SinWaveVertex.glsl`,
-  SINE_WAVE_FRAGMENT: `${import.meta.env.VITE_SHADER_BASE}/waterShader/SinWaveFragment.glsl`,
-  GERSTNER_WAVE_VERTEX: `${import.meta.env.VITE_SHADER_BASE}/waterShader/GerstnerWaveVertex.glsl`,
-  GERSTNER_WAVE_FRAGMENT: `${import.meta.env.VITE_SHADER_BASE}/waterShader/GerstnerWaveFragment.glsl`
+  DIRECT_LIGHT_VERTEXT: `${BASES.shaders}/directLightShader/directVertex.glsl`,
+  DIRECT_LIGHT_FRAGMENT: `${BASES.shaders}/directLightShader/directFragment.glsl`,
+  FFT_OCEAN_VERTEX: `${BASES.shaders}/fftOceanShader/FFTOceanVertex.glsl`,
+  FFT_OCEAN_FRAGMENT: `${BASES.shaders}/fftOceanShader/FFTOceanFragment.glsl`,
+  GBUFFER_VERTEX: `${BASES.shaders}/gbufferShader/gbufferVertex.glsl`,
+  GBUFFER_FRAGMENT: `${BASES.shaders}/gbufferShader/gbufferFragment.glsl`,
+  EQUIRECT_TO_CUBEMAP_VERTEX: `${BASES.shaders}/IBLShader/equirectToCubemapShader/EquirectToCubemapVertex.glsl`,
+  EQUIRECT_TO_CUBEMAP_FRAGMENT: `${BASES.shaders}/IBLShader/equirectToCubemapShader/EquirectToCubemapFragment.glsl`,
+  IRRADIANCE_VERTEX: `${BASES.shaders}/IBLShader/irradianceShader/IrradianceVertex.glsl`,
+  IRRADIANCE_FRAGMENT: `${BASES.shaders}/IBLShader/irradianceShader/IrradianceVertex.glsl`,
+  LIGHT_VERTEX: `${BASES.shaders}/lightShader/lightCubeVertexShader.glsl`,
+  LIGHT_FRAGMENT: `${BASES.shaders}/lightShader/lightCubeFragment.glsl`,
+  SCENE_DEPTH_VERTEX: `${BASES.shaders}/sceneDepthShader/depthVertex.glsl`,
+  SCENE_DEPTH_FRAGMENT: `${BASES.shaders}/sceneDepthShader/depthFragment.glsl`,
+  SHADOW_VERTEX: `${BASES.shaders}/shadowShader/shadowVertex.glsl`,
+  SHADOW_FRAGMENT: `${BASES.shaders}/shadowShader/shadowFragment.glsl`,
+  SKYBOX_VERTEX: `${BASES.shaders}/skyboxShader/SkyboxVertex.glsl`,
+  SKYBOX_FRAGMENT: `${BASES.shaders}/skyboxShader/SkyboxFragment.glsl`,
+  SSR_VERTEX: `${BASES.shaders}/ssrShader/ssrVertex.glsl`,
+  SSR_FRAGMENT: `${BASES.shaders}/ssrShader/ssrFragment.glsl`,
+  SINE_WAVE_VERTEX: `${BASES.shaders}/waterShader/SinWaveVertex.glsl`,
+  SINE_WAVE_FRAGMENT: `${BASES.shaders}/waterShader/SinWaveFragment.glsl`,
+  GERSTNER_WAVE_VERTEX: `${BASES.shaders}/waterShader/GerstnerWaveVertex.glsl`,
+  GERSTNER_WAVE_FRAGMENT: `${BASES.shaders}/waterShader/GerstnerWaveFragment.glsl`
 }
 
 // 文件扩展名配置

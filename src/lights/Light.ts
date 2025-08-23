@@ -2,6 +2,7 @@ import { Material } from '@/materials/Material'
 import { LightCubeVertexShader, LightCubeFragmentShader } from '@/shaders/InternalShader'
 
 import type { LightParams } from '@/types/light'
+import { UniformType } from '@/types/Material'
 
 export class EmissiveMaterial extends Material {
   // public
@@ -10,7 +11,7 @@ export class EmissiveMaterial extends Material {
   constructor(lightRadiance: LightParams['lightRadiance']) {
     super(
       {
-        uLightRadiance: { type: '3fv', value: lightRadiance }
+        uLightRadiance: { type: UniformType.THREE_FV, value: lightRadiance }
       },
       [],
       LightCubeVertexShader,
