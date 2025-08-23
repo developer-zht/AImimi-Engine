@@ -14,7 +14,9 @@ export function loadShaderFile(filename: string) {
 
 export async function getShaderString(filename: string): Promise<string> {
   try {
-    let val = (await loadShaderFile(filename)) as string
+    // Debug Code
+    // console.log(filename)
+    const val = (await loadShaderFile(filename)) as string
     return val
   } catch (error) {
     console.log('getShaderString function has an error: ', error)
