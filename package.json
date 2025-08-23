@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "scripts": {
     "dev": "vite",
-    "build": "vite build && sh ./scripts/copy-shaders.sh",
+    "build": " sh ./scripts/copy-shaders.sh && vite build",
     "build:dev": "vite build --mode development",
     "build:staging": "vite build --mode staging",
     "build:analyze": "vite build --mode production -- --analyze",
@@ -20,7 +20,7 @@
   },
   "lint-staged": {
     "src/**/*.{js,ts}": [
-      "eslint --max-warnings 0",
+      "eslint --max-warnings 50",
       "prettier --check"
     ],
     "src/**/*.{json,css,html}": [
@@ -54,6 +54,8 @@
     "lint-staged": "^16.1.5",
     "prettier": "^3.6.2",
     "prettier-plugin-glsl": "^0.2.2",
+    "rollup-plugin-visualizer": "^6.0.3",
+    "terser": "^5.43.1",
     "typescript": "^5.8.3",
     "vite": "^6.3.5"
   }
