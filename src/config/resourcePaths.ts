@@ -9,11 +9,20 @@ const BASES = {
 // 纹理资源路径配置
 export const TexturePaths = {
   // 天空盒
-  SKY_09_CUBEMAP: `${BASES.textures}/skyboxes/sky_09_cubemap`,
-  SKY_18_CUBEMAP: `${BASES.textures}/skyboxes/sky_18_cubemap`,
-  QWANTANI_MOONRISE_PURESKY_2K_EXR: `${BASES.textures}/environment/skies/qwantani_moonrise_puresky_2k/puresky.exr`,
-  QWANTANI_MOONRISE_PURESKY_2K_HDR: `${BASES.textures}/environment/skies/qwantani_moonrise_puresky_2k/puresky.hdr`,
-  EVENING_SKY_HDRI039B_EXR: `${BASES.textures}/environment/skies/EveningSkyHDRI039B/EveningSkyHDRI039B_2K-HDR.exr`
+  SKY_09_CUBEMAP: urlJoin(BASES.textures, '/skyboxes/sky_09_cubemap'),
+  SKY_18_CUBEMAP: urlJoin(BASES.textures, '/skyboxes/sky_18_cubemap'),
+  QWANTANI_MOONRISE_PURESKY_2K_EXR: urlJoin(
+    BASES.textures,
+    '/environment/skies/qwantani_moonrise_puresky_2k/puresky.exr'
+  ),
+  QWANTANI_MOONRISE_PURESKY_2K_HDR: urlJoin(
+    BASES.textures,
+    '/environment/skies/qwantani_moonrise_puresky_2k/puresky.hdr'
+  ),
+  EVENING_SKY_HDRI039B_EXR: urlJoin(
+    BASES.textures,
+    '/environment/skies/EveningSkyHDRI039B/EveningSkyHDRI039B_2K-HDR.exr'
+  )
 }
 
 // Shader 路径配置
