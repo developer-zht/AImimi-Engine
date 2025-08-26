@@ -11,6 +11,7 @@ import { MeshRender } from '@/renderers/MeshRender'
 import { OceanTextureManager } from './OceanTextureManager'
 import { FFTOceanGenerator } from './FFTOceanGenerator'
 import { WebGLRenderer } from '@/renderers/WebGLRenderer'
+import { ShaderPaths } from '@/config/resourcePaths'
 
 export interface FFTOceanRenderManagerConfig {
   // 几何参数
@@ -77,8 +78,8 @@ export class FFTOceanRenderManager {
     // console.log(this.config.materialParams)
     return await buildFFTOceanMaterial(
       this.config.materialParams,
-      'src/shaders/fftOceanShader/FFTOceanVertex.glsl',
-      'src/shaders/fftOceanShader/FFTOceanFragment.glsl'
+      ShaderPaths.FFT_OCEAN_VERTEX,
+      ShaderPaths.FFT_OCEAN_FRAGMENT
     )
   }
 
