@@ -3,16 +3,29 @@
   "version": "1.0.0",
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
+    "build": " sh ./scripts/copy-shaders.sh && vite build",
     "build:dev": "vite build --mode development",
     "build:staging": "vite build --mode staging",
     "build:analyze": "vite build --mode production -- --analyze",
     "preview": "vite preview",
-    "lint": "eslint src/**/*.js",
+    "lint": "eslint src/**/*.{js,ts}",
     "lint:fix": "eslint src/**/*.js --fix",
+    "type-check": "tsc --noEmit",
     "format": "prettier --write \"src/**/*.{js,json,css,html}\"",
     "format:check": "prettier --check \"src/**/*.{js,json,css,html}\"",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "check": "npm run type-check && npm run lint && npm run format:check",
+    "fix": "npm run lint:fix && npm run format",
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "prepare": "husky install"
+  },
+  "lint-staged": {
+    "src/**/*.{js,ts}": [
+      "eslint --max-warnings 50",
+      "prettier --check"
+    ],
+    "src/**/*.{json,css,html}": [
+      "prettier --check"
+    ]
   },
   "keywords": [],
   "author": "",
@@ -23,17 +36,27 @@
     "dotenv": "^17.0.1",
     "gl-matrix": "^3.4.3",
     "imgui": "^1.0.10",
-    "three": "^0.177.0"
+    "three": "^0.177.0",
+    "url-join": "^5.0.0"
   },
   "devDependencies": {
+    "@commitlint/cli": "^19.8.1",
+    "@commitlint/config-conventional": "^19.8.1",
     "@types/dat.gui": "^0.7.13",
     "@types/node": "^24.0.3",
     "@types/three": "^0.177.0",
     "@types/webgl2": "^0.0.11",
+    "@typescript-eslint/eslint-plugin": "^8.40.0",
+    "@typescript-eslint/parser": "^8.40.0",
     "eslint": "^8.57.1",
+    "eslint-config-prettier": "^10.1.8",
     "globals": "^16.2.0",
+    "husky": "^9.1.7",
+    "lint-staged": "^16.1.5",
     "prettier": "^3.6.2",
     "prettier-plugin-glsl": "^0.2.2",
+    "rollup-plugin-visualizer": "^6.0.3",
+    "terser": "^5.43.1",
     "typescript": "^5.8.3",
     "vite": "^6.3.5"
   }

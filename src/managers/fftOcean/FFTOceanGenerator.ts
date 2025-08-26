@@ -1,6 +1,6 @@
 import { FFTProcessor } from '@/math/FFTProcessor'
 import { Complex } from '@/math/Complex'
-import { PhillipsSpectrum, OceanParams } from '@/managers/fftOcean/OceanSpectrum'
+import { PhillipsSpectrum, OceanParams } from '@/managers/fftOcean/PhillipsSpectrum'
 
 export class FFTOceanGenerator {
   private fftProcessor: FFTProcessor
@@ -34,6 +34,33 @@ export class FFTOceanGenerator {
   }
 
   /**
+   * 将频率索引转换为波数 k
+   * - index < N/2 → 正频率
+   * - index >= N/2 → 负频率
+   * - k = 2π * n / L
+   */
+  private getWaveNumber(index: number, N: number, L: number): number {
+    // index < N/2 为正频率，>= N/2 为负频率
+    let n = index < N / 2 ? index : index - N
+    // if (Math.abs(n) < 0.001) {
+    //   n = 0.001 * Math.sign(n) || 0.001 // 给一个小的非零值
+    // }
+
+    return (2 * Math.PI * n) / L
+  }
+
+  /**
+   * 高斯随机数生成器(Box–Muller 变换)
+   */
+  private gaussianRandom(): number {
+    let u1 = 0,
+      u2 = 0
+    while (u1 === 0) u1 = Math.random()
+    while (u2 === 0) u2 = Math.random()
+    return Math.sqrt(-2.0 * Math.log(u1)) * Math.cos(2.0 * Math.PI * u2)
+  }
+
+  /**
    * 基于 Phillips 波谱 和 FFT 的海面生成器
    *
    * 核心物理模型：
@@ -50,14 +77,14 @@ export class FFTOceanGenerator {
    *    - 保证结果为实数场（共轭对称性）
    *
    * 4. 空间域转换：
-   *    eta(x, t) = IFFT2(h(k, t))
+   *    η(x, t) = IFFT2(h(k, t))
    *
    * 5. 派生量：
    *    - 法线（斜率）：slope_x = h(k, t) * (i * kx)
    *    - 位移（choppy waves）：
    *      disp_x = h(k, t) * (-i * kx / |k| * choppiness)
    *
-   * 实现细节：
+   * 实现细节
    * - getWaveNumber：处理 FFT 索引到实际波数的映射
    * - gaussianRandom：Box-Muller 方法生成高斯分布随机数
    * - generateInitialSpectrum：构造符合波谱的初始频域波场
@@ -88,8 +115,17 @@ export class FFTOceanGenerator {
         const kx = this.getWaveNumber(n, N, L)
         const kz = this.getWaveNumber(m, N, L)
 
+        // 跳过DC分量
+        if (Math.abs(kx) < 0.001 && Math.abs(kz) < 0.001) {
+          this.h0[n][m] = new Complex(0, 0)
+          continue
+        }
+
         // Phillips谱
-        const P = this.spectrum.calculate(kx, kz, this.params)
+        const P = Math.max(0.0, this.spectrum.calculate(kx, kz, this.params))
+
+        // Debug Code
+        // console.log(P)
 
         // 高斯随机数
         const xi_r = this.gaussianRandom()
@@ -104,35 +140,17 @@ export class FFTOceanGenerator {
     for (let n = 0; n < N; n++) {
       for (let m = 0; m < N; m++) {
         // 确保实数输出的共轭对称性 h₀(-k) = h₀*(k)
-        const n_conj = (N - n) % N
-        const m_conj = (N - m) % N
+        // 特殊处理 DC 分量
+        if (n === 0 && m === 0) {
+          this.h0Conj[n][m] = new Complex(0, 0)
+          continue
+        }
+        const n_conj = n === 0 ? 0 : N - n
+        const m_conj = m === 0 ? 0 : N - m
 
         this.h0Conj[n][m] = new Complex(this.h0[n_conj][m_conj].real, -this.h0[n_conj][m_conj].imag)
       }
     }
-  }
-
-  /**
-   * 将频率索引转换为波数 k
-   * - index < N/2 → 正频率
-   * - index >= N/2 → 负频率
-   * - k = 2π * n / L
-   */
-  private getWaveNumber(index: number, N: number, L: number): number {
-    // index < N/2 为正频率，>= N/2 为负频率
-    const n = index < N / 2 ? index : index - N
-    return (2 * Math.PI * n) / L
-  }
-
-  /**
-   * 高斯随机数生成器(Box–Muller 变换)
-   */
-  private gaussianRandom(): number {
-    let u1 = 0,
-      u2 = 0
-    while (u1 === 0) u1 = Math.random()
-    while (u2 === 0) u2 = Math.random()
-    return Math.sqrt(-2.0 * Math.log(u1)) * Math.cos(2.0 * Math.PI * u2)
   }
 
   /**
@@ -202,8 +220,12 @@ export class FFTOceanGenerator {
          *   ∂η/∂z = IFFT( i * k_z * h(k, t) ) = Σ ik·h(k,t) · e^(ik_z * z)
          * 这里用 (0, k_x) 相当于乘以 i k_x
          */
-        slopeXSpectrum[n][m] = h_k_t.multiply(new Complex(0, kx))
-        slopeZSpectrum[n][m] = h_k_t.multiply(new Complex(0, kz))
+        // const slopeScale = this.params.size / (2.0 * Math.PI)
+        const slopeScale = 1
+        // Debug Code
+        // console.log(this.params.size / (2.0 * Math.PI))
+        slopeXSpectrum[n][m] = h_k_t.multiply(new Complex(0, kx * slopeScale))
+        slopeZSpectrum[n][m] = h_k_t.multiply(new Complex(0, kz * slopeScale))
 
         /**
          * 水平位移谱（Choppy waves 模型）
@@ -232,28 +254,50 @@ export class FFTOceanGenerator {
     const dispXSpatial = this.fftProcessor.ifft2DInterface(dispXSpectrum)
     const dispZSpatial = this.fftProcessor.ifft2DInterface(dispZSpectrum)
 
-    // console.log('FFT output sample:', heightSpatial[0][0])
+    // Debug Code -- 检查虚部大小
+    if (__DEBUG__) {
+      let maxImag = 0
+      let avgImag = 0
+      let realRange = 0
+      for (let i = 0; i < N; i++) {
+        for (let j = 0; j < N; j++) {
+          const imagPart = Math.abs(heightSpatial[i][j].imag)
+          const realPart = Math.abs(heightSpatial[i][j].real)
+
+          maxImag = Math.max(maxImag, imagPart)
+          avgImag += imagPart
+          realRange = Math.max(realRange, realPart)
+        }
+      }
+      avgImag /= N * N
+
+      console.log(`虚部最大值: ${maxImag}, 平均虚部: ${avgImag}, 实部范围: ${realRange}`)
+      console.log(`虚部/实部比: ${maxImag / realRange}`)
+    }
+
+    // 统一幅值放大倍数
+    const amplitude = this.params.amplitude ?? 1
 
     // 提取实部并存储
     let index = 0
     for (let i = 0; i < N; i++) {
       for (let j = 0; j < N; j++) {
-        /** Debug Code
-            // const x = (i / N) * this.params.size
-            // const z = (j / N) * this.params.size
+        // Debug Code -- 检查 heightField[index]、displacementX[index]、displacementZ[index] 是否存在，以及 heightField[index] 中的数据是否被写入了 Displacement Texture
+        if (__DEBUG__) {
+          const x = (i / N) * this.params.size
+          const z = (j / N) * this.params.size
+          this.heightField[index] = Math.sin(x * 0.1 + time) * Math.sin(z * 0.1 + time) * 5.0
+          this.displacementX[index] = 0
+          this.displacementZ[index] = 0
+          console.log(this.heightField[index])
+          console.log(this.displacementX[index], this.displacementZ[index])
+        }
 
-            // this.heightField[index] = Math.sin(x * 0.1 + time) * Math.sin(z * 0.1 + time) * 5.0
-            // this.displacementX[index] = 0
-            // this.displacementZ[index] = 0
-            // console.log(this.heightField[index])
-            // console.log(this.displacementX[index], this.displacementZ[index])
-         */
-
-        this.heightField[index] = heightSpatial[i][j].real
-        this.displacementX[index] = dispXSpatial[i][j].real
-        this.displacementZ[index] = dispZSpatial[i][j].real
-        this.normalX[index] = slopeXSpatial[i][j].real
-        this.normalZ[index] = slopeZSpatial[i][j].real
+        this.heightField[index] = heightSpatial[i][j].real * amplitude
+        this.displacementX[index] = dispXSpatial[i][j].real * amplitude
+        this.displacementZ[index] = dispZSpatial[i][j].real * amplitude
+        this.normalX[index] = slopeXSpatial[i][j].real * amplitude
+        this.normalZ[index] = slopeZSpatial[i][j].real * amplitude
         index++
       }
     }

@@ -249,27 +249,6 @@ export class FFTProcessor {
     return result
   }
 
-  // 临时的简单递归FFT实现
-  private simpleFFT(input: Complex[], inverse: boolean = false): Complex[] {
-    const N = input.length
-    if (N <= 1) return input
-
-    const even = input.filter((_, i) => i % 2 === 0)
-    const odd = input.filter((_, i) => i % 2 === 1)
-
-    const evenFFT = this.simpleFFT(even, inverse)
-    const oddFFT = this.simpleFFT(odd, inverse)
-
-    const result = new Array(N)
-    for (let k = 0; k < N / 2; k++) {
-      const t = this.calculateWnk(N, k, inverse).multiply(oddFFT[k])
-      result[k] = evenFFT[k].add(t)
-      result[k + N / 2] = evenFFT[k].subtract(t)
-    }
-
-    return result
-  }
-
   /**
    * 一维逆FFT (IFFT)
    * @param input 频域输入

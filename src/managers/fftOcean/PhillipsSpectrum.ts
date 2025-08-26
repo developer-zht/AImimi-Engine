@@ -11,6 +11,7 @@ export interface OceanParams {
   gravity: number // 重力加速度
   choppiness: number // 波浪尖锐度
   depth?: number // 水深（可选，用于有限深度）
+  amplitude?: number
 }
 
 /** Phillips 波谱公式：
@@ -62,6 +63,7 @@ export class PhillipsSpectrum {
 
     /** Phillips 波谱公式：
      * const phillips = ((this.A * Math.exp(-1.0 / (k * L) ** 2)) / k ** 4) * kDotWind ** 2
+     * (or const phillips = ((this.A * Math.exp(-1.0 / (k * L) ** 2)) / k ** 4) * kDotWind ** 6)
      * - 其中：
      *   this.A -> Phillips常数
      *   Math.exp(-1.0 / Math.pow(k * L, 2))) -> exp(-1 / (kL)^2)

@@ -1,6 +1,7 @@
 import { Material } from '@/materials/Material'
 import { Texture } from '@/textures/Texture'
 import { getShaderString } from '@/loaders/loadShader'
+import { UniformType } from '@/types/Material'
 
 export class SceneDepthMaterial extends Material {
   constructor(
@@ -11,7 +12,7 @@ export class SceneDepthMaterial extends Material {
   ) {
     super(
       {
-        uSampler: { type: 'texture', value: color }
+        uSampler: { type: UniformType.TEXTURE_2D, value: color }
       },
       [],
       vertexShader,
@@ -28,8 +29,8 @@ async function buildSceneDepthMaterial(
   fragmentPath: string,
   bufferFBO: WebGLFramebuffer
 ): Promise<SceneDepthMaterial> {
-  let vertexShader = await getShaderString(vertexPath)
-  let fragmentShader = await getShaderString(fragmentPath)
+  const vertexShader = await getShaderString(vertexPath)
+  const fragmentShader = await getShaderString(fragmentPath)
 
   return new SceneDepthMaterial(color, vertexShader, fragmentShader, bufferFBO)
 }

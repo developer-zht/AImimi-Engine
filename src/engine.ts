@@ -21,6 +21,7 @@ import { loadFFTOcean } from './managers/fftOcean/FFTOceanRenderManager'
 import { FFTOceanPresets } from './managers/fftOcean/FFTOceanPresets'
 import { HDRCubeMapTexture } from './textures/HDRCubeMapTexture'
 import { HDRTextureLoader, TextureFileType } from '@/loaders/loadHDR'
+import { TexturePaths } from './config/resourcePaths'
 
 export class Engine {
   // public
@@ -79,17 +80,21 @@ export class Engine {
     // 初始化性能检测器
     this.initPerformanceMonitor()
 
-    // 加载 IBL 预计算的 Texture
-    // EXR file path: 'public/assets/textures/environment/skies/qwantani_moonrise_puresky_2k/puresky.exr'
-    // HDR file path: 'public/assets/textures/environment/skies/qwantani_moonrise_puresky_2k/puresky.hdr'
-    // EXR file path: 'public/assets/textures/environment/skies/EveningSkyHDRI039B/EveningSkyHDRI039B_2K-HDR.exr'
+    /**
+     * 初始化 IBL（只在程序启动时执行一次）
+     *
+     * 加载 IBL 预计算的 Texture
+     * EXR file path: 'public/assets/textures/environment/skies/qwantani_moonrise_puresky_2k/puresky.exr'
+     * HDR file path: 'public/assets/textures/environment/skies/qwantani_moonrise_puresky_2k/puresky.hdr'
+     * EXR file path: 'public/assets/textures/environment/skies/EveningSkyHDRI039B/EveningSkyHDRI039B_2K-HDR.exr'
+     */
     const hdrTextureLoader = new HDRTextureLoader(this.gl)
     const hdrTexture = await hdrTextureLoader.loadHDRTexture(
-      'public/assets/textures/environment/skies/EveningSkyHDRI039B/EveningSkyHDRI039B_2K-HDR.exr',
+      TexturePaths.EVENING_SKY_HDRI039B_EXR,
       TextureFileType.EXR
     )
     const hdrCubeMapTexture = HDRCubeMapTexture.getInstance(this.gl)
-    hdrCubeMapTexture.init(hdrTexture)
+    await hdrCubeMapTexture.init(hdrTexture)
 
     // 加载场景
     // this.loadSceneGLTF(SceneType.CUBE_SCENE)
@@ -100,17 +105,25 @@ export class Engine {
     // loadWater(this.renderer, WaterPresets.getInstance(this.renderer.gl).createSineWave())
     // loadWater(this.renderer, WaterPresets.getInstance(this.renderer.gl).createGerstnerWaves())
     // 加载 FFT Ocean
-    // loadFFTOcean(this.renderer, FFTOceanPresets.getInstance(this.gl).createFFTOceanParams())
+    const fftOceanRenderManagerConfig = await FFTOceanPresets.getInstance(
+      this.gl
+    ).createFFTOceanParams()
+    loadFFTOcean(this.renderer, fftOceanRenderManagerConfig)
   }
 
   // 初始化上下文
   private initGL() {
-    let gl = this.canvas.getContext('webgl')
+    const gl = this.canvas.getContext('webgl')
     if (!gl) {
       alert('Unable to initialize WebGL. Your browser or machine may not support it.')
       throw new Error('Unable to initialize WebGL. Your browser or machine may not support it.')
     }
     // 以下功能不需要额外库，都是 WebGL 的标准扩展（这些扩展只在 WebGL1 中需要显式启用，在 WebGL2 中都是默认可用的）
+    // 启用 OES_element_index_uint 扩展，支持超过 UNSIGNED_SHORT (16位无符号整数) 存储的最大值 65535
+    const ext = gl.getExtension('OES_element_index_uint')
+    if (!ext) {
+      throw new Error('OES_element_index_uint 扩展不支持，无法使用超过 65535 的索引。')
+    }
     // 启用 OES_texture_float 扩展，该扩展允许 WebGL 使用浮点数像素类型的纹理
     const extFloat = gl.getExtension('OES_texture_float')
     if (!extFloat) {
@@ -135,7 +148,7 @@ export class Engine {
     // 启用 WEBGL_draw_buffers 扩展
     this.gl_draw_buffers = gl.getExtension('WEBGL_draw_buffers')
     // 查询系统支持的最大绘制缓冲区数量
-    let maxdb = gl.getParameter(this.gl_draw_buffers.MAX_DRAW_BUFFERS_WEBGL)
+    const maxdb = gl.getParameter(this.gl_draw_buffers.MAX_DRAW_BUFFERS_WEBGL)
     console.log('MAX_DRAW_BUFFERS_WEBGL: ' + maxdb)
 
     this.gl = gl
@@ -153,7 +166,7 @@ export class Engine {
         this.cameraTarget = [2.92191, 0.98, 1.55037]
         break
       case 'WaterSceneCamera':
-        this.cameraPosition = [100, 100, 100]
+        this.cameraPosition = [-50, 30, -10]
         this.cameraTarget = [0, 0, 0]
         break
       default:
@@ -167,7 +180,7 @@ export class Engine {
       75,
       this.canvas.clientWidth / this.canvas.clientHeight,
       1e-3,
-      100000
+      10000
     )
 
     camera.position.set(this.cameraPosition[0], this.cameraPosition[1], this.cameraPosition[2])
@@ -226,8 +239,8 @@ export class Engine {
 
   // 添加灯光
   private addLight(lightType: LightType) {
-    let lightUp: Vec3 = [1, 0, 0]
-    let lightParams = this.getLightParams(lightType)
+    const lightUp: Vec3 = [1, 0, 0]
+    const lightParams = this.getLightParams(lightType)
 
     const directionLight = new DirectionalLight(
       lightParams.lightRadiance,
@@ -285,14 +298,6 @@ export class Engine {
           }
         }
     }
-  }
-
-  // 初始化 IBL（只在程序启动时执行一次）
-  private initIBL() {
-    console.log('🌅 Initializing IBL system...')
-
-    // 加载HDR纹理
-    // const hdrLoader = new
   }
 
   // 初始化 GUI 调参面板

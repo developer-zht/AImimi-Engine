@@ -3,7 +3,6 @@ precision highp float;
 #endif
 
 // 从 Vertex shader 传入的 Fragment varying
-varying vec3 vPosition;
 varying vec3 vNormal;
 varying vec2 vTexCoord;
 varying vec3 vWorldPosition;
@@ -67,7 +66,7 @@ float GeometrySmith(vec3 normal, vec3 viewDir, vec3 lightDir, float roughness);
  * === Cook-Torrance 模型 -- 基于渲染方程的 PBR 模型 ===
  *
  * 基于物理的渲染方程实现:
- *  
+ *
  *  Lo(p,ωo) = ∫Ω (kd*c/π + ks*DFG/[4(ωo·n)(ωi·n)]) * Li(p,ωi) * (n·ωi) dωi
  *  变量说明:
  *   - kd/ks: 漫反射/镜面反射系数
@@ -104,7 +103,7 @@ vec3 CookTorranceRadiance(
 
   // diffuse
   vec3 ks = F;
-  vec3 kd = (1.0 - metallic) * (vec3(1.0) - ks) * 0.015; // 极小的漫反射系数
+  vec3 kd = (1.0 - metallic) * (vec3(1.0) - ks);
   vec3 diffuse = kd * albedo / M_PI;
 
   float NdotL = max(dot(normal, lightDir), 0.0);
@@ -114,7 +113,7 @@ vec3 CookTorranceRadiance(
 
 /**
  * ===  Cook-Torrance diffuse BRDF 项 ===
- *  
+ *
  * kd * c / π
  */
 vec3 CookTorranceDiffuseBRDF(
@@ -152,7 +151,7 @@ vec3 CookTorranceDiffuseBRDF(
  *   - 分母4(ωo·n)(ωi·n): 能量守恒校正因子，补偿微表面模型的双重几何衰减
  *
  *  典型实现参考（以GGX为例）:
- *  
+ *
  *    - D(n,h,α) = α² / [π((n·h)²(α²−1)+1)²]  // h为半角向量
  *    - F(v,h,f0) = f0 + (1−f0)(1−(v·h))⁵     // f0为基础反射率
  *    - G(l,v,n,α) = G1(l) * G1(v)            // 分离遮蔽阴影
@@ -188,22 +187,28 @@ vec3 CookTorranceSpecularBRDF(
  * === F (Fresnel Equation): 菲涅尔反射率 ===
  *
  *  F(v,h,F0) = F0 + (1−F0)(1−(v·h))⁵
- *  
+ *
  *   - v​​：观察方向向量（从表面指向相机）
  *   - h​​：半程向量 Halfway Vector
- *  
+ *
  * 首先我们想计算的是镜面反射和漫反射之间的比值，或者说与表面折射的光线相比，它反射了多少光线。
  * Fresnel-Schlick近似法接收一个参数F0，被称为0°入射角的反射率，或者说是直接(垂直)观察表面时有多少光线会被反射。
  * 这个参数F0会因为材料不同而不同，而且对于金属材质会带有颜色。在PBR金属流中我们简单地认为大多数的绝缘体在F0为0.04的时候看起来视觉上是正确的，对于金属表面我们根据反射率特别地指定F0。
  */
+// ——— Fresnel：给定 IOR 直接算 F0（避免把 F0 和 albedo/metallic 混起来） // NEW
+vec3 dielectricF0(float n1, float n2) {
+  float r0 = (n1 - n2) / (n1 + n2);
+  r0 = r0 * r0;
+  return vec3(r0);
+}
+// 注意：Schlick 的 cosTheta 应该使用 dot(V,H) 对于直接光，环境高光用 N·V 版本
 vec3 fresnelSchlick(float cosTheta, vec3 F0, float fresnelPower) {
   // return F0 + (1.0 - F0) * pow(clamp(1.0 - cosTheta, 0.0, 1.0), 5.0); // clamp 是防御式编程，避免 cosTheta 精度问题使得 1.0 - cosTheta < 0.0 从而带来的黑点
-  // return F0 + (1.0 - F0) * pow(clamp(1.0 - cosTheta, 0.0, 1.0), fresnelPower);
-
+  return F0 + (1.0 - F0) * pow(clamp(1.0 - cosTheta, 0.0, 1.0), fresnelPower);
   // 计算垂直入射时的反射率
-  F0 = vec3(pow((AIR_IOR - WATER_IOR) / (AIR_IOR + WATER_IOR), 2.0));
+  // F0 = vec3(pow((AIR_IOR - WATER_IOR) / (AIR_IOR + WATER_IOR), 2.0));
   // Schlick近似的菲涅尔公式
-  return F0 + (1.0 - F0) * pow(clamp(1.0 - cosTheta, 0.0, 1.0), 5.0);
+  // return F0 + (1.0 - F0) * pow(clamp(1.0 - cosTheta, 0.0, 1.0), 5.0);
 }
 /**
  * 考虑粗糙度的菲涅尔（用于环境光）
@@ -214,9 +219,9 @@ vec3 fresnelSchlickRoughness(float cosTheta, vec3 F0, float roughness) {
 }
 /**
  * === D (Normal Distribution Function): 微表面法线分布函数 ===
- *  
+ *
  *  α² / [π((n·h)²(α²−1)+1)²]
- *  
+ *
  *   - ​​α​​：粗糙度参数（Roughness），取值范围 [0,1]，通常由粗糙度贴图采样得到。低粗糙度（α→0）法线集中，形成锐利高光；高粗糙度（α→1）法线分散，形成模糊高光。α = Roughness²，平方操作增强粗糙度的非线性效果
  *   - α²​​：粗糙度的平方，用于控制微表面法线分布的集中程度。
  *   - n​​：表面宏观法线向量。
@@ -237,9 +242,9 @@ float distributionGGX(vec3 normal, vec3 halfwayVector, float roughness) {
 
 /**
  * === G (Geometry Function): 几何遮蔽函数 ===
- *  
+ *
  * G(l,v,n,α) = G1(l) * G1(v)   // 分离遮蔽阴影
- *  
+ *
  *   - G1(v) = (n·v) / [(n·v)(1−k)+k]   // k = α/2
  */
 float GeometrySchlickGGX(float NdotV, float roughness) {
@@ -339,14 +344,17 @@ float calculateDepthTransparency(float depth, vec3 attenuationCoeff) {
 }
 float calculateWaterAlpha(float foam, float depth, float NdotV) {
   // === 基础透明度（基于深度）===
-  float baseAlpha = mix(0.8, 0.95, clamp(depth * 0.08, 0.0, 1.0));
+  // float baseAlpha = mix(0.8, 0.95, clamp(depth * 0.08, 0.0, 1.0));
+  float baseAlpha = mix(0.15, 0.55, clamp(depth * 0.07, 0.0, 1.0)); // CHANGED：原来 0.8~0.95 太不透明
 
   // === 菲涅尔透明度调制 ===
   // 掠射角时水体更不透明（更多反射）
-  float fresnelAlpha = mix(0.1, 0.0, pow(1.0 - NdotV, 3.0));
+  // float fresnelAlpha = mix(0.1, 0.0, pow(1.0 - NdotV, 3.0));
+  float fresnelAlpha = mix(0.0, 0.3, pow(1.0 - NdotV, 3.0)); // CHANGED：幅度更温和
 
   // === 泡沫区域不透明 ===
-  float finalAlpha = mix(baseAlpha + fresnelAlpha, 1.0, foam);
+  // float finalAlpha = mix(baseAlpha + fresnelAlpha, 1.0, foam);
+  float finalAlpha = mix(baseAlpha + fresnelAlpha, 1.0, clamp(foam, 0.0, 1.0));
 
   return clamp(finalAlpha, 0.0, 1.0);
 }
@@ -625,6 +633,41 @@ vec3 calculateDirectDiffuse(
 }
 // ====================== 以上：直接光照计算   ======================
 
+// ====================== 以下： 微小体/体散射 ======================
+// 让浅水少量“非镜面”
+float turbidityFromDepth(float depth) {
+  // NEW：基于深度的“浑浊度”
+  // 0（清澈）~ 1（浑浊）
+  // 深水更清、浅水更浑（让浅水有一点 diffuse-like 感）
+  float t = 1.0 - exp(-depth * 0.4);
+  return clamp(0.15 + 0.5 * (1.0 - t), 0.05, 0.45);
+}
+
+// 超小的 Lamberian 替代：不是材料漫反射，而是把“水体散射”压成一个超小项 // NEW
+vec3 microVolumeDiffuse(vec3 albedo, vec3 N, vec3 V, vec3 L, float depth, vec3 F) {
+  float NdotL = max(dot(N, L), 0.0);
+  // 能量守恒：只取 (1-F) 的极小比例；再由浑浊度/深度控制
+  float t = turbidityFromDepth(depth);
+  vec3 kd = (vec3(1.0) - F) * t; // 典型 0.05~0.2 左右
+  return kd * albedo * (NdotL / M_PI);
+}
+// 体积散射计算
+// vec3 volumeScattering(vec3 lightDir, vec3 viewDir, float depth, vec3 scatterCoeff, vec3 absorpCoeff, float phaseG) {
+//   // Beer-Lambert传输
+//   vec3 extinction = scatterCoeff + absorpCoeff;
+//   vec3 transmittance = exp(-extinction * depth);
+
+//   // 相位函数
+//   float cosTheta = dot(lightDir, viewDir);
+//   float phase = phase_schlick(cosTheta, phaseG);
+
+//   // 散射积分近似
+//   vec3 scattering = scatterCoeff * phase * (1.0 - transmittance) / max(extinction, 0.001);
+
+//   return scattering;
+// }
+// ====================== 以上： 微小体/体散射 ======================
+
 // ====================== 以下：环境光计算 ======================
 /**
  * 环境光采样
@@ -758,7 +801,7 @@ vec3 calculateCompleteWaterNormal(vec3 normal, vec2 worldPos, float time) {
   vec3 detailNormal = generateDetailWaterNormal(worldPos, time, 0.1, 0.2);
 
   // 混合主法线和细节法线
-  vec3 finalNormal = blendGerstnerWithDetail(mainNormal, detailNormal, 0.3);
+  vec3 finalNormal = blendGerstnerWithDetail(mainNormal, detailNormal, 0.1);
 
   return finalNormal;
 }
@@ -822,13 +865,33 @@ float calculateFoam(vec3 normal, float waveHeight, vec2 worldPos, float time) {
 }
 // ====================== 以上：泡沫计算 ======================
 
+// ====================== 以下：粗糙度计算 ======================
+// 基于距离和波浪的动态粗糙度 (完全公式化)
+float calculateAdvancedRoughness(vec3 worldPos, vec3 viewPos, float waveHeight, float jacobian) {
+  float viewDistance = length(viewPos - worldPos);
+
+  // 距离衰减函数
+  float distanceFactor = 1.0 - exp(-viewDistance * 0.01);
+
+  // 波浪影响 (基于你的vWaveHeight和vJacobian)
+  float waveFactor = abs(waveHeight) * 0.03;
+  float jacobianFactor = (1.0 - clamp(jacobian, 0.0, 1.0)) * 0.05;
+
+  // 基础粗糙度
+  float baseRoughness = 0.02;
+  float distanceRoughness = mix(0.01, 0.12, distanceFactor);
+
+  return baseRoughness + distanceRoughness + waveFactor + jacobianFactor;
+}
+// ====================== 以上：粗糙度计算 ======================
+
 void main() {
   // 时间
   float time = uTime;
 
   // 归一化法线
   vec3 normal = normalize(vNormal);
-  // normal = calculateCompleteWaterNormal(normal, vWorldPosition.xz, time);
+  normal = calculateCompleteWaterNormal(normal, vWorldPosition.xz, time);
 
   // 计算视线方向
   vec3 viewDir = normalize(uCameraPos - vWorldPosition);

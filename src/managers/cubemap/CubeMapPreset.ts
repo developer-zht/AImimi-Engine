@@ -1,5 +1,5 @@
 import { setTransform } from '@/utils/transformation'
-import { CubeMapRenderManagerParams, CubeMapType } from './CubeMapRenderManager'
+import { CubeMapRenderManagerParams, CubeMapType, TextureType } from './CubeMapRenderManager'
 
 export class CubeMapPreset {
   /**
@@ -8,7 +8,8 @@ export class CubeMapPreset {
   static createSkybox() {
     const cubeMapRenderManagerParams: CubeMapRenderManagerParams = {
       transformation: setTransform(0, 0, 0, 1, 1, 1, 0, 0, 0),
-      cubeMapType: CubeMapType.SKYBOX
+      cubeMapType: CubeMapType.SKYBOX,
+      textureType: TextureType.HDR_FILE
     }
 
     return cubeMapRenderManagerParams

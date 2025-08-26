@@ -1,3 +1,4 @@
+import { ShaderPaths } from '@/config/resourcePaths'
 import { getShaderString } from '@/loaders/loadShader'
 import { TRSTransform } from '@/objects/Mesh'
 import { Shader } from '@/shaders/Shader'
@@ -121,8 +122,8 @@ export class HDRCubeMapTexture {
     }
     try {
       this.equirectToCubemapShader = await this.loadShader(
-        'src/shaders/IBLShader/equirectToCubemapShader/EquirectToCubemapVertex.glsl',
-        'src/shaders/IBLShader/equirectToCubemapShader/EquirectToCubemapFragment.glsl',
+        ShaderPaths.EQUIRECT_TO_CUBEMAP_VERTEX,
+        ShaderPaths.EQUIRECT_TO_CUBEMAP_FRAGMENT,
         shaderParams
       )
 
@@ -197,11 +198,11 @@ export class HDRCubeMapTexture {
   //       0
   //     )
 
-  //     /**
-  //      * gl.clear() 放在 gl.framebufferTexture2D() ​​之后​​是出于​​绑定关系​​和​​渲染流程​​的合理设计
-  //      * 在绑定完成前​​，帧缓冲区的目标附件是未确定的，此时调用 gl.clear() 可能无效，因为不清楚要清除的是哪个缓冲区
-  //      * 在绑定完成后​​，gl.clear() 明确作用于当前绑定的帧缓冲区及其关联的立方体贴图面
-  //      */
+  // /**
+  //  * gl.clear() 放在 gl.framebufferTexture2D() 之后是出于绑定关系和渲染流程的合理设计
+  //  * 在绑定完成前,帧缓冲区的目标附件是未确定的，此时调用 gl.clear() 可能无效，因为不清楚要清除的是哪个缓冲区
+  //  * 在绑定完成后，gl.clear() 明确作用于当前绑定的帧缓冲区及其关联的立方体贴图面
+  //  */
   //     this.gl.clear(this.gl.COLOR_BUFFER_BIT | this.gl.DEPTH_BUFFER_BIT)
 
   //     // 使用 equirectangular 转 cubemap 的 shader
@@ -322,9 +323,9 @@ export class HDRCubeMapTexture {
       )
 
       /**
-       * gl.clear() 放在 gl.framebufferTexture2D() ​​之后​​是出于​​绑定关系​​和​​渲染流程​​的合理设计
-       * 在绑定完成前​​，帧缓冲区的目标附件是未确定的，此时调用 gl.clear() 可能无效，因为不清楚要清除的是哪个缓冲区
-       * 在绑定完成后​​，gl.clear() 明确作用于当前绑定的帧缓冲区及其关联的立方体贴图面
+       * gl.clear() 放在 gl.framebufferTexture2D() 之后是出于绑定关系和渲染流程的合理设计
+       * 在绑定完成前,帧缓冲区的目标附件是未确定的，此时调用 gl.clear() 可能无效，因为不清楚要清除的是哪个缓冲区
+       * 在绑定完成后，gl.clear() 明确作用于当前绑定的帧缓冲区及其关联的立方体贴图面
        */
       this.gl.clear(this.gl.COLOR_BUFFER_BIT | this.gl.DEPTH_BUFFER_BIT)
 
@@ -363,7 +364,7 @@ export class HDRCubeMapTexture {
 
     const positionLocation = this.equirectToCubemapShader.getAtrributeLocation('aVertexPosition')
     if (positionLocation === -1) {
-      console.log(`❌ Attribute aVertexPosition not found in shader`)
+      console.log('❌ Attribute aVertexPosition not found in shader')
       return
     }
     this.gl.enableVertexAttribArray(positionLocation)
@@ -438,7 +439,7 @@ export class HDRCubeMapTexture {
   }
   // 返回 Model Matrix
   private getCaptureModelMatrix(transform: TRSTransform = new TRSTransform()) {
-    let modelMatrix = mat4.create()
+    const modelMatrix = mat4.create()
     // Model transform
     mat4.identity(modelMatrix)
     mat4.translate(modelMatrix, modelMatrix, transform.translate)

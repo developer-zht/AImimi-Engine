@@ -8,6 +8,7 @@ import { WaterSurface } from '@/objects/WaterSurface'
 import { TransformationParams } from '@/types/transformation'
 import { MeshRender } from '@/renderers/MeshRender'
 import { WebGLRenderer } from '@/renderers/WebGLRenderer'
+import { ShaderPaths } from '@/config/resourcePaths'
 
 // 水体渲染器类型枚举
 export enum WaterRenderType {
@@ -72,18 +73,15 @@ export class WaterRenderManager {
       case WaterRenderType.SINE_WAVE:
         return await buildSineWaveMaterial(
           this.config.materialParams as SineWaveMaterialParams, // 作用：覆盖默认值
-          'src/shaders/waterShader/SinWaveVertex.glsl',
-          'src/shaders/waterShader/SinWaveFragment.glsl'
+          ShaderPaths.SINE_WAVE_VERTEX,
+          ShaderPaths.SINE_WAVE_FRAGMENT
         )
       case WaterRenderType.GERSTNER_WAVE:
         return await buildGerstnerWaveMaterial(
           this.config.materialParams as GerstnerWaveMaterialParams, // 作用：覆盖默认值
-          'src/shaders/waterShader/GerstnerWaveVertex.glsl',
-          'src/shaders/waterShader/GerstnerWaveFragment.glsl'
+          ShaderPaths.GERSTNER_WAVE_VERTEX,
+          ShaderPaths.GERSTNER_WAVE_FRAGMENT
         )
-      case WaterRenderType.FFT_WAVE:
-        // TODO: 实现 FFT 波浪材质
-        throw new Error('FFT WAVE material not implemented yet')
       default:
         throw new Error(`Unknown water render type: ${this.config.renderType}`)
     }

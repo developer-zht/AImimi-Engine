@@ -66,6 +66,7 @@ export class CubeMapTexture {
       this.setupTextureParameters()
       console.log(`✅ CubeMap loaded successfully from ${cubeMapConfig.basePath}`)
     } catch (error) {
+      console.error('❌ Failed to load CubeMap:', error)
       throw error
     }
   }

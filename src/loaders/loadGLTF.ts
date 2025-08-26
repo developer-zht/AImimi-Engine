@@ -49,12 +49,12 @@ export function loadGLTF(
         if (child.type === 'Mesh') {
           // child 是 Mesh 类型
           const threeMesh = child as THREEMesh
-          let geo = threeMesh.geometry as THREEBufferGeometry
+          const geo = threeMesh.geometry as THREEBufferGeometry
           let material: THREEMeshStandardMaterial
           if (Array.isArray(threeMesh.material))
             material = threeMesh.material[0] as THREEMeshStandardMaterial
           else material = threeMesh.material as THREEMeshStandardMaterial
-          let gltfTransform = setTransform(
+          const gltfTransform = setTransform(
             child.position.x,
             child.position.y,
             child.position.z,
@@ -66,7 +66,7 @@ export function loadGLTF(
             child.rotation.z
           )
           // let indices = Array.from({ length: geo.attributes.position.count }, (v, k) => k)
-          let mesh = new Mesh(
+          const mesh = new Mesh(
             { name: 'aVertexPosition', array: new Float32Array(geo.attributes.position.array) },
             { name: 'aNormalPosition', array: new Float32Array(geo.attributes.normal.array) },
             { name: 'aTextureCoord', array: new Float32Array(geo.attributes.uv.array) },
@@ -77,23 +77,23 @@ export function loadGLTF(
           // console.log(material.map.image)
           // console.log(material.color.toArray())
 
-          let diffuseMap = new Texture()
+          const diffuseMap = new Texture()
           if (material.map != null) {
             diffuseMap.CreateImageTexture(renderer.gl, material.map.image)
           } else {
             diffuseMap.CreateConstantTexture(renderer.gl, material.color.toArray() as Vec3, true)
           }
 
-          let specularMap = new Texture()
+          const specularMap = new Texture()
           specularMap.CreateConstantTexture(renderer.gl, [0, 0, 0])
-          let normalMap = new Texture()
+          const normalMap = new Texture()
           if (material.normalMap != null) {
             normalMap.CreateImageTexture(renderer.gl, material.normalMap.image)
           } else {
             normalMap.CreateConstantTexture(renderer.gl, [0.5, 0.5, 1], false)
           }
 
-          let light = renderer.lights[0].entity
+          const light = renderer.lights[0].entity
           let ssrMaterial: SSRMaterial
           let shadowMaterial: ShadowMaterial
           let bufferMaterial: GBufferMaterial
@@ -138,13 +138,13 @@ export function loadGLTF(
           // })
 
           switch (materialName) {
-            case 'SSRMaterial':
+            case 'SSRMaterial': {
               ssrMaterial = await buildSSRMaterial(
                 diffuseMap,
                 specularMap,
                 light,
                 renderer.camera,
-                `./src/shaders/ssrShader/ssrVertex.glsl`,
+                './src/shaders/ssrShader/ssrVertex.glsl',
                 './src/shaders/ssrShader/ssrFragment.glsl'
               )
               shadowMaterial = await buildShadowMaterial(
@@ -161,13 +161,14 @@ export function loadGLTF(
                 './src/shaders/gbufferShader/gbufferFragment.glsl'
               )
 
-              let meshRender = new MeshRender(renderer.gl, mesh, ssrMaterial)
+              const meshRender = new MeshRender(renderer.gl, mesh, ssrMaterial)
               renderer.addMeshRender(meshRender)
-              let shadowMeshRender = new MeshRender(renderer.gl, mesh, shadowMaterial)
+              const shadowMeshRender = new MeshRender(renderer.gl, mesh, shadowMaterial)
               renderer.addShadowMeshRender(shadowMeshRender)
-              let bufferMeshRender = new MeshRender(renderer.gl, mesh, bufferMaterial)
+              const bufferMeshRender = new MeshRender(renderer.gl, mesh, bufferMaterial)
               renderer.addBufferMeshRender(bufferMeshRender)
               break
+            }
           }
         }
       })

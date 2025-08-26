@@ -1,5 +1,6 @@
 import { fileURLToPath, URL } from 'url'
 import { defineConfig, loadEnv, UserConfig } from 'vite'
+import { visualizer } from 'rollup-plugin-visualizer'
 
 // Debug Code
 // console.log(new URL('./src', import.meta.url))
@@ -19,6 +20,8 @@ const buildConfigMap: Record<ViteConfigEnv, UserConfig> = {
   },
   production: {
     build: {
+      outDir: 'dist',
+      emptyOutDir: true,
       sourcemap: false,
       minify: 'terser',
       terserOptions: {
@@ -32,8 +35,8 @@ const buildConfigMap: Record<ViteConfigEnv, UserConfig> = {
       rollupOptions: {
         output: {
           manualChunks: {
-            vendor: ['axios', 'lodash-es'],
-            utils: ['./src/utils/index.ts']
+            // vendor: ['axios', 'lodash-es'],
+            // utils: ['./src/utils/index.ts']
           }
         }
       }
@@ -42,8 +45,9 @@ const buildConfigMap: Record<ViteConfigEnv, UserConfig> = {
 }
 
 export default defineConfig(({ command, mode }) => {
+  // Debug Code
   console.log(`Command: ${command}, Mode: ${mode}`)
-  // console.log(fileURLToPath(new URL('./', import.meta.url)))
+  console.log(fileURLToPath(new URL('./', import.meta.url)))
   console.log(loadEnv(mode, fileURLToPath(new URL('./', import.meta.url))))
 
   const env = loadEnv(mode, fileURLToPath(new URL('./', import.meta.url)))
@@ -52,9 +56,10 @@ export default defineConfig(({ command, mode }) => {
   const baseConfig: UserConfig = {
     // 项目根目录位置
     root: fileURLToPath(new URL('./', import.meta.url)),
-    // 应用的基础公共路径，部署在 https://domain.com/
-    base: '/',
-    plugins: [],
+    // base: '/', // 应用的基础公共路径，部署在 https://domain.com/
+    // 服务器部署配置
+    base: mode === 'development' ? '/' : '/RefactoredGames202Project/',
+    plugins: [visualizer({ gzipSize: true, brotliSize: true })],
     resolve: {
       alias: {
         '@': fileURLToPath(new URL('./src', import.meta.url))

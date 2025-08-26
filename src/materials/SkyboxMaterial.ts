@@ -33,6 +33,7 @@ export class SkyboxMaterial extends Material {
             extension: '.png'
           })
           this.uniforms['uSkyboxMap'].value = this.cubeMapTexture.texture
+          break
         case TextureType.HDR_FILE:
           this.uniforms['uSkyboxMap'].value = HDRCubeMapTexture.getInstance(this.gl).envCubemap
       }
@@ -48,8 +49,8 @@ export async function buildSkyboxMaterial(
   fragmentPath: string,
   textureType: TextureType
 ): Promise<SkyboxMaterial> {
-  let vertexShaderContent = await getShaderString(vertexPath)
-  let fragmentShaderContent = await getShaderString(fragmentPath)
+  const vertexShaderContent = await getShaderString(vertexPath)
+  const fragmentShaderContent = await getShaderString(fragmentPath)
 
   const skyboxMaterial = new SkyboxMaterial(gl, vertexShaderContent, fragmentShaderContent)
   await skyboxMaterial.setTexUniform(textureType)

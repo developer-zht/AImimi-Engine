@@ -1,3 +1,4 @@
+import { ShaderPaths } from '@/config/resourcePaths'
 import { buildSkyboxMaterial } from '@/materials/SkyboxMaterial'
 import { Mesh } from '@/objects/Mesh'
 import { SkyboxMesh } from '@/objects/SkyboxMesh'
@@ -9,9 +10,17 @@ export enum CubeMapType {
   SKYBOX = 'skybox'
 }
 
+export enum TextureType {
+  CUBE_MAP = 'cubemap', // 已经分割好的 cubemap
+  HDR_FILE = 'hdrFile' // 需要从 .hdr/.exr 转换到 cubemap
+}
+
 export interface CubeMapRenderManagerParams {
   // 几何参数
   transformation: TransformationParams
+
+  // Texture 文件类型
+  textureType: TextureType
 
   // 网格类型 / 渲染类型
   cubeMapType: CubeMapType
@@ -30,20 +39,25 @@ export class CubeMapRenderManager {
   // 初始化 Skybox Vertices
   private createCubeMapMesh(meshType: CubeMapRenderManagerParams['cubeMapType']): Mesh {
     switch (meshType) {
-      case CubeMapType.SKYBOX:
+      case CubeMapType.SKYBOX: {
         const skyboxMesh = new SkyboxMesh(this.config.transformation)
         return skyboxMesh
+      }
     }
   }
 
   // 初始化 Skybox Material
-  private async createCubeMapMaterial(renderType: CubeMapRenderManagerParams['cubeMapType']) {
+  private async createCubeMapMaterial(
+    renderType: CubeMapRenderManagerParams['cubeMapType'],
+    textureType: TextureType
+  ) {
     switch (renderType) {
       case CubeMapType.SKYBOX:
         return await buildSkyboxMaterial(
           this.gl,
-          'src/shaders/skyboxShader/SkyboxVertex.glsl',
-          'src/shaders/skyboxShader/SkyboxFragment.glsl'
+          ShaderPaths.SKYBOX_VERTEX,
+          ShaderPaths.SKYBOX_FRAGMENT,
+          textureType
         )
     }
   }
@@ -52,7 +66,10 @@ export class CubeMapRenderManager {
   async initMeshRender() {
     try {
       const mesh = this.createCubeMapMesh(this.config.cubeMapType)
-      const material = await this.createCubeMapMaterial(this.config.cubeMapType)
+      const material = await this.createCubeMapMaterial(
+        this.config.cubeMapType,
+        this.config.textureType
+      )
       this.meshRender = new MeshRender(this.gl, mesh, material)
 
       console.log(`Water renderer initialized with type: ${this.config.cubeMapType}`)

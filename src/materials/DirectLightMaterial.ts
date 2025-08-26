@@ -3,6 +3,7 @@ import { getShaderString } from '@/loaders/loadShader'
 import { DirectionalLight } from '@/lights/DirectionalLight'
 
 import type { Vec3 } from '@/types/math'
+import { UniformType } from '@/types/Material'
 
 export class DirectLightMaterial extends Material {
   constructor(
@@ -14,18 +15,18 @@ export class DirectLightMaterial extends Material {
     vertexShader: string,
     fragmentShader: string
   ) {
-    let lightMVP = light.CalcDirectionalLightMVP(translate, scale)
-    let lightIntensity = light.material.GetIntensity()
+    const lightMVP = light.CalcDirectionalLightMVP(translate, scale)
+    const lightIntensity = light.material.GetIntensity()
 
     super(
       {
         // Phong
-        uSampler: { type: 'texture', value: color },
-        uKs: { type: '3fv', value: specular },
-        uLightRadiance: { type: '3fv', value: lightIntensity },
+        uSampler: { type: UniformType.TEXTURE_2D, value: color },
+        uKs: { type: UniformType.THREE_FV, value: specular },
+        uLightRadiance: { type: UniformType.THREE_FV, value: lightIntensity },
         // Shadow
-        uShadowMap: { type: 'texture', value: light.fbo },
-        uLightMVP: { type: 'matrix4fv', value: lightMVP }
+        uShadowMap: { type: UniformType.TEXTURE_2D, value: light.fbo },
+        uLightMVP: { type: UniformType.MATRIX_4FV, value: lightMVP }
       },
       [],
       vertexShader,
@@ -44,8 +45,8 @@ async function buildDirectLightMaterial(
   vertexPath: string,
   fragmentPath: string
 ) {
-  let vertexShader = await getShaderString(vertexPath)
-  let fragmentShader = await getShaderString(fragmentPath)
+  const vertexShader = await getShaderString(vertexPath)
+  const fragmentShader = await getShaderString(fragmentPath)
 
   return new DirectLightMaterial(
     color,

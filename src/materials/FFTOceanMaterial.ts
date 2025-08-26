@@ -38,6 +38,12 @@ export class FFTOceanMaterial extends WaterMaterial {
       transparency: 0.8,
       reflectance: 0.3,
       refractiveIndex: 1.33,
+      // 水深模型参数
+      depthModel: 2,
+      maxDepth: 50.0,
+      minDepth: 1.0,
+      depthCenter: [0, 0],
+      depthFalloff: 1.5,
       // 波浪控制参数
       time: 0.0,
       // 光照参数

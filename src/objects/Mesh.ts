@@ -19,6 +19,7 @@ export class Mesh {
   public indices: number[]
   public count: number
   public transform: TRSTransform
+  public indicesData: Uint32Array
 
   // 顶点属性
   public verticesAttrib?: AttributeData
@@ -82,6 +83,7 @@ export class Mesh {
   initIndices(indices: number[]) {
     this.indices = indices
     this.count = indices.length
+    this.indicesData = new Uint32Array(indices)
   }
   initTransformation(transform: TransformationParams) {
     const modelTranslation: Vec3 = [

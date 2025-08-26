@@ -72,8 +72,8 @@ export class HDRTextureLoader {
   // }
 
   private async loadHDRFile(filePath: string, fileType: TextureFileType): Promise<DataTexture> {
-    console.log(`🔄 Loading EXR file: ${filePath}`)
-
+    // Debug Code
+    console.log(`🔄 Loading ${fileType}: ${filePath}`)
     if (fileType === TextureFileType.HDR) {
       // 创建 RGBELoader
       this.rgbeLoader = new RGBELoader()
@@ -88,7 +88,7 @@ export class HDRTextureLoader {
 
     try {
       const dataTexture = await this.exrLoader.loadAsync(filePath, (e) => {
-        let percent = (e.loaded / e.total) * 100
+        const percent = (e.loaded / e.total) * 100
         if (percent % 10 < 1) {
           console.log(`EXR texture has loaded ${percent.toFixed(2)}%`)
         }

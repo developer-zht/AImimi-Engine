@@ -1,5 +1,5 @@
 import { FFTOceanGenerator } from '@/managers/fftOcean/FFTOceanGenerator'
-import { OceanParams } from '@/managers/fftOcean/OceanSpectrum'
+import { OceanParams } from '@/managers/fftOcean/PhillipsSpectrum'
 
 export class OceanTextureManager {
   private gl: WebGLRenderingContext
@@ -20,7 +20,7 @@ export class OceanTextureManager {
       throw new Error('Failed to create WebGL texture')
     }
     this.gl.bindTexture(this.gl.TEXTURE_2D, texture)
-    const emptyData = new Float32Array(size * size * 4).fill(null)
+    const emptyData = new Float32Array(size * size * 4).fill(0.0)
     this.gl.texImage2D(
       this.gl.TEXTURE_2D,
       0,
@@ -35,10 +35,11 @@ export class OceanTextureManager {
 
     this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_MIN_FILTER, this.gl.LINEAR)
     this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_MAG_FILTER, this.gl.LINEAR)
-    this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_WRAP_S, this.gl.REPEAT)
-    this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_WRAP_T, this.gl.REPEAT)
+    this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_WRAP_S, this.gl.CLAMP_TO_EDGE)
+    this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_WRAP_T, this.gl.CLAMP_TO_EDGE)
 
-    console.log(texture)
+    // Debug Code
+    // console.log(texture)
 
     return texture
   }
@@ -74,6 +75,9 @@ export class OceanTextureManager {
         generator.getParams()
       ) // 计算雅可比值（用于泡沫）
 
+      // Debug Code
+      // console.log(heightField[i])
+
       // 法线纹理：RGBA = (gradX, gradZ, 1, 1)
       // 法线纹理：RGBA = (gradX, gradZ, 1, 1)
       normalData[i * 4] = normalX[i]
@@ -99,19 +103,14 @@ export class OceanTextureManager {
       this.gl.FLOAT,
       displacementData
     )
-    // this.gl.texSubImage2D(
-    //   this.gl.TEXTURE_2D,
-    //   0,
-    //   0,
-    //   0,
-    //   N,
-    //   N,
-    //   this.gl.RGBA,
-    //   this.gl.FLOAT,
-    //   displacementData
-    // )
 
+    // Debug Code
     // console.log(this.displacementTexture)
+
+    this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_MIN_FILTER, this.gl.LINEAR)
+    this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_MAG_FILTER, this.gl.LINEAR)
+    this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_WRAP_S, this.gl.CLAMP_TO_EDGE)
+    this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_WRAP_T, this.gl.CLAMP_TO_EDGE)
 
     this.gl.bindTexture(this.gl.TEXTURE_2D, this.normalTexture)
     this.gl.texImage2D(
@@ -125,17 +124,11 @@ export class OceanTextureManager {
       this.gl.FLOAT,
       normalData
     )
-    // this.gl.texSubImage2D(
-    //   this.gl.TEXTURE_2D,
-    //   0,
-    //   0,
-    //   0,
-    //   N,
-    //   N,
-    //   this.gl.RGBA,
-    //   this.gl.FLOAT,
-    //   normalData
-    // )
+
+    this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_MIN_FILTER, this.gl.LINEAR)
+    this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_MAG_FILTER, this.gl.LINEAR)
+    this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_WRAP_S, this.gl.CLAMP_TO_EDGE)
+    this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_WRAP_T, this.gl.CLAMP_TO_EDGE)
 
     // 解绑纹理
     this.gl.bindTexture(this.gl.TEXTURE_2D, null)
@@ -158,6 +151,9 @@ export class OceanTextureManager {
     const i = Math.floor(index / N)
     const j = index % N
 
+    const dx = params.size / N
+    const dz = params.size / N
+
     // 边界处理
     if (i === 0 || i === N - 1 || j === 0 || j === N - 1) return 1.0
 
@@ -168,10 +164,10 @@ export class OceanTextureManager {
     const indexDown = (i + 1) * N + j
 
     // 有限差分求偏导
-    const dDx_dx = (dispX[indexRight] - dispX[indexLeft]) / 2
-    const dDx_dz = (dispX[indexDown] - dispX[indexUp]) / 2
-    const dDz_dx = (dispZ[indexRight] - dispZ[indexLeft]) / 2
-    const dDz_dz = (dispZ[indexDown] - dispZ[indexUp]) / 2
+    const dDx_dx = (dispX[indexRight] - dispX[indexLeft]) / (2 * dx)
+    const dDx_dz = (dispX[indexDown] - dispX[indexUp]) / (2 * dz)
+    const dDz_dx = (dispZ[indexRight] - dispZ[indexLeft]) / (2 * dx)
+    const dDz_dz = (dispZ[indexDown] - dispZ[indexUp]) / (2 * dz)
 
     const lambda = params.choppiness
     const J = (1 + lambda * dDx_dx) * (1 + lambda * dDz_dz) - lambda * lambda * dDx_dz * dDz_dx
