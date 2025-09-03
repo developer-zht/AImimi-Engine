@@ -2,9 +2,9 @@ import { WaterRenderManagerConfig, WaterRenderType } from '@/managers/water/Wate
 import type { SineWaveMaterialParams } from '@/materials/SineWaveMaterial'
 import { setTransform } from '@/utils/transformation'
 import { GerstnerWaveMaterialParams, GerstnerWaveParams } from '@/materials/GerstnerWaveMaterial'
-import { CubeMapTexture } from '@/textures/CubeMapTexture'
+import { ImgBasedCubeMapTexture } from '@/textures/ImgBasedCubeMapTexture'
 import { WaterMaterialParams } from '@/materials/WaterMaterial'
-import { HDRCubeMapTexture } from '@/textures/HDRCubeMapTexture'
+import { HDRBasedCubeMapTexture } from '@/textures/HDRBasedCubeMapTexture'
 import { FileExtensions, TexturePaths } from '@/config/resourcePaths'
 
 // 水体类型
@@ -45,7 +45,7 @@ export class WaterPresets {
     // })
     // const skyboxTexture = skybox.texture
 
-    const skyboxTexture = HDRCubeMapTexture.getInstance(this.gl).envCubemap
+    const skyboxTexture = HDRBasedCubeMapTexture.getInstance(this.gl).envCubemap
 
     // console.log(skybox.texture)
 
