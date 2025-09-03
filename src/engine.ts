@@ -16,11 +16,11 @@ import { Vec3 } from '@/types/math'
 
 import { PerformanceMonitor } from '@/monitors/PerformanceMonitor'
 import { loadCubeMap } from './managers/cubemap/CubeMapRenderManager'
-import { CubeMapPreset } from './managers/cubemap/CubeMapPreset'
+import { CubeMapPreset, TextureType } from './managers/cubemap/CubeMapPreset'
 import { loadFFTOcean } from './managers/fftOcean/FFTOceanRenderManager'
 import { FFTOceanPresets } from './managers/fftOcean/FFTOceanPresets'
-import { HDRCubeMapTexture } from './textures/HDRCubeMapTexture'
-import { HDRTextureLoader, TextureFileType } from '@/loaders/loadHDR'
+import { HDRBasedCubeMapTexture } from './textures/HDRBasedCubeMapTexture'
+import { HDRDataTextureLoader, TextureFileType } from '@/loaders/loadHDRTexture'
 import { TexturePaths } from './config/resourcePaths'
 
 export class Engine {
@@ -88,19 +88,25 @@ export class Engine {
      * HDR file path: 'public/assets/textures/environment/skies/qwantani_moonrise_puresky_2k/puresky.hdr'
      * EXR file path: 'public/assets/textures/environment/skies/EveningSkyHDRI039B/EveningSkyHDRI039B_2K-HDR.exr'
      */
-    const hdrTextureLoader = new HDRTextureLoader(this.gl)
-    const hdrTexture = await hdrTextureLoader.loadHDRTexture(
+    // 使用 Threejs 的 HDR(EXR) loader 加载 DataTexture
+    const hdrDataTextureLoader = new HDRDataTextureLoader(this.gl)
+    const hdrDataTexture = await hdrDataTextureLoader.loadHDRDataTexture(
       TexturePaths.EVENING_SKY_HDRI039B_EXR,
       TextureFileType.EXR
     )
-    const hdrCubeMapTexture = HDRCubeMapTexture.getInstance(this.gl)
-    await hdrCubeMapTexture.init(hdrTexture)
+    // 用 Threejs loader 加载的 DataTexture 创建 CubeMap Texture
+    const hdrCubeMapTexture = HDRBasedCubeMapTexture.getInstance(this.gl)
+    await hdrCubeMapTexture.init(hdrDataTexture)
 
     // 加载场景
     // this.loadSceneGLTF(SceneType.CUBE_SCENE)
     // this.loadSceneGLTF(SceneType.CAVE_SCENE)
     // 加载 skybox
-    await loadCubeMap(this.renderer, CubeMapPreset.createSkybox())
+    const cubeMapRenderManagerParams = await CubeMapPreset.createSkybox(
+      this.gl,
+      TextureType.IMG_CUBE_MAP
+    )
+    await loadCubeMap(this.renderer, cubeMapRenderManagerParams)
     // 加载水场景
     // loadWater(this.renderer, WaterPresets.getInstance(this.renderer.gl).createSineWave())
     // loadWater(this.renderer, WaterPresets.getInstance(this.renderer.gl).createGerstnerWaves())
