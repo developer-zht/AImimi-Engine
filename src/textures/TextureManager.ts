@@ -1,4 +1,4 @@
-import { CubeMapConfig, CubeMapTexture } from './CubeMapTexture'
+import { CubeMapConfig, ImgBasedCubeMapTexture } from '@/textures/ImgBasedCubeMapTexture'
 
 export class TextureManager {
   private static cubeMapCache = new Map<string, WebGLTexture>()
@@ -15,11 +15,11 @@ export class TextureManager {
     }
 
     console.log(`🆕 创建新的立方体贴图: ${key}`)
-    const cubeMapTexture = new CubeMapTexture(gl)
-    await cubeMapTexture.createCubeMapFromImages(config)
+    const imgBasedCubeMapTexture = new ImgBasedCubeMapTexture(gl)
+    await imgBasedCubeMapTexture.createCubeMapFromImages(config)
 
-    this.cubeMapCache.set(key, cubeMapTexture.texture!)
-    return cubeMapTexture.texture!
+    this.cubeMapCache.set(key, imgBasedCubeMapTexture.texture!)
+    return imgBasedCubeMapTexture.texture!
   }
 
   static clearCache(gl: WebGLRenderingContext) {
