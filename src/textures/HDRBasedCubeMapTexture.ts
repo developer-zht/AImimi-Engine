@@ -6,9 +6,9 @@ import { ShaderParameters } from '@/types/Shader'
 import { mat4 } from 'gl-matrix'
 import { DataTexture } from 'three'
 
-export class HDRCubeMapTexture {
+export class HDRBasedCubeMapTexture {
   // 单例模式
-  private static instance: HDRCubeMapTexture
+  private static instance: HDRBasedCubeMapTexture
 
   private gl: WebGLRenderingContext
   public envCubemap: WebGLTexture | null = null
@@ -32,7 +32,7 @@ export class HDRCubeMapTexture {
 
   public static getInstance(gl: WebGLRenderingContext) {
     if (!this.instance) {
-      this.instance = new HDRCubeMapTexture(gl)
+      this.instance = new HDRBasedCubeMapTexture(gl)
       return this.instance
     } else {
       return this.instance

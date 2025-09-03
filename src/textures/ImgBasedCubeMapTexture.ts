@@ -4,7 +4,7 @@ export interface CubeMapConfig {
   faceKeys?: string[]
 }
 
-export class CubeMapTexture {
+export class ImgBasedCubeMapTexture {
   private gl: WebGLRenderingContext
   public texture: WebGLTexture | null
   constructor(gl: WebGLRenderingContext) {
