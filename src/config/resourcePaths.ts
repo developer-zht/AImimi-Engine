@@ -9,8 +9,9 @@ const BASES = {
 // 纹理资源路径配置
 export const TexturePaths = {
   // 天空盒
-  SKY_09_CUBEMAP: urlJoin(BASES.textures, '/skyboxes/sky_09_cubemap'),
-  SKY_18_CUBEMAP: urlJoin(BASES.textures, '/skyboxes/sky_18_cubemap'),
+  SKY_09_CUBEMAP: urlJoin(BASES.textures, '/skyboxes/sky_09_cubemap/'),
+  SKY_18_CUBEMAP: urlJoin(BASES.textures, '/skyboxes/sky_18_cubemap/'),
+  SKY_SUNSET: urlJoin(BASES.textures, '/skyboxes/sky_sunset/'),
   QWANTANI_MOONRISE_PURESKY_2K_EXR: urlJoin(
     BASES.textures,
     '/environment/skies/qwantani_moonrise_puresky_2k/puresky.exr'
