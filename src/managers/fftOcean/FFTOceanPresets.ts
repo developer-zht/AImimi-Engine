@@ -1,8 +1,6 @@
 import { setTransform } from '@/utils/transformation'
 import { FFTOceanRenderManagerConfig } from './FFTOceanRenderManager'
-import { HDRCubeMapTexture } from '@/textures/HDRCubeMapTexture'
-import { CubeMapTexture } from '@/textures/CubeMapTexture'
-import { FileExtensions, TexturePaths } from '@/config/resourcePaths'
+import { HDRBasedCubeMapTexture } from '@/textures/HDRBasedCubeMapTexture'
 
 export class FFTOceanPresets {
   private static instance: FFTOceanPresets
@@ -29,7 +27,7 @@ export class FFTOceanPresets {
     // })
     // const skyboxTexture = skybox.texture
 
-    const skyboxTexture = HDRCubeMapTexture.getInstance(this.gl).envCubemap
+    const skyboxTexture = HDRBasedCubeMapTexture.getInstance(this.gl).envCubemap
 
     return skyboxTexture
   }
