@@ -1,15 +1,43 @@
 import { setTransform } from '@/utils/transformation'
-import { CubeMapRenderManagerParams, CubeMapType, TextureType } from './CubeMapRenderManager'
+import { CubeMapRenderManagerParams, CubeMapType } from '@/managers/cubemap/CubeMapRenderManager'
+import { ImgBasedCubeMapTexture } from '@/textures/ImgBasedCubeMapTexture'
+import { FileExtensions, TexturePaths } from '@/config/resourcePaths'
+import { HDRBasedCubeMapTexture } from '@/textures/HDRBasedCubeMapTexture'
+
+export enum TextureType {
+  IMG_CUBE_MAP = 'image', // 已经分割好的 cubemap
+  HDR_CUBE_MAP = 'hdrFile' // 需要从 .hdr/.exr 转换到 cubemap
+}
 
 export class CubeMapPreset {
   /**
    * skybox vertices data
    */
-  static createSkybox() {
+  static async createSkybox(gl: WebGLRenderingContext, textureType: TextureType) {
+    let texture: WebGLTexture
+    switch (textureType) {
+      case TextureType.IMG_CUBE_MAP: {
+        const imgBasedCubeMapTexture = new ImgBasedCubeMapTexture(gl)
+        console.log(TexturePaths.SKY_09_CUBEMAP)
+
+        await imgBasedCubeMapTexture.createCubeMapFromImages({
+          basePath: TexturePaths.SKY_SUNSET,
+          extension: FileExtensions.PNG
+        })
+        texture = imgBasedCubeMapTexture.texture
+        break
+      }
+      case TextureType.HDR_CUBE_MAP: {
+        texture = HDRBasedCubeMapTexture.getInstance(gl).envCubemap
+        break
+      }
+    }
+
     const cubeMapRenderManagerParams: CubeMapRenderManagerParams = {
       transformation: setTransform(0, 0, 0, 1, 1, 1, 0, 0, 0),
       cubeMapType: CubeMapType.SKYBOX,
-      textureType: TextureType.HDR_FILE
+      // textureType: TextureType.HDR_FILE
+      texture
     }
 
     return cubeMapRenderManagerParams
