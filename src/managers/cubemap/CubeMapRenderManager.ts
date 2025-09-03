@@ -10,17 +10,13 @@ export enum CubeMapType {
   SKYBOX = 'skybox'
 }
 
-export enum TextureType {
-  CUBE_MAP = 'cubemap', // 已经分割好的 cubemap
-  HDR_FILE = 'hdrFile' // 需要从 .hdr/.exr 转换到 cubemap
-}
-
 export interface CubeMapRenderManagerParams {
   // 几何参数
   transformation: TransformationParams
 
   // Texture 文件类型
-  textureType: TextureType
+  // textureType: TextureType
+  texture: WebGLTexture
 
   // 网格类型 / 渲染类型
   cubeMapType: CubeMapType
@@ -47,17 +43,14 @@ export class CubeMapRenderManager {
   }
 
   // 初始化 Skybox Material
-  private async createCubeMapMaterial(
-    renderType: CubeMapRenderManagerParams['cubeMapType'],
-    textureType: TextureType
-  ) {
+  private async createCubeMapMaterial(renderType: CubeMapType, texture: WebGLTexture) {
     switch (renderType) {
       case CubeMapType.SKYBOX:
         return await buildSkyboxMaterial(
           this.gl,
           ShaderPaths.SKYBOX_VERTEX,
           ShaderPaths.SKYBOX_FRAGMENT,
-          textureType
+          texture
         )
     }
   }
@@ -68,7 +61,7 @@ export class CubeMapRenderManager {
       const mesh = this.createCubeMapMesh(this.config.cubeMapType)
       const material = await this.createCubeMapMaterial(
         this.config.cubeMapType,
-        this.config.textureType
+        this.config.texture
       )
       this.meshRender = new MeshRender(this.gl, mesh, material)
 
