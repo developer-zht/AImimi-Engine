@@ -1,6 +1,8 @@
 import { setTransform } from '@/utils/transformation'
 import { FFTOceanRenderManagerConfig } from './FFTOceanRenderManager'
 import { HDRBasedCubeMapTexture } from '@/textures/HDRBasedCubeMapTexture'
+import { ImgBasedCubeMapTexture } from '@/textures/ImgBasedCubeMapTexture'
+import { FileExtensions, TexturePaths } from '@/config/resourcePaths'
 
 export class FFTOceanPresets {
   private static instance: FFTOceanPresets
@@ -20,14 +22,15 @@ export class FFTOceanPresets {
   }
 
   async createSkybox(): Promise<WebGLTexture> {
-    // const skybox = new CubeMapTexture(this.gl)
-    // await skybox.createCubeMapFromImages({
-    //   basePath: TexturePaths.SKY_09_CUBEMAP,
-    //   extension: FileExtensions.PNG
-    // })
-    // const skyboxTexture = skybox.texture
+    // FIXME: skybox 和 ocean 实际上都是使用的是同一个 skybox texture，但又各自创建了一个 ImgBasedCubeMapTexture 实例，造成了内存浪费
+    const skybox = new ImgBasedCubeMapTexture(this.gl)
+    await skybox.createCubeMapFromImages({
+      basePath: TexturePaths.SKY_SUNSET,
+      extension: FileExtensions.PNG
+    })
+    const skyboxTexture = skybox.texture
 
-    const skyboxTexture = HDRBasedCubeMapTexture.getInstance(this.gl).envCubemap
+    // const skyboxTexture = HDRBasedCubeMapTexture.getInstance(this.gl).envCubemap
 
     return skyboxTexture
   }
