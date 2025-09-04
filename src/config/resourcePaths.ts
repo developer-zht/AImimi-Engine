@@ -41,8 +41,8 @@ export const ShaderPaths = {
   SCENE_DEPTH_VERTEX: `${BASES.shaders}/sceneDepthShader/depthVertex.glsl`,
   SCENE_DEPTH_FRAGMENT: `${BASES.shaders}/sceneDepthShader/depthFragment.glsl`,
   // Shadow Map
-  SHADOW_VERTEX: `${BASES.shaders}/shadowShader/shadowVertex.glsl`,
-  SHADOW_FRAGMENT: `${BASES.shaders}/shadowShader/shadowFragment.glsl`,
+  SHADOW_VERTEX: `${BASES.shaders}/shadowShader/shadowVertex.vert`,
+  SHADOW_FRAGMENT: `${BASES.shaders}/shadowShader/shadowFragment.frag`,
   // Equirect To Cubemap
   EQUIRECT_TO_CUBEMAP_VERTEX: `${BASES.shaders}/IBLShader/equirectToCubemapShader/EquirectToCubemapVertex.glsl`,
   EQUIRECT_TO_CUBEMAP_FRAGMENT: `${BASES.shaders}/IBLShader/equirectToCubemapShader/EquirectToCubemapFragment.glsl`,
