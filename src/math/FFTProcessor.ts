@@ -32,7 +32,18 @@ class ButterflyElement {
  * 3.按照蝶形网络的模式进行 f1(x) + Wnk * f2(x) 形式的加和
  */
 export class FFTProcessor {
-  constructor() {}
+  private precomputedData: {
+    size: number
+    inverse: boolean
+    data: ButterflyElement[]
+  }
+  constructor() {
+    this.precomputedData = {
+      size: 0,
+      inverse: false,
+      data: []
+    }
+  }
 
   /**
    * 检查 value 的第 bitIndex 位是否为 1（value 的最低位为第 0 位）
@@ -88,7 +99,7 @@ export class FFTProcessor {
   private calculateWnk(n: number, k: number, inverse: boolean = false): Complex {
     // 计算角度：-2π*k/n（负号表示顺时针旋转），逆变换时改变旋转方向
     const sign = inverse ? 1 : -1
-    let angle = (sign * (2 * Math.PI * k)) / n
+    const angle = (sign * (2 * Math.PI * k)) / n
     // 返回指数形式的复数
     return Complex.createFromAngle(angle)
   }
@@ -108,9 +119,9 @@ export class FFTProcessor {
     for (let stage = 0; stage < log2Size; stage++) {
       // 旋转因子 Wnk：其中 n = 2, 4, 8, ..., 2^log2N(log2Size)
       // 当前 stage 的蝶形网络大小：2^(stage+1)
-      let n = Math.pow(2, stage + 1)
+      const n = Math.pow(2, stage + 1)
       // 当前 downIndex - upIndex 的差值：2^stage
-      let interval = Math.pow(2, stage)
+      const interval = Math.pow(2, stage)
 
       // 为当前stage的每个位置生成蝶形元素
       for (let i = 0; i < size; i++) {
@@ -193,7 +204,14 @@ export class FFTProcessor {
     }
 
     // 生成预计算数据（所有stage的蝶形元素）
-    const precomputedData = this.generatePrecomputeData(size, inverse)
+    if (this.precomputedData.size !== size || this.precomputedData.inverse !== inverse) {
+      const data = this.generatePrecomputeData(size, inverse)
+      this.precomputedData = {
+        size: size,
+        inverse: inverse,
+        data: data
+      }
+    }
 
     // 第一步：对输入数据进行位反转重排序
     const bitReversedValues: Complex[] = []
@@ -208,17 +226,17 @@ export class FFTProcessor {
     // console.log(bitReversedValues)
 
     // 初始化ping-pong缓冲区（双缓冲避免数据覆盖）
-    let pingpong0: Complex[] = [...bitReversedValues]
-    let pingpong1: Complex[] = new Array(size).fill(null).map(() => new Complex(0, 0))
+    const pingpong0: Complex[] = [...bitReversedValues]
+    const pingpong1: Complex[] = new Array(size).fill(null).map(() => new Complex(0, 0))
     let pingpong = 0
 
     for (let stage = 0; stage < log2Size; stage++) {
       // 切换缓冲区
       pingpong = 1 - pingpong
       if (pingpong === 1) {
-        this.calculateSingleButterfly(precomputedData, pingpong0, pingpong1, stage, size)
+        this.calculateSingleButterfly(this.precomputedData.data, pingpong0, pingpong1, stage, size)
       } else {
-        this.calculateSingleButterfly(precomputedData, pingpong1, pingpong0, stage, size)
+        this.calculateSingleButterfly(this.precomputedData.data, pingpong1, pingpong0, stage, size)
       }
     }
 
@@ -273,7 +291,7 @@ export class FFTProcessor {
     }
 
     // 转换为复数矩阵
-    let result: Complex[][] = matrix.map((row) =>
+    const result: Complex[][] = matrix.map((row) =>
       row.map((x) => (x instanceof Complex ? x : Complex.fromReal(x)))
     )
 
