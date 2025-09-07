@@ -41,7 +41,7 @@ export class MeshRender {
     this.manager = manager
 
     // 处理 Mesh 中的数据
-    let extraAttribs = []
+    const extraAttribs = []
     if (mesh.hasVertices) {
       // 提取 Mesh 中的 attri
       extraAttribs.push(mesh.verticesName)
@@ -154,9 +154,9 @@ export class MeshRender {
   bindCameraParameters(camera: PerspectiveCamera) {
     const gl = this.gl
 
-    let modelMatrix = mat4.create()
-    let viewMatrix = mat4.create()
-    let projectionMatrix = mat4.create()
+    const modelMatrix = mat4.create()
+    const viewMatrix = mat4.create()
+    const projectionMatrix = mat4.create()
     // Model transform
     mat4.identity(modelMatrix)
     mat4.translate(modelMatrix, modelMatrix, this.mesh.transform.translate)
@@ -191,7 +191,7 @@ export class MeshRender {
     const gl = this.gl
 
     // let textureNum = drawControlParams.globalTextureNum
-    for (let k in this.material.uniforms) {
+    for (const k in this.material.uniforms) {
       if (this.material.uniforms[k].type == 'matrix4fv') {
         gl.uniformMatrix4fv(this.shader.program.uniforms[k], false, this.material.uniforms[k].value)
       } else if (this.material.uniforms[k].type == '3fv') {
@@ -247,7 +247,7 @@ export class MeshRender {
     if (parameters == null) {
       return
     }
-    for (let k in this.material.uniforms) {
+    for (const k in this.material.uniforms) {
       if (k in parameters) {
         this.material.uniforms[k].value = parameters[k]
       }
@@ -291,7 +291,8 @@ export class MeshRender {
       // const type = gl.UNSIGNED_SHORT // 启动了 OES_element_index_uint 扩展，别忘记把 indices 的类型改成 gl.UNSIGNED_INT
       const type = gl.UNSIGNED_INT
       const offset = 0
-      gl.drawElements(gl.TRIANGLES, vertexCount, type, offset)
+      gl.drawElements(gl.TRIANGLES, vertexCount, type, offset) // 三角形方式渲染
+      // gl.drawElements(gl.LINES, vertexCount, type, offset) // 线型方式渲染
     }
     gl.bindFramebuffer(gl.FRAMEBUFFER, null)
   }

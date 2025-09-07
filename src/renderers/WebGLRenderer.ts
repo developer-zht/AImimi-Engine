@@ -55,7 +55,7 @@ export class WebGLRenderer {
   render() {
     console.assert(this.lights.length != 0, 'No light')
     console.assert(this.lights.length == 1, 'Multiple lights')
-    let light = this.lights[0]
+    const light = this.lights[0]
 
     const gl = this.gl
     gl.clearColor(0.0, 0.0, 0.0, 1.0)
@@ -74,19 +74,19 @@ export class WebGLRenderer {
      * 合并参数
      */
     // 每一帧光源的位置、方向可能会变化，需要重新计算
-    let lightVP = light.entity.CalcDirectionalLightVP()
-    let lightDir = light.entity.CalcDirectionalShadingDirection()
-    let updatedLightParamters: UpdatedLightParamters = {
+    const lightVP = light.entity.CalcDirectionalLightVP()
+    const lightDir = light.entity.CalcDirectionalShadingDirection()
+    const updatedLightParamters: UpdatedLightParamters = {
       uLightVP: lightVP,
       uLightDir: lightDir
     }
 
     // 动画需要时间更新
-    let updatedTimeParameter: UpdatedTimeParameter = {
+    const updatedTimeParameter: UpdatedTimeParameter = {
       uTime: (Date.now() - this.startTime) / 1000
     }
     // 合并参数
-    let updatedParameters: UpdatedParamters = {
+    const updatedParameters: UpdatedParamters = {
       ...updatedLightParamters,
       ...updatedTimeParameter
     }
