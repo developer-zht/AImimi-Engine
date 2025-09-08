@@ -1,25 +1,23 @@
-import { FFTWorkerMessage } from '@/types/worker'
+import { SerializedSpectrum } from '@/types/worker'
 import { FFTProcessor } from '@/math/FFTProcessor'
 import { Complex } from '@/math/Complex'
+import {
+  deserializeArraysToSpectrum,
+  serializeSpatialToArrays
+} from '@/managers/fftOcean/utils/​​spectrumSerializer'
 
 const fftProcessor = new FFTProcessor()
 
-addEventListener('message', (event: MessageEvent<FFTWorkerMessage>) => {
-  const { serializedSlopeXSpectrum } = event.data
+addEventListener('message', (event: MessageEvent<SerializedSpectrum>) => {
+  const serializedSpectrum = event.data
+  const { realArray, imagArray, dimension } = serializedSpectrum
 
   // 反序列化为 Complex 对象
-  const slopeXSpectrum: Complex[][] = serializedSlopeXSpectrum.map((row) =>
-    row.map((item) => new Complex(item.real, item.imag))
-  )
+  const slopeXSpectrum: Complex[][] = deserializeArraysToSpectrum(realArray, imagArray, dimension)
 
   const slopeXSpatial = fftProcessor.ifft2DInterface(slopeXSpectrum)
 
-  const serializedSlopeXSpatial = slopeXSpatial.map((row) =>
-    row.map((complex) => ({
-      real: complex.real,
-      imag: complex.imag
-    }))
-  )
+  const serializedSlopeXSpatial = serializeSpatialToArrays(slopeXSpatial)
 
   postMessage(serializedSlopeXSpatial)
 })
