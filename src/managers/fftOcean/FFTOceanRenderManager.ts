@@ -100,9 +100,9 @@ export class FFTOceanRenderManager {
     }
   }
 
-  update(time: number) {
+  async update(time: number) {
     // 更新FFT数据
-    this.fftOceanGenerator.update(time)
+    await this.fftOceanGenerator.update(time)
 
     // console.log(this.meshRender)
 

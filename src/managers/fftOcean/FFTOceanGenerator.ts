@@ -1,6 +1,8 @@
 import { FFTProcessor } from '@/math/FFTProcessor'
 import { Complex } from '@/math/Complex'
 import { PhillipsSpectrum, OceanParams } from '@/managers/fftOcean/PhillipsSpectrum'
+import { FFTWorkerMessage, SerializedSpatial } from '@/types/worker'
+import { deserializeArraysToSpatial, serializeSpectrumToArrays } from './utils/​​spectrumSerializer'
 
 export class FFTOceanGenerator {
   private fftProcessor: FFTProcessor
@@ -18,6 +20,12 @@ export class FFTOceanGenerator {
   private normalX: Float32Array // 法线的 X 分量 (∂η/∂x)
   private normalZ: Float32Array // 法线的 Z 分量 (∂η/∂z)
 
+  private workers: Map<string, Worker> = new Map()
+  private workerPromises: Map<
+    string,
+    { resolve: (complex: Complex[][]) => void; reject: (event: ErrorEvent) => void }
+  > = new Map()
+
   constructor(params: OceanParams) {
     this.fftProcessor = new FFTProcessor()
     this.params = params
@@ -31,6 +39,97 @@ export class FFTOceanGenerator {
     this.normalZ = new Float32Array(N * N)
 
     this.generateInitialSpectrum()
+
+    // 初始化 woker
+    this.initializeWorkers()
+  }
+
+  // 创建计算 IFFT 的 worker 的通用方法
+  private createWorker(name: string, scriptPath: string): Worker {
+    const worker = new Worker(new URL(scriptPath, import.meta.url), {
+      type: 'module'
+    })
+
+    worker.addEventListener('message', (event: MessageEvent<SerializedSpatial>) => {
+      const promise = this.workerPromises.get(name)
+      if (promise) {
+        const { realArray, imagArray, dimension } = event.data
+        const spatial = deserializeArraysToSpatial(realArray, imagArray, dimension)
+        promise.resolve(spatial)
+        this.workerPromises.delete(name)
+      }
+    })
+
+    worker.addEventListener('error', (event: ErrorEvent) => {
+      const promise = this.workerPromises.get(name)
+      if (promise) {
+        promise.reject(event)
+        this.workerPromises.delete(name)
+      }
+    })
+
+    return worker
+  }
+
+  // 创建一组计算 IFFT 的 worker
+  private initializeWorkers() {
+    this.workers.set('slopeX', this.createWorker('slopeX', './workers/CalcSlopeXSpatial.ts'))
+    this.workers.set('slopeZ', this.createWorker('slopeZ', './workers/CalcSlopeZSpatial.ts'))
+    this.workers.set('dispX', this.createWorker('dispX', './workers/CalcDispXSpatial.ts'))
+    this.workers.set('dispZ', this.createWorker('dispZ', './workers/CalcDispZSpatial.ts'))
+  }
+
+  // 对单个 worker 的计算行为进行封装
+  private computeInWorker(name: string, spectrum: Complex[][]): Promise<Complex[][]> {
+    return new Promise((resolve, reject) => {
+      const worker = this.workers.get(name)
+
+      if (!worker) {
+        reject(new Error('Worker not initialized'))
+        return
+      }
+
+      this.workerPromises.set(name, { resolve, reject })
+
+      // 因为 postMessage 的参数类型有限
+      // 因此将 spectrum: Complex[][] 转换成包含 Float32Array 的对象以便 postMessage 传输
+      const serializedSpectrum = serializeSpectrumToArrays(spectrum)
+
+      worker.postMessage(serializedSpectrum)
+    })
+  }
+
+  // 使用 Promise.all 同步处理 IFFT 计算的结果
+  private async computeInWorkers(spectrums: {
+    slopeXSpectrum: Complex[][]
+    slopeZSpectrum: Complex[][]
+    dispXSpectrum: Complex[][]
+    dispZSpectrum: Complex[][]
+  }) {
+    const slopeXSpatialPromise = this.computeInWorker('slopeX', spectrums.slopeXSpectrum)
+    const slopeZSpatialPromise = this.computeInWorker('slopeZ', spectrums.slopeZSpectrum)
+    const dispXSpatialPromise = this.computeInWorker('dispX', spectrums.dispXSpectrum)
+    const dispZSpatialPromise = this.computeInWorker('dispZ', spectrums.dispZSpectrum)
+
+    try {
+      const results = await Promise.all([
+        slopeXSpatialPromise,
+        slopeZSpatialPromise,
+        dispXSpatialPromise,
+        dispZSpatialPromise
+      ])
+
+      const spatialData = {
+        slopeXSpatial: results[0],
+        slopeZSpatial: results[1],
+        dispXSpatial: results[2],
+        dispZSpatial: results[3]
+      }
+
+      return spatialData
+    } catch (error) {
+      console.log(error)
+    }
   }
 
   /**
@@ -41,7 +140,7 @@ export class FFTOceanGenerator {
    */
   private getWaveNumber(index: number, N: number, L: number): number {
     // index < N/2 为正频率，>= N/2 为负频率
-    let n = index < N / 2 ? index : index - N
+    const n = index < N / 2 ? index : index - N
     // if (Math.abs(n) < 0.001) {
     //   n = 0.001 * Math.sign(n) || 0.001 // 给一个小的非零值
     // }
@@ -159,7 +258,7 @@ export class FFTOceanGenerator {
    * h(k,t) = h₀(k) * e^(i * ω * t) + h₀*^(-k) * e^(-i * ω * t)
    * 深水色散关系: ω(k) = sqrt(g * |k|)
    */
-  update(time: number): void {
+  async update(time: number): Promise<void> {
     const N = this.params.resolution
     const L = this.params.size
 
@@ -248,11 +347,20 @@ export class FFTOceanGenerator {
     // 执行 2D IFFT，从频域转回时域
     const heightSpatial = this.fftProcessor.ifft2DInterface(heightSpectrum)
     // ∂η/∂x = IFFT( i * k_x * h(k, t) ) = Σ ik·h(k,t) · e^(ik_x * x)
-    const slopeXSpatial = this.fftProcessor.ifft2DInterface(slopeXSpectrum)
-    // ∂η/∂z = IFFT( i * k_z * h(k, t) ) = Σ ik·h(k,t) · e^(ik_z * z)
-    const slopeZSpatial = this.fftProcessor.ifft2DInterface(slopeZSpectrum)
-    const dispXSpatial = this.fftProcessor.ifft2DInterface(dispXSpectrum)
-    const dispZSpatial = this.fftProcessor.ifft2DInterface(dispZSpectrum)
+    // const slopeXSpatial = this.fftProcessor.ifft2DInterface(slopeXSpectrum)
+    // // ∂η/∂z = IFFT( i * k_z * h(k, t) ) = Σ ik·h(k,t) · e^(ik_z * z)
+    // const slopeZSpatial = this.fftProcessor.ifft2DInterface(slopeZSpectrum)
+    // const dispXSpatial = this.fftProcessor.ifft2DInterface(dispXSpectrum)
+    // const dispZSpatial = this.fftProcessor.ifft2DInterface(dispZSpectrum)
+    const { slopeXSpatial, slopeZSpatial, dispXSpatial, dispZSpatial } =
+      await this.computeInWorkers({
+        slopeXSpectrum,
+        slopeZSpectrum,
+        dispXSpectrum,
+        dispZSpectrum
+      })
+
+    // console.log(slopeXSpatial[0][0])
 
     // Debug Code -- 检查虚部大小
     if (__DEBUG__) {
@@ -294,10 +402,10 @@ export class FFTOceanGenerator {
         }
 
         this.heightField[index] = heightSpatial[i][j].real * amplitude
-        this.displacementX[index] = dispXSpatial[i][j].real * amplitude
-        this.displacementZ[index] = dispZSpatial[i][j].real * amplitude
         this.normalX[index] = slopeXSpatial[i][j].real * amplitude
         this.normalZ[index] = slopeZSpatial[i][j].real * amplitude
+        this.displacementX[index] = dispXSpatial[i][j].real * amplitude
+        this.displacementZ[index] = dispZSpatial[i][j].real * amplitude
         index++
       }
     }
