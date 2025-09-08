@@ -62,6 +62,18 @@ export class OceanTextureManager {
     const normalX = generator.getNormalX()
     const normalZ = generator.getNormalZ()
 
+    // Debug Code
+    // 检查 FFT 法线数据是否正常
+    if (__DEBUG__) {
+      const normalVariation = Math.abs(Math.max(...normalX) - Math.min(...normalX))
+      console.log('Normal X variation:', normalVariation)
+      if (normalVariation < 0.001) {
+        console.error('❌ FFT 生成的法线数据没有变化！')
+      } else {
+        console.log('✅ FFT 法线数据正常')
+      }
+    }
+
     for (let i = 0; i < size; i++) {
       // 位移纹理：RGBA = (dispX, height, dispZ, jacobian)
       displacementData[i * 4 + 0] = dispX[i]
