@@ -65,7 +65,7 @@ export class FFTOceanPresets {
         depthCenter: [0, 0],
         depthFalloff: 1.5,
         // 光照参数
-        lightColor: [0.9, 0.9, 0.9],
+        lightColor: [0.5, 0.5, 0.5],
         lightPos: [2, 2, 2],
         lightDir: [0.3, -0.7, 0.2],
         specularPower: 2.0,
@@ -75,12 +75,12 @@ export class FFTOceanPresets {
       },
       oceanParams: {
         size: 512, // 100米的海面
-        resolution: 128, // 256x256网格
-        windSpeed: 30, // 20m/s风速
+        resolution: 256, // 256x256网格
+        windSpeed: 35, // 20m/s风速
         windDirection: { x: 1, y: 1 }, // 东风
         gravity: 9.81,
         choppiness: 1.2,
-        amplitude: 50
+        amplitude: 30
       }
     }
   }

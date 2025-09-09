@@ -185,8 +185,8 @@ export class Engine {
     const camera = new PerspectiveCamera(
       75,
       this.canvas.clientWidth / this.canvas.clientHeight,
-      1e-3,
-      10000
+      0.1,
+      1000
     )
 
     camera.position.set(this.cameraPosition[0], this.cameraPosition[1], this.cameraPosition[2])
@@ -207,6 +207,9 @@ export class Engine {
   // 初始化相机控制对象
   private initCameraControls() {
     const cameraControls = new OrbitControls(this.camera, this.canvas)
+    // 设置更小的最小距离，允许更近的放大
+    cameraControls.minDistance = 0.1 // 或者更小的值
+    cameraControls.maxDistance = 1000 // 设置合理的最大距离
     // 启用鼠标缩放，缩放速度为 1.0 倍标准速度
     cameraControls.enableZoom = true
     cameraControls.zoomSpeed = 1.0
@@ -285,8 +288,8 @@ export class Engine {
         }
       case LightType.WAVE_LIGHT:
         return {
-          lightRadiance: [200, 200, 200],
-          lightPos: [1, 5, 0],
+          lightRadiance: [10, 10, 10],
+          lightPos: [1, 500, 0],
           lightDir: {
             x: 0.39048811,
             y: -0.89896828,
