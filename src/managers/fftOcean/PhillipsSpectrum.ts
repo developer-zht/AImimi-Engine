@@ -29,11 +29,11 @@ export interface OceanParams {
  */
 export class PhillipsSpectrum {
   // Phillips常数
-  private A = 0.08
+  private A = 0.16
   constructor() {}
 
   calculate(kx: number, kz: number, params: OceanParams): number {
-    // k = sqrt(kx^2 + kz^2)
+    // k = sqrt(kx^2 + kz^2) 决定了高频的存在范围(影响小波长波)
     const k = Math.sqrt(kx * kx + kz * kz)
     // 避免 k=0
     if (k < 0.0001) return 0
@@ -67,7 +67,7 @@ export class PhillipsSpectrum {
      * - 其中：
      *   this.A -> Phillips常数
      *   Math.exp(-1.0 / Math.pow(k * L, 2))) -> exp(-1 / (kL)^2)
-     *   Math.pow(k, 4)) -> k^-4
+     *   Math.pow(k, 4)) -> k^-4 快速衰减高频
      *   Math.pow(kDotWind, 2) -> (k_hat · w_hat)^2
      * - 如果 kDotWind < 0 则为逆风波，此时可将 phillips 设为 0 返回
      */
@@ -78,15 +78,27 @@ export class PhillipsSpectrum {
     const phillips =
       ((this.A * Math.exp(-1.0 / (kL * kL))) / Math.pow(k, 4)) * Math.pow(kDotWind, 2)
 
-    // Debug: 添加调试输出
-    // if (k > 1.0) {
-    // console.log(
-    //   `Phillips debug: k=${k.toFixed(4)}, L=${L.toFixed(2)}, kL=${kL.toFixed(4)}, P=${phillips.toFixed(6)}`
-    // )
+    // Debug Code
+    // if (__DEBUG__) {
+    //   if (k > 1.0) {
+    //     console.log(k)
+    //     console.log(
+    //       `Phillips debug: k=${k.toFixed(4)}, L=${L.toFixed(2)}, kL=${kL.toFixed(4)}, P=${phillips.toFixed(6)}`
+    //     )
+    //   }
     // }
 
-    // 抑制逆风波
-    return kDotWind < 0 ? 0 : phillips
+    if (kDotWind < 0) {
+      // 抑制逆风波
+      return 0
+    } else if (k > 1) {
+      // 对高频增强: 高频波数 > 1 时增强
+      return phillips * 2
+    } else {
+      return phillips
+    }
+
+    // return kDotWind < 0 ? 0 : k > 1.0 ? phillips * 2 : phillips
     // return phillips
   }
 }
