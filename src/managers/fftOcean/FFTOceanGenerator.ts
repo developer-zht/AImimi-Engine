@@ -1,8 +1,8 @@
 import { FFTProcessor } from '@/math/FFTProcessor'
 import { Complex } from '@/math/Complex'
 import { PhillipsSpectrum, OceanParams } from '@/managers/fftOcean/PhillipsSpectrum'
-import { FFTWorkerMessage, SerializedSpatial } from '@/types/worker'
-import { deserializeArraysToSpatial, serializeSpectrumToArrays } from './utils/​​spectrumSerializer'
+import { SerializedSpatial } from '@/types/worker'
+import { deserializeArraysToSpatial, serializeSpectrumToArrays } from './utils/spectrumSerializer'
 
 export class FFTOceanGenerator {
   private fftProcessor: FFTProcessor

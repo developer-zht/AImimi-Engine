@@ -4,7 +4,7 @@ import { Complex } from '@/math/Complex'
 import {
   deserializeArraysToSpectrum,
   serializeSpatialToArrays
-} from '@/managers/fftOcean/utils/​​spectrumSerializer'
+} from '@/managers/fftOcean/utils/spectrumSerializer'
 
 const fftProcessor = new FFTProcessor()
 
