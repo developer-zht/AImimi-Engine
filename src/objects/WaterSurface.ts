@@ -1,10 +1,11 @@
 import { Mesh } from '@/objects/Mesh'
+import { AttributeData } from '@/types/mesh'
 import type { TransformationParams } from '@/types/transformation'
 
 export interface MeshData {
-  positions: { name: string; array: Float32Array }
-  normals: { name: string; array: Float32Array }
-  texCoords: { name: string; array: Float32Array }
+  positions: AttributeData
+  normals: AttributeData
+  texCoords: AttributeData
   indices: number[]
 }
 
@@ -19,7 +20,7 @@ export class WaterSurface extends Mesh {
     resolution: number
   ) {
     const meshData = WaterSurface.generateWaterMeshParams(size, resolution)
-    super(meshData.positions, meshData.normals, meshData.texCoords, meshData.indices, transform)
+    super([meshData.positions, meshData.normals, meshData.texCoords], meshData.indices, transform)
     // this.size = size
     // this.resolution = resolution
   }
@@ -73,9 +74,9 @@ export class WaterSurface extends Mesh {
     }
 
     return {
-      positions: { name: 'aVertexPosition', array: new Float32Array(positions) },
-      normals: { name: 'aNormalPosition', array: new Float32Array(normals) },
-      texCoords: { name: 'aTextureCoord', array: new Float32Array(texCoords) },
+      positions: { name: 'aVertexPosition', array: new Float32Array(positions), size: 3 },
+      normals: { name: 'aNormalPosition', array: new Float32Array(normals), size: 3 },
+      texCoords: { name: 'aTextureCoord', array: new Float32Array(texCoords), size: 2 },
       indices
     }
   }

@@ -25,7 +25,8 @@ export class SkyboxMesh extends Mesh {
     ]
     const verticesAttrib: AttributeData = {
       name: 'aVertexPosition',
-      array: new Float32Array(skyboxVertices)
+      array: new Float32Array(skyboxVertices),
+      size: 3
     }
     const skyboxIndices: number[] = []
     for (let i = 0; i < 36; i += 6) {
@@ -39,6 +40,6 @@ export class SkyboxMesh extends Mesh {
         i + 5 // 第二个三角形
       )
     }
-    super(verticesAttrib, null, null, skyboxIndices, transform)
+    super([verticesAttrib], skyboxIndices, transform)
   }
 }
