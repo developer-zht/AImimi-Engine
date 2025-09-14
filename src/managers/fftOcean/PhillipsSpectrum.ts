@@ -28,8 +28,8 @@ export interface OceanParams {
  * - 如果 (k_hat · w_hat < 0) 则表示逆风波，此时可将 P(k) 设为 0   // 抑制逆风波
  */
 export class PhillipsSpectrum {
-  // Phillips常数
-  private A = 0.16
+  // Phillips 常数，影响整体幅度，如果太小，高频会被过度压制
+  private A = 0.008
   constructor() {}
 
   calculate(kx: number, kz: number, params: OceanParams): number {

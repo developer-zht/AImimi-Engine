@@ -352,13 +352,13 @@ export class FFTOceanGenerator {
     // const slopeZSpatial = this.fftProcessor.ifft2DInterface(slopeZSpectrum)
     // const dispXSpatial = this.fftProcessor.ifft2DInterface(dispXSpectrum)
     // const dispZSpatial = this.fftProcessor.ifft2DInterface(dispZSpectrum)
-    const { slopeXSpatial, slopeZSpatial, dispXSpatial, dispZSpatial } =
-      await this.computeInWorkers({
-        slopeXSpectrum,
-        slopeZSpectrum,
-        dispXSpectrum,
-        dispZSpectrum
-      })
+    // const { slopeXSpatial, slopeZSpatial, dispXSpatial, dispZSpatial } =
+    //   await this.computeInWorkers({
+    //     slopeXSpectrum,
+    //     slopeZSpectrum,
+    //     dispXSpectrum,
+    //     dispZSpectrum
+    //   })
 
     // console.log(slopeXSpatial[0][0])
 
@@ -401,11 +401,11 @@ export class FFTOceanGenerator {
           console.log(this.displacementX[index], this.displacementZ[index])
         }
 
-        this.heightField[index] = heightSpatial[i][j].real * amplitude
-        this.normalX[index] = slopeXSpatial[i][j].real * amplitude
-        this.normalZ[index] = slopeZSpatial[i][j].real * amplitude
-        this.displacementX[index] = dispXSpatial[i][j].real * amplitude
-        this.displacementZ[index] = dispZSpatial[i][j].real * amplitude
+        // this.heightField[index] = heightSpatial[i][j].real * amplitude
+        // this.normalX[index] = slopeXSpatial[i][j].real * amplitude
+        // this.normalZ[index] = slopeZSpatial[i][j].real * amplitude
+        // this.displacementX[index] = dispXSpatial[i][j].real * amplitude
+        // this.displacementZ[index] = dispZSpatial[i][j].real * amplitude
         index++
       }
     }

@@ -272,6 +272,8 @@ vec3 calculateEnvironmentReflection(vec3 normal, vec3 viewDir) {
   }
 }
 
+// ==================== Foam ====================
+
 // ==================== Perturb Normal ====================
 vec3 perturbNormal(int perturbationMode) {
   vec2 texelSize = vec2(1.0) / vec2(128.0); // 根据您的分辨率调整
@@ -340,6 +342,7 @@ void main() {
 
   // 3. 镜面反射贡献 = 光照强度 × 材质反射效率 × 光源颜色
   vec3 specularContribution = intensities.specular * waterProps.specularFactor * uLightColor;
+  specularContribution = vec3(0.0);
 
   // 4. 次表面散射贡献 = 光照强度 × 材质散射特性 × 光源颜色
   vec3 subsurfaceContribution =
@@ -357,6 +360,8 @@ void main() {
   // 根据菲涅尔效应混合水体颜色和环境反射
   vec3 finalColor = mix(waterBodyColor, environmentContribution, intensities.fresnel * 1.0);
 
+  // finalColor = mix(finalColor, vec3(1.0), 1.0 - vFoam);
+
   // Gamma校正
   finalColor = pow(finalColor, vec3(1.0 / 2.2));
 
@@ -368,6 +373,8 @@ void main() {
   // gl_FragColor = vec4(waterBodyColor, 1.0);            // 查看水体本身颜色
   // gl_FragColor = vec4(N, 1.0);
   // gl_FragColor = vec4(normalColor, 1.0);
+  // gl_FragColor = vec4(vec3(vFoam), 1.0);
+  // gl_FragColor = vec4(subsurfaceContribution, 1.0);
 
 }
 

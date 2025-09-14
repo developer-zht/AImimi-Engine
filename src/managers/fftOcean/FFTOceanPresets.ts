@@ -74,12 +74,12 @@ export class FFTOceanPresets {
         displacementMap: null
       },
       oceanParams: {
-        size: 512, // 100米的海面
+        size: 512, // 512米的海面
         resolution: 256, // 256x256网格
-        windSpeed: 35, // 20m/s风速
+        windSpeed: 30, // 20m/s风速
         windDirection: { x: 1, y: 1 }, // 东风
         gravity: 9.81,
-        choppiness: 1.2,
+        choppiness: 2,
         amplitude: 30
       }
     }
