@@ -1,0 +1,3 @@
+class AxisManager {
+  private createCoordinate() {}
+}
