@@ -21,7 +21,7 @@ export class FFTOceanMaterial extends WaterMaterial {
     fragmentShaderContent: string
   ) {
     // 设置默认参数
-    let defaultFFTOceanParams: FFTOceanMaterialParams = {
+    const defaultFFTOceanParams: FFTOceanMaterialParams = {
       // 纹理使用标志
       useDiffuseMap: 0,
       useNormalMap: 1,
@@ -84,8 +84,8 @@ export async function buildFFTOceanMaterial(
   vertexPath: string,
   fragmentPath: string
 ): Promise<FFTOceanMaterial> {
-  let vertexShaderContent = await getShaderString(vertexPath)
-  let fragmentShaderContent = await getShaderString(fragmentPath)
+  const vertexShaderContent = await getShaderString(vertexPath)
+  const fragmentShaderContent = await getShaderString(fragmentPath)
 
   return new FFTOceanMaterial(fftOceanParams, vertexShaderContent, fragmentShaderContent)
 }
