@@ -36,7 +36,11 @@ export class Mesh {
   }
 
   private initAttributes(attributeDataArray: AttributeData[]) {
+    // Debug Code
     console.log(attributeDataArray)
+    if (__DEBUG__) {
+      console.log(attributeDataArray)
+    }
 
     if (attributeDataArray.length === 0) {
       console.error('No Vertex Shader Attri Data!')
