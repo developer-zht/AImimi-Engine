@@ -1,7 +1,14 @@
 attribute vec3 aVertexPosition;
+attribute vec3 aColor;
 
 uniform mat4 uModelMatrix;
 uniform mat4 uViewMatrix;
 uniform mat4 uProjectionMatrix;
 
-uniform vec3 uColor;
+varying vec3 vColor;
+
+void main(){
+  vColor = aColor;
+
+  gl_Position = uProjectionMatrix * uViewMatrix * uModelMatrix * vec4(aVertexPosition,1.0);
+}

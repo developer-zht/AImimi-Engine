@@ -22,6 +22,8 @@ import { FFTOceanPresets } from './managers/fftOcean/FFTOceanPresets'
 import { HDRBasedCubeMapTexture } from './textures/HDRBasedCubeMapTexture'
 import { HDRDataTextureLoader, TextureFileType } from '@/loaders/loadHDRTexture'
 import { TexturePaths } from './config/resourcePaths'
+import { AxisManagerParams, loadAxis } from './managers/axis/AxisManager'
+import { AxisPreset } from './managers/axis/AxisPresets'
 
 export class Engine {
   // public
@@ -79,6 +81,10 @@ export class Engine {
     // this.initGUI()
     // 初始化性能检测器
     this.initPerformanceMonitor()
+
+    // 加载坐标轴
+    const axisManagerParams: AxisManagerParams = AxisPreset.createAxis()
+    await loadAxis(this.renderer, axisManagerParams)
 
     /**
      * 初始化 IBL（只在程序启动时执行一次）

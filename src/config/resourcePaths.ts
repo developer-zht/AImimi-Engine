@@ -28,6 +28,9 @@ export const TexturePaths = {
 
 // Shader 路径配置
 export const ShaderPaths = {
+  // Axis
+  AXIS_VERTEX: urlJoin(BASES.shaders, '/axisShader/AxisVertex.vert'),
+  AXIS_FRAGMENT: urlJoin(BASES.shaders, '/axisShader/AxisFragment.frag'),
   // Direct Light
   DIRECT_LIGHT_VERTEXT: `${BASES.shaders}/directLightShader/directVertex.glsl`,
   DIRECT_LIGHT_FRAGMENT: `${BASES.shaders}/directLightShader/directFragment.glsl`,
@@ -56,11 +59,11 @@ export const ShaderPaths = {
   SSR_VERTEX: `${BASES.shaders}/ssrShader/ssrVertex.glsl`,
   SSR_FRAGMENT: `${BASES.shaders}/ssrShader/ssrFragment.glsl`,
   // Sine Wave
-  SINE_WAVE_VERTEX: urlJoin(BASES.shaders, '/waterShader/SinWaveVertex.vert'),
-  SINE_WAVE_FRAGMENT: urlJoin(BASES.shaders, '/waterShader/SinWaveFragment.frag'),
+  SINE_WAVE_VERTEX: urlJoin(BASES.shaders, '/sinWaveShader/SinWaveVertex.vert'),
+  SINE_WAVE_FRAGMENT: urlJoin(BASES.shaders, '/sinWaveShader/SinWaveFragment.frag'),
   // Gerstner Wave
-  GERSTNER_WAVE_VERTEX: urlJoin(BASES.shaders, '/waterShader/GerstnerWaveVertex.vert'),
-  GERSTNER_WAVE_FRAGMENT: urlJoin(BASES.shaders, '/waterShader/GerstnerWaveFragment.frag'),
+  GERSTNER_WAVE_VERTEX: urlJoin(BASES.shaders, '/gerstnerWaveShader/GerstnerWaveVertex.vert'),
+  GERSTNER_WAVE_FRAGMENT: urlJoin(BASES.shaders, '/gerstnerWaveShader/GerstnerWaveFragment.frag'),
   // FFT Ocean
   FFT_OCEAN_VERTEX: urlJoin(BASES.shaders, '/fftOceanShader/FFTOceanVertex.vert'),
   FFT_OCEAN_FRAGMENT: urlJoin(BASES.shaders, '/fftOceanShader/FFTOceanFragment.frag')
@@ -76,37 +79,3 @@ export enum FileExtensions {
   OBJ = '.obj',
   MTL = '.mtl'
 }
-
-// // 预定义的 CubeMap 配置
-// // export const CubeMapConfigs = {
-// //   SKY_09: {
-// //     basePath: TexturePaths.SKY_09_CUBEMAP,
-// //     extension: FileExtensions.PNG
-// //   } as CubeMapConfig
-// // } as const
-
-// // 着色器配置
-// export const ShaderConfigs = {
-//   SKYBOX: {
-//     vertex: ShaderPaths.SKYBOX_VERTEX,
-//     fragment: ShaderPaths.SKYBOX_FRAGMENT
-//   }
-// } as const
-
-// // 使用示例
-// export class ResourceManager {
-//   // 获取 CubeMap 配置
-//   // static getCubeMapConfig(type: keyof typeof CubeMapConfigs): CubeMapConfig {
-//   //   return CubeMapConfigs[type]
-//   // }
-
-//   // 获取着色器配置
-//   static getShaderConfig(type: keyof typeof ShaderConfigs) {
-//     return ShaderConfigs[type]
-//   }
-
-//   // 构建完整的纹理路径
-//   static buildTexturePath(basePath: string, filename: string, extension: FileExtensions): string {
-//     return `${basePath}${filename}${extension}`
-//   }
-// }
