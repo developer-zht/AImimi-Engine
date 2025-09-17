@@ -67,9 +67,19 @@ export function loadGLTF(
           )
           // let indices = Array.from({ length: geo.attributes.position.count }, (v, k) => k)
           const mesh = new Mesh(
-            { name: 'aVertexPosition', array: new Float32Array(geo.attributes.position.array) },
-            { name: 'aNormalPosition', array: new Float32Array(geo.attributes.normal.array) },
-            { name: 'aTextureCoord', array: new Float32Array(geo.attributes.uv.array) },
+            [
+              {
+                name: 'aVertexPosition',
+                array: new Float32Array(geo.attributes.position.array),
+                size: 3
+              },
+              {
+                name: 'aNormalPosition',
+                array: new Float32Array(geo.attributes.normal.array),
+                size: 3
+              },
+              { name: 'aTextureCoord', array: new Float32Array(geo.attributes.uv.array), size: 2 }
+            ],
             Array.from(geo.index.array),
             gltfTransform
           )
