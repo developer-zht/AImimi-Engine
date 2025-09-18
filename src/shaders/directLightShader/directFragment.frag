@@ -22,15 +22,16 @@ varying vec4 vPositionFromLight;
 #define EPS 1e-3
 
 float unpack(vec4 rgbaDepth) {
-  const vec4 bitShift = vec4(1.0, 1.0 / 256.0, 1.0 / (256.0 * 256.0),
-                             1.0 / (256.0 * 256.0 * 256.0));
+  const vec4 bitShift = vec4(1.0, 1.0 / 256.0, 1.0 / (256.0 * 256.0), 1.0 / (256.0 * 256.0 * 256.0));
   return dot(rgbaDepth, bitShift);
 }
 
 float useShadowMap(sampler2D shadowMap, vec4 shadowCoord) {
   vec4 rgbaDepth = texture2D(shadowMap, shadowCoord.xy);
   float depth = unpack(rgbaDepth);
-  return (shadowCoord.z > depth + EPS) ? 0.0 : 1.0;
+  return shadowCoord.z > depth + EPS
+    ? 0.0
+    : 1.0;
 }
 
 vec3 blinnPhong() {
@@ -45,19 +46,17 @@ vec3 blinnPhong() {
   vec3 diffuse = diff * uLightRadiance * color;
 
   vec3 viewDir = normalize(uCameraPos - vFragPos);
-  vec3 halfDir = normalize((lightDir + viewDir));
+  vec3 halfDir = normalize(lightDir + viewDir);
   float spec = pow(max(dot(halfDir, normal), 0.0), 32.0);
   vec3 specular = uKs * uLightRadiance * spec;
 
-  vec3 radiance = (ambient + diffuse + specular);
+  vec3 radiance = ambient + diffuse + specular;
   vec3 phongColor = pow(radiance, vec3(1.0 / 2.2));
   return phongColor;
 }
 
-void main(void) {
-
-  vec3 shadowCoord =
-      (vPositionFromLight.xyz / vPositionFromLight.w) / 2.0 + 0.5;
+void main(void ) {
+  vec3 shadowCoord = vPositionFromLight.xyz / vPositionFromLight.w / 2.0 + 0.5;
 
   float visibility = 1.0;
   // visibility = useShadowMap(uShadowMap, vec4(shadowCoord, 1.0));
