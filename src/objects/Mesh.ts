@@ -37,7 +37,6 @@ export class Mesh {
 
   private initAttributes(attributeDataArray: AttributeData[]) {
     // Debug Code
-    console.log(attributeDataArray)
     if (__DEBUG__) {
       console.log(attributeDataArray)
     }
