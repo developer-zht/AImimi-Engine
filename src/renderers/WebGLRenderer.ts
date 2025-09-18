@@ -1,3 +1,4 @@
+import { LineRender } from '@/renderers/LineRender'
 import { MeshRender } from '@/renderers/MeshRender'
 import { PerspectiveCamera } from 'three'
 
@@ -14,9 +15,12 @@ export class WebGLRenderer {
   public camera: PerspectiveCamera
 
   public lights: LightObj[] = []
+  private lineRenders: LineRender[] = []
   private meshRenders: MeshRender[] = []
   private shadowMesheRenders: MeshRender[] = []
   private bufferMesheRenders: MeshRender[] = []
+
+  private axisLineRender: LineRender
 
   private startTime: number
 
@@ -42,14 +46,25 @@ export class WebGLRenderer {
       meshRender: new MeshRender(this.gl, light.mesh, light.material)
     })
   }
+
+  addLineRender(lineRender: LineRender) {
+    this.lineRenders.push(lineRender)
+  }
+
   addMeshRender(meshRender: MeshRender) {
     this.meshRenders.push(meshRender)
   }
+
   addShadowMeshRender(meshRender: MeshRender) {
     this.shadowMesheRenders.push(meshRender)
   }
+
   addBufferMeshRender(meshRender: MeshRender) {
     this.bufferMesheRenders.push(meshRender)
+  }
+
+  setAxisLineRender(axisLineRender: LineRender) {
+    this.axisLineRender = axisLineRender
   }
 
   render() {
@@ -132,6 +147,16 @@ export class WebGLRenderer {
     }
 
     // Camera pass
+    // 坐标轴HUD渲染 - 在所有其他渲染完成后
+    for (let i = 0; i < this.lineRenders.length; i++) {
+      this.lineRenders[i].draw(
+        this.camera,
+        this.gl_draw_buffers,
+        null,
+        updatedParameters,
+        this.drawControlParams
+      )
+    }
     for (let i = 0; i < this.meshRenders.length; i++) {
       this.meshRenders[i].draw(
         this.camera,
@@ -139,6 +164,15 @@ export class WebGLRenderer {
         null,
         updatedParameters,
         this.drawControlParams
+      )
+    }
+    if (this.axisLineRender) {
+      // 假设您有一个专门的轴线渲染器
+      this.axisLineRender.renderAsHUD(
+        this.camera,
+        this.drawControlParams,
+        { x: 0.05, y: 0.05 }, // 左下角，距离边缘5%
+        120 // HUD区域120x120像素
       )
     }
   }

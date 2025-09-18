@@ -4,6 +4,8 @@ import { AxisMesh } from '@/objects/AxisMesh'
 import { MeshRender } from '@/renderers/MeshRender'
 import { TransformationParams } from '@/types/transformation'
 import { WebGLRenderer } from '@/renderers/WebGLRenderer'
+import { LineRender } from '@/renderers/LineRender'
+import { LineRenderMode } from '../../renderers/LineRender'
 
 export interface AxisManagerParams {
   // 几何参数
@@ -14,7 +16,7 @@ class AxisManager {
   private gl: WebGLRenderingContext
   private config: AxisManagerParams
 
-  private meshRender: MeshRender
+  private axisLineRender: LineRender
 
   constructor(gl: WebGLRenderingContext, config: AxisManagerParams) {
     this.gl = gl
@@ -35,16 +37,16 @@ class AxisManager {
     return material
   }
 
-  // 初始化 MeshRender
-  async initMeshRender() {
+  // 初始化 AxisLineRender
+  async initAxisLineRender() {
     try {
       const mesh = this.createAxesMesh()
 
       const material = await this.createAxisMaterial()
 
-      const meshRender = new MeshRender(this.gl, mesh, material, null)
+      const axisLineRender = new LineRender(this.gl, mesh, material, LineRenderMode.LINES, null)
 
-      this.meshRender = meshRender
+      this.axisLineRender = axisLineRender
 
       console.log('Axis renderer initialize successfully.')
     } catch (error) {
@@ -53,17 +55,18 @@ class AxisManager {
     }
   }
 
-  getMeshRender() {
-    return this.meshRender
+  getAxisLineRender() {
+    return this.axisLineRender
   }
 }
 
 export async function loadAxis(renderer: WebGLRenderer, config: AxisManagerParams) {
   try {
     const axisManager = new AxisManager(renderer.gl, config)
-    await axisManager.initMeshRender()
+    await axisManager.initAxisLineRender()
     // 将 MeshRender 添加到 WebGLRenderer 中
-    renderer.addMeshRender(axisManager.getMeshRender())
+    // renderer.addLineRender(axisManager.getAxisLineRender())
+    renderer.setAxisLineRender(axisManager.getAxisLineRender())
   } catch (error) {
     console.log('Load axes failed: ', error)
   }

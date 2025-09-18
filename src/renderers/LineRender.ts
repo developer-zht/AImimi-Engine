@@ -272,4 +272,85 @@ export class LineRender {
     }
     gl.bindFramebuffer(gl.FRAMEBUFFER, null)
   }
+
+  // 专门为HUD设计的相机参数绑定
+  bindHUDCameraParameters(camera: PerspectiveCamera, hudSize: number) {
+    const gl = this.gl
+
+    // 模型矩阵：保持单位矩阵，不进行任何变换
+    const modelMatrix = mat4.create()
+    mat4.identity(modelMatrix)
+
+    // 视图矩阵：只提取相机的旋转部分，移除平移
+    const viewMatrix = mat4.create()
+    camera.updateMatrixWorld()
+
+    // 从相机的世界矩阵中提取旋转
+    const cameraMatrix = camera.matrixWorld.elements
+    mat4.invert(viewMatrix, cameraMatrix)
+
+    // 清除平移部分，只保留旋转
+    viewMatrix[12] = 0 // x平移
+    viewMatrix[13] = 0 // y平移
+    viewMatrix[14] = 0 // z平移
+
+    // 投影矩阵：使用正交投影，确保大小不变
+    const projectionMatrix = mat4.create()
+    const size = 0.1 // 坐标轴在HUD中的显示大小
+    mat4.ortho(projectionMatrix, -size, size, -size, size, -size, size)
+
+    // 传递矩阵到shader
+    // this.shader.program.uniforms[k]
+    gl.uniformMatrix4fv(this.shader.program.uniforms.uProjectionMatrix, false, projectionMatrix)
+    gl.uniformMatrix4fv(this.shader.program.uniforms.uModelMatrix, false, modelMatrix)
+    gl.uniformMatrix4fv(this.shader.program.uniforms.uViewMatrix, false, viewMatrix)
+
+    // 相机位置对HUD不重要，设为原点
+    gl.uniform3fv(this.shader.program.uniforms.uCameraPos, [0, 0, 0])
+  }
+
+  renderAsHUD(
+    camera: PerspectiveCamera,
+    drawControlParams: DrawControlParams,
+    hudPosition: { x: number; y: number }, // 屏幕位置 (0-1范围)
+    hudSize: number = 100 // HUD区域大小(像素)
+  ) {
+    const gl = this.gl
+
+    // 保存当前视口
+    const currentViewport = gl.getParameter(gl.VIEWPORT)
+
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null)
+
+    // 设置左下角HUD视口
+    const screenX = hudPosition.x * currentViewport[2]
+    const screenY = hudPosition.y * currentViewport[3]
+    gl.viewport(screenX, screenY, hudSize, hudSize)
+
+    // 禁用深度测试，确保坐标轴总在最前面
+    gl.disable(gl.DEPTH_TEST)
+
+    gl.useProgram(this.shader.program.glShaderProgram)
+
+    // 绑定几何信息
+    this.bindGeometryInfo()
+
+    // 使用特殊的HUD相机参数
+    this.bindHUDCameraParameters(camera, hudSize)
+
+    // 绑定材质参数
+    this.bindMaterialParameters(drawControlParams)
+
+    // 绘制
+    const vertexCount = this.mesh.count
+    const type = gl.UNSIGNED_INT
+    const offset = 0
+    gl.drawElements(this.getWebGLDrawMode(), vertexCount, type, offset)
+
+    // 恢复状态
+    gl.enable(gl.DEPTH_TEST)
+    gl.viewport(currentViewport[0], currentViewport[1], currentViewport[2], currentViewport[3])
+
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null)
+  }
 }
