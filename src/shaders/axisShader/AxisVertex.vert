@@ -7,8 +7,8 @@ uniform mat4 uProjectionMatrix;
 
 varying vec3 vColor;
 
-void main(){
+void main() {
   vColor = aColor;
 
-  gl_Position = uProjectionMatrix * uViewMatrix * uModelMatrix * vec4(aVertexPosition,1.0);
+  gl_Position = uProjectionMatrix * uViewMatrix * uModelMatrix * vec4(aVertexPosition, 1.0);
 }
