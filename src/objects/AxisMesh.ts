@@ -43,7 +43,7 @@ export class AxisMesh extends Mesh {
     }
 
     const colorsAttrib: AttributeData = {
-      name: 'aVertexColor',
+      name: 'aColor',
       array: new Float32Array(colors),
       size: 3
     }
