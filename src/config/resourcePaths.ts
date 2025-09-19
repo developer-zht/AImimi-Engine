@@ -32,8 +32,8 @@ export const ShaderPaths = {
   AXIS_VERTEX: urlJoin(BASES.shaders, '/axisShader/AxisVertex.vert'),
   AXIS_FRAGMENT: urlJoin(BASES.shaders, '/axisShader/AxisFragment.frag'),
   // Direct Light
-  DIRECT_LIGHT_VERTEXT: `${BASES.shaders}/directLightShader/directVertex.glsl`,
-  DIRECT_LIGHT_FRAGMENT: `${BASES.shaders}/directLightShader/directFragment.glsl`,
+  DIRECT_LIGHT_VERTEXT: `${BASES.shaders}/directLightShader/directLightVertex.vert`,
+  DIRECT_LIGHT_FRAGMENT: `${BASES.shaders}/directLightShader/directLightFragment.frag`,
   // Light
   LIGHT_VERTEX: `${BASES.shaders}/lightShader/lightCubeVertexShader.glsl`,
   LIGHT_FRAGMENT: `${BASES.shaders}/lightShader/lightCubeFragment.glsl`,
