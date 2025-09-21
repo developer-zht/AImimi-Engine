@@ -5,7 +5,7 @@
   "compilerOptions": {
     "target": "es6", // 编译目标：生成的 JS 代码版本
     "module": "esnext", // 模块系统：如何组织代码
-    "lib": ["ES2015", "DOM", "WebWorker"], // 包含的标准库：提供内置对象的类型定义
+    "lib": ["ES2019", "DOM", "WebWorker"], // 包含的标准库：提供内置对象的类型定义
     "allowJs": true, // 允许 TypeScript 处理 .js 文件
     "noEmit": true, // 只做类型检查，不输出文件
     "skipLibCheck": true, // 跳过库文件检查：提高编译速度
