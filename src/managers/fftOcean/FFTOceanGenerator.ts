@@ -1,13 +1,22 @@
 import { FFTProcessor } from '@/math/FFTProcessor'
 import { Complex } from '@/math/Complex'
-import { PhillipsSpectrum, OceanParams } from '@/managers/fftOcean/PhillipsSpectrum'
+import { PhillipsSpectrum } from '@/managers/fftOcean/PhillipsSpectrum'
 import { SerializedSpatial } from '@/types/worker'
 import { deserializeArraysToSpatial, serializeSpectrumToArrays } from './utils/spectrumSerializer'
+import { JONSWAPSpectrum } from '@/managers/fftOcean/JONSWAPSpectrum'
+import { OceanParams } from '@/types/fftOcean'
+
+// Debug Package
+import * as math from 'mathjs'
+import { computeRMS } from '@/utils/calcComplexRMS'
+import { verifyParseval } from '@/utils/verifyParseval'
 
 export class FFTOceanGenerator {
   private fftProcessor: FFTProcessor
   private params: OceanParams
-  private spectrum: PhillipsSpectrum
+
+  private phillipsSpectrum: PhillipsSpectrum
+  private jonswapSpectrum: JONSWAPSpectrum
 
   // 初始振幅谱
   private h0: Complex[][]
@@ -29,7 +38,9 @@ export class FFTOceanGenerator {
   constructor(params: OceanParams) {
     this.fftProcessor = new FFTProcessor()
     this.params = params
-    this.spectrum = new PhillipsSpectrum()
+
+    this.phillipsSpectrum = new PhillipsSpectrum()
+    this.jonswapSpectrum = new JONSWAPSpectrum()
 
     const N = params.resolution
     this.heightField = new Float32Array(N * N)
@@ -199,6 +210,11 @@ export class FFTOceanGenerator {
   private generateInitialSpectrum(): void {
     const N = this.params.resolution // 海浪分辨率（vertex 的密度）
     const L = this.params.size // 海浪尺寸
+    const deltaK = (2 * Math.PI) / L // 波数网格间距
+    const h0Magnitudes: number[] = []
+
+    // Debug Code
+    const kValues: number[] = []
 
     this.h0 = Array(N)
       .fill(null)
@@ -213,6 +229,17 @@ export class FFTOceanGenerator {
         // kx = 2π * n' / L 需要通过判断 n 与 N/2 的大小关系来决定 n' 的取值，因此 n' 可为负
         const kx = this.getWaveNumber(n, N, L)
         const kz = this.getWaveNumber(m, N, L)
+        const k = Math.sqrt(kx * kx + kz * kz)
+
+        // Debug Code
+        if (k > 0.001) {
+          // 排除DC分量
+          kValues.push(k)
+
+          // 计算h0
+          const h0Mag = this.jonswapSpectrum.calculateH0Magnitude(kx, kz, this.params, deltaK)
+          h0Magnitudes.push(h0Mag)
+        }
 
         // 跳过DC分量
         if (Math.abs(kx) < 0.001 && Math.abs(kz) < 0.001) {
@@ -220,20 +247,50 @@ export class FFTOceanGenerator {
           continue
         }
 
-        // Phillips谱
-        const P = Math.max(0.0, this.spectrum.calculate(kx, kz, this.params))
+        // JONSWAP 波谱
+        // const jonswapValue = this.jonswapSpectrum.calculateJ(kx, kz, this.params)
+        const jonswapH0Magnitude = this.jonswapSpectrum.calculateH0Magnitude(
+          kx,
+          kz,
+          this.params,
+          deltaK
+        )
+        // console.log(jonswapValue)
 
-        // Debug Code
-        // console.log(P)
+        // Phillips 波谱
+        const phillipsValue = Math.max(0.0, this.phillipsSpectrum.calculate(kx, kz, this.params))
+        const phillipsH0Magnitude = this.phillipsSpectrum.calculateH0Magnitude(kx, kz, this.params)
+        // console.log(phillipsValue)
 
         // 高斯随机数
         const xi_r = this.gaussianRandom()
         const xi_i = this.gaussianRandom()
 
         // h0(k) = sqrt(P/2) * (xi_r + i*xi_i)
-        this.h0[n][m] = new Complex(Math.sqrt(P / 2) * xi_r, Math.sqrt(P / 2) * xi_i)
+        // this.h0[n][m] = new Complex(phillipsH0Magnitude * xi_r, phillipsH0Magnitude * xi_i)
+
+        this.h0[n][m] = new Complex(jonswapH0Magnitude * xi_r, jonswapH0Magnitude * xi_i)
+
+        // console.log(this.h0[n][m])
       }
     }
+
+    // 统计分析
+    // 检查 h0 是否非零
+    console.log('h0[128][128]:', {
+      real: this.h0[128][128].real.toFixed(6),
+      imag: this.h0[128][128].imag.toFixed(6)
+    })
+    console.log('=== k值统计 ===')
+    console.log('k_min:', Math.min(...kValues))
+    console.log('k_max:', Math.max(...kValues))
+    console.log('k_avg:', kValues.reduce((a, b) => a + b) / kValues.length)
+
+    console.log('=== h0值统计 ===')
+    console.log('h0_min:', Math.min(...h0Magnitudes))
+    console.log('h0_max:', Math.max(...h0Magnitudes))
+    console.log('h0_avg:', h0Magnitudes.reduce((a, b) => a + b) / h0Magnitudes.length)
+    console.log('非零h0数量:', h0Magnitudes.filter((v) => v > 0.0001).length)
 
     // 第二次循环：计算 h0Conj
     for (let n = 0; n < N; n++) {
@@ -344,7 +401,40 @@ export class FFTOceanGenerator {
       }
     }
 
+    // 统计 heightSpectrum
+    let maxMag = 0
+    for (let i = 0; i < N; i++) {
+      for (let j = 0; j < N; j++) {
+        const mag = Math.sqrt(
+          heightSpectrum[i][j].real * heightSpectrum[i][j].real +
+            heightSpectrum[i][j].imag * heightSpectrum[i][j].imag
+        )
+        maxMag = Math.max(maxMag, mag)
+      }
+    }
+    console.log('heightSpectrum 最大幅值:', maxMag.toExponential(2))
+
     // 执行 2D IFFT，从频域转回时域
+    // Debug Code
+    if (__DEBUG__) {
+      const mathFFTHeightSpectrum = heightSpectrum.map((row) =>
+        row.map((c) => math.complex(c.real, c.imag))
+      )
+      const result = math.ifft(mathFFTHeightSpectrum)
+      const heightSpatial: Complex[][] = result.map((row) =>
+        row.map((c) => new Complex(c.re, c.im))
+      )
+      const customFFTheightSpatial1 = this.fftProcessor.ifft2DInterface(heightSpectrum)
+
+      for (let m = 0; m < 256; m++) {
+        for (let n = 0; n < 256; n++) {
+          console.log(
+            heightSpatial[m][n].real - customFFTheightSpatial1[m][n].real < 1e-10 &&
+              heightSpatial[m][n].imag - customFFTheightSpatial1[m][n].imag < 1e-10
+          )
+        }
+      }
+    }
     const heightSpatial = this.fftProcessor.ifft2DInterface(heightSpectrum)
     // ∂η/∂x = IFFT( i * k_x * h(k, t) ) = Σ ik·h(k,t) · e^(ik_x * x)
     // const slopeXSpatial = this.fftProcessor.ifft2DInterface(slopeXSpectrum)
@@ -360,7 +450,29 @@ export class FFTOceanGenerator {
     //     dispZSpectrum
     //   })
 
-    // console.log(slopeXSpatial[0][0])
+    // Debug Code
+    // 立即检查
+    console.log('heightSpatial[0][0]:', {
+      real: heightSpatial[0][0].real.toFixed(6),
+      imag: heightSpatial[0][0].imag.toFixed(6)
+    })
+
+    let maxSpatial = 0
+    for (let i = 0; i < N; i++) {
+      for (let j = 0; j < N; j++) {
+        maxSpatial = Math.max(
+          maxSpatial,
+          Math.sqrt(heightSpatial[i][j].real ** 2 + heightSpatial[i][j].imag ** 2)
+        )
+      }
+    }
+    console.log('heightSpatial 最大幅值:', maxSpatial.toExponential(2))
+
+    console.log('ratio =', maxMag / maxSpatial)
+
+    console.log('RMS Ratio =', computeRMS(heightSpectrum) / computeRMS(heightSpatial))
+
+    console.log('Verify Parseval ', verifyParseval(heightSpatial, heightSpectrum))
 
     // Debug Code -- 检查虚部大小
     if (__DEBUG__) {
@@ -409,6 +521,26 @@ export class FFTOceanGenerator {
         index++
       }
     }
+
+    // Debug Code
+    // ===== 添加波高统计 =====
+    const heights = Array.from(this.heightField)
+    const minHeight = Math.min(...heights)
+    const maxHeight = Math.max(...heights)
+
+    // 计算 RMS（均方根）
+    const sumSquares = heights.reduce((sum, h) => sum + h * h, 0)
+    const rms = Math.sqrt(sumSquares / heights.length)
+
+    // 有效波高 Hs = 4 * RMS
+    const Hs = 4 * rms
+
+    console.log('=== 波高统计 (时刻 t=' + time.toFixed(2) + 's) ===')
+    console.log('最小波高:', minHeight.toFixed(3), 'm')
+    console.log('最大波高:', maxHeight.toFixed(3), 'm')
+    console.log('RMS 波高:', rms.toFixed(3), 'm')
+    console.log('有效波高 Hs:', Hs.toFixed(3), 'm')
+    console.log('波高范围:', (maxHeight - minHeight).toFixed(3), 'm')
   }
 
   /**
@@ -455,5 +587,49 @@ export class FFTOceanGenerator {
   }
   getResolution(): number {
     return this.params.resolution
+  }
+
+  // test interface
+  getTestHeightData(time: number): { heightSpectrum: Complex[][]; heightSpatial: Complex[][] } {
+    const N = this.params.resolution
+    const L = this.params.size
+
+    /**
+     * 初始化频域（k 空间）存储
+     * heightSpectrum    : 高度场频谱 η̂(k, t)
+     */
+    const heightSpectrum: Complex[][] = Array(N)
+      .fill(null)
+      .map(() => Array(N))
+
+    for (let n = 0; n < N; n++) {
+      for (let m = 0; m < N; m++) {
+        /**
+         * 频率向量 k = (k_x, k_z)
+         * 公式：
+         *   k_x = 2π (n - N/2) / L
+         *   k_z = 2π (m - N/2) / L
+         * 物理意义：波数（rad/m），控制波长 λ = 2π / |k|
+         */
+        const kx = this.getWaveNumber(n, N, L)
+        const kz = this.getWaveNumber(m, N, L)
+        const k = Math.sqrt(kx * kx + kz * kz)
+
+        /**
+         * 计算随时间演化的振幅谱 h(k, t)
+         * 公式：
+         *   h(k, t) = h₀(k) * e^(i * ω * t) + h₀*^(-k) * e^(-i * ω * t)
+         * 其中 ω = sqrt(g |k|) （深水波色散关系）
+         */
+        const h_k_t = this.calculateAmplitudeAtTime(n, m, k, time)
+
+        // 高度谱 η̂(k,t)
+        heightSpectrum[n][m] = h_k_t
+      }
+    }
+
+    const heightSpatial = this.fftProcessor.ifft2DInterface(heightSpectrum)
+
+    return { heightSpectrum, heightSpatial }
   }
 }
