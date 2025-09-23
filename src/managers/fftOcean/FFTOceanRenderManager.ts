@@ -1,6 +1,5 @@
 import { WaterSurface } from '@/objects/WaterSurface'
 import { TransformationParams } from '@/types/transformation'
-import { OceanParams } from '@/managers/fftOcean/PhillipsSpectrum'
 import { Mesh } from '@/objects/Mesh'
 import {
   buildFFTOceanMaterial,
@@ -12,6 +11,7 @@ import { OceanTextureManager } from './OceanTextureManager'
 import { FFTOceanGenerator } from './FFTOceanGenerator'
 import { WebGLRenderer } from '@/renderers/WebGLRenderer'
 import { ShaderPaths } from '@/config/resourcePaths'
+import { OceanParams } from '@/types/fftOcean'
 
 export interface FFTOceanRenderManagerConfig {
   // 几何参数
