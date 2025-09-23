@@ -273,7 +273,8 @@ export class FFTProcessor {
    * @returns 时域输出
    */
   public ifft1DInterface(input: Complex[]): Complex[] {
-    return this.calculateFFT1D(input, true)
+    const out = this.fft1DInterface(input, true)
+    return out
   }
 
   // =============== 以下：二维快速傅里叶变换 ===============
@@ -296,50 +297,69 @@ export class FFTProcessor {
     )
 
     // 第一步：对每一行进行一维FFT（使用迭代版本）
+    // for (let i = 0; i < rows; i++) {
+    //   result[i] = this.calculateFFT1D(result[i], inverse)
+    //   // 如果是逆变换，对行进行归一化
+    //   // if (inverse) {
+    //   //   result[i] = result[i].map((x) => x.dividedBy(cols))
+    //   // }
+    // }
+
+    // 第一步：对每一行进行FFT
     for (let i = 0; i < rows; i++) {
-      result[i] = this.calculateFFT1D(result[i], inverse)
-      // 如果是逆变换，对行进行归一化
-      // if (inverse) {
-      //   result[i] = result[i].map((x) => x.dividedBy(cols))
-      // }
+      result[i] = this.fft1DInterface(result[i], inverse)
     }
 
-    // 第二步：对每一列进行一维FFT（使用迭代版本）
+    // 第二步：对每一列进行FFT
     for (let j = 0; j < cols; j++) {
-      // 提取第j列
       const column: Complex[] = []
       for (let i = 0; i < rows; i++) {
         column.push(result[i][j])
       }
 
-      // 对列进行FFT
-      // const transformedColumn = this.calculateFFT1D(column, inverse)
+      const transformedColumn = this.fft1DInterface(column, inverse)
 
-      // // 如果是逆变换，对列进行归一化
-      // const finalColumn = inverse
-      //   ? transformedColumn.map((x) => x.dividedBy(rows))
-      //   : transformedColumn
-
-      // // 将结果写回矩阵
-      // for (let i = 0; i < rows; i++) {
-      //   result[i][j] = finalColumn[i]
-      // }
-
-      const transformedColumn = this.calculateFFT1D(column, inverse) // 同样不缩放
-
-      for (let i = 0; i < rows; i++) result[i][j] = transformedColumn[i]
+      for (let i = 0; i < rows; i++) {
+        result[i][j] = transformedColumn[i]
+      }
     }
+
+    // 第二步：对每一列进行一维FFT（使用迭代版本）
+    // for (let j = 0; j < cols; j++) {
+    //   // 提取第j列
+    //   const column: Complex[] = []
+    //   for (let i = 0; i < rows; i++) {
+    //     column.push(result[i][j])
+    //   }
+
+    //   // 对列进行FFT
+    //   // const transformedColumn = this.calculateFFT1D(column, inverse)
+
+    //   // // 如果是逆变换，对列进行归一化
+    //   // const finalColumn = inverse
+    //   //   ? transformedColumn.map((x) => x.dividedBy(rows))
+    //   //   : transformedColumn
+
+    //   // // 将结果写回矩阵
+    //   // for (let i = 0; i < rows; i++) {
+    //   //   result[i][j] = finalColumn[i]
+    //   // }
+
+    //   const transformedColumn = this.calculateFFT1D(column, inverse) // 同样不缩放
+
+    //   for (let i = 0; i < rows; i++) result[i][j] = transformedColumn[i]
+    // }
 
     return result
   }
 
   // 二维逆FFT
   public ifft2DInterface(matrix: Complex[][]): Complex[][] {
-    // return this.fft2DInterface(matrix, true)
-    const N = matrix.length
+    // const N = matrix.length
     const out = this.fft2DInterface(matrix, true)
-    const scale = 1 / (N * N)
-    return out.map((row) => row.map((x) => x.multiply(new Complex(scale, 0))))
+    // const scale = 1 / (N * N)
+    // return out.map((row) => row.map((x) => x.multiply(new Complex(scale, 0))))
+    return out
   }
 
   /**
