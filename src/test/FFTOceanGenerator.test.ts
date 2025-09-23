@@ -21,10 +21,7 @@ describe('FFTOceanGenerator FFT/IFFT 验证', () => {
     }
     const generator = new FFTOceanGenerator(oceanParams)
 
-    // 生成频域数据（heightSpectrum）
-    const heightSpectrum = generator.generateInitialSpectrum(0) // 假设有这样的方法
-    // 执行 IFFT 得到时域数据
-    const heightSpatial = generator.fftProcessor.ifft1DInterface()
+    const { heightSpectrum, heightSpatial } = generator.getTestHeightData(0)
 
     // 计算 RMS
     const rmsSpatial = computeRMS(heightSpatial)
@@ -37,5 +34,10 @@ describe('FFTOceanGenerator FFT/IFFT 验证', () => {
     console.log('频域 RMS (归一化后):', rmsSpectrum.toExponential(6))
     console.log('Parseval 检查:', ok)
     console.log('RMS Ratio (freq/spatial):', ratio)
+
+    // ---------- 断言 ----------
+    expect(ok).toBe(true)
+    expect(ratio).toBeCloseTo(1, 10)
+    expect(rmsSpectrum / rmsSpatial).toBeCloseTo(256, 10)
   })
 })
