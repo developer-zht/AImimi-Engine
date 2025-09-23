@@ -10,6 +10,8 @@ export interface OceanParams {
   windDirection: WindDirection // 风向（归一化）
   gravity: number // 重力加速度
   choppiness: number // 波浪尖锐度
-  depth?: number // 水深（可选，用于有限深度）
-  amplitude?: number
+  depth?: number // 水深（用于有限深度）
+  fetch?: number // 风区大小
+  swellMixing?: number // ξ 参数，默认0（纯风浪）
+  amplitude?: number // 能量缩放系数
 }
