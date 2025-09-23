@@ -32,10 +32,13 @@
   "license": "ISC",
   "description": "",
   "dependencies": {
+    "core-js": "^3.45.1",
     "dat.gui": "^0.7.9",
     "dotenv": "^17.0.1",
     "gl-matrix": "^3.4.3",
     "imgui": "^1.0.10",
+    "mathjs": "^14.7.0",
+    "regenerator-runtime": "^0.14.1",
     "three": "^0.177.0",
     "url-join": "^5.0.0"
   },
