@@ -72,6 +72,7 @@ export class Complex {
    * @returns 除法后的新复数
    */
   dividedBy(scalar: number) {
+    if (scalar === 0) throw new Error('Division by zero (scalar)')
     return new Complex(this.real / scalar, this.imag / scalar)
   }
 
@@ -81,5 +82,31 @@ export class Complex {
    */
   magnitude(): number {
     return Math.sqrt(this.real * this.real + this.imag * this.imag)
+  }
+
+  /**
+   * 共轭复数：conj(a + bi) = a - bi
+   * @returns 共轭复数
+   */
+  conjugate(): Complex {
+    return new Complex(this.real, -this.imag)
+  }
+
+  /**
+   * 判断两个复数是否相等（允许一定的浮点误差）
+   * @param other 另一个复数
+   * @param epsilon 容许误差，默认1e-10
+   * @returns 是否相等
+   */
+  equals(other: Complex, epsilon: number = 1e-10): boolean {
+    return Math.abs(this.real - other.real) < epsilon && Math.abs(this.imag - other.imag) < epsilon
+  }
+
+  /**
+   * 将复数转为字符串形式：a+bi 或 a-bi
+   * @returns 字符串形式
+   */
+  toString(): string {
+    return `${this.real}${this.imag >= 0 ? '+' : ''}${this.imag}i`
   }
 }
