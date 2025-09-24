@@ -1,4 +1,4 @@
-import { OceanParams } from '@/managers/fftOcean/PhillipsSpectrum'
+import { OceanParams } from '@/types/fftOcean'
 
 export class CapillarySpectrum {
   private baseAmplitude = 0.001 // 基础振幅
@@ -19,7 +19,7 @@ export class CapillarySpectrum {
     const gravityFactor = params.gravity * k
 
     // 只在高频范围生效
-    if (k < 20) return 0 // 低于20 rad/m不考虑毛细波
+    if (k < 1) return 0 // 低于 1rad/m 不考虑毛细波
 
     // 高频范围的指数衰减
     // return this.baseAmplitude * Math.exp(-k / this.cutoffWavenumber)
@@ -29,5 +29,7 @@ export class CapillarySpectrum {
       Math.exp(-k / this.cutoffWavenumber) *
       (capillaryFactor / (gravityFactor + capillaryFactor))
     )
+
+    // return this.baseAmplitude * Math.exp(- ((k / this.cutoffWavenumber) ** 2)) * (capillaryFactor / (gravityFactor + capillaryFactor))
   }
 }
