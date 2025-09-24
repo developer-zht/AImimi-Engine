@@ -215,6 +215,7 @@ export class FFTOceanGenerator {
 
     // Debug Code
     const kValues: number[] = []
+    let E_freq = 0
 
     this.h0 = Array(N)
       .fill(null)
@@ -249,7 +250,7 @@ export class FFTOceanGenerator {
 
         // JONSWAP 波谱
         // const jonswapValue = this.jonswapSpectrum.calculateJ(kx, kz, this.params)
-        const jonswapH0Magnitude = this.jonswapSpectrum.calculateH0Magnitude(
+        const jonswapH0Magnitude = this.jonswapSpectrum.calculateH0MagnitudeSimplified(
           kx,
           kz,
           this.params,
@@ -271,15 +272,19 @@ export class FFTOceanGenerator {
 
         this.h0[n][m] = new Complex(jonswapH0Magnitude * xi_r, jonswapH0Magnitude * xi_i)
 
-        // console.log(this.h0[n][m])
+        const h = this.h0[n][m]
+        E_freq += h.real * h.real + h.imag * h.imag
       }
     }
 
-    // 统计分析
-    // 检查 h0 是否非零
-    console.log('h0[128][128]:', {
-      real: this.h0[128][128].real.toFixed(6),
-      imag: this.h0[128][128].imag.toFixed(6)
+    /**
+     * Debug Code
+     * 统计分析
+     * 检查 h0 是否非零
+     */
+    console.log(`h0[${N / 2}][${N / 2}]:`, {
+      real: this.h0[N / 2][N / 2].real.toExponential(),
+      imag: this.h0[N / 2][N / 2].imag
     })
     console.log('=== k值统计 ===')
     console.log('k_min:', Math.min(...kValues))
@@ -401,6 +406,7 @@ export class FFTOceanGenerator {
       }
     }
 
+    // Debug Code
     // 统计 heightSpectrum
     let maxMag = 0
     for (let i = 0; i < N; i++) {
@@ -442,21 +448,20 @@ export class FFTOceanGenerator {
     // const slopeZSpatial = this.fftProcessor.ifft2DInterface(slopeZSpectrum)
     // const dispXSpatial = this.fftProcessor.ifft2DInterface(dispXSpectrum)
     // const dispZSpatial = this.fftProcessor.ifft2DInterface(dispZSpectrum)
-    // const { slopeXSpatial, slopeZSpatial, dispXSpatial, dispZSpatial } =
-    //   await this.computeInWorkers({
-    //     slopeXSpectrum,
-    //     slopeZSpectrum,
-    //     dispXSpectrum,
-    //     dispZSpectrum
-    //   })
+    const { slopeXSpatial, slopeZSpatial, dispXSpatial, dispZSpatial } =
+      await this.computeInWorkers({
+        slopeXSpectrum,
+        slopeZSpectrum,
+        dispXSpectrum,
+        dispZSpectrum
+      })
 
     // Debug Code
     // 立即检查
     console.log('heightSpatial[0][0]:', {
-      real: heightSpatial[0][0].real.toFixed(6),
-      imag: heightSpatial[0][0].imag.toFixed(6)
+      real: heightSpatial[0][0].real.toExponential(),
+      imag: heightSpatial[0][0].imag
     })
-
     let maxSpatial = 0
     for (let i = 0; i < N; i++) {
       for (let j = 0; j < N; j++) {
@@ -467,11 +472,8 @@ export class FFTOceanGenerator {
       }
     }
     console.log('heightSpatial 最大幅值:', maxSpatial.toExponential(2))
-
-    console.log('ratio =', maxMag / maxSpatial)
-
+    // console.log('ratio =', maxMag / maxSpatial)
     console.log('RMS Ratio =', computeRMS(heightSpectrum) / computeRMS(heightSpatial))
-
     console.log('Verify Parseval ', verifyParseval(heightSpatial, heightSpectrum))
 
     // Debug Code -- 检查虚部大小
@@ -513,11 +515,11 @@ export class FFTOceanGenerator {
           console.log(this.displacementX[index], this.displacementZ[index])
         }
 
-        // this.heightField[index] = heightSpatial[i][j].real * amplitude
-        // this.normalX[index] = slopeXSpatial[i][j].real * amplitude
-        // this.normalZ[index] = slopeZSpatial[i][j].real * amplitude
-        // this.displacementX[index] = dispXSpatial[i][j].real * amplitude
-        // this.displacementZ[index] = dispZSpatial[i][j].real * amplitude
+        this.heightField[index] = heightSpatial[i][j].real * amplitude
+        this.normalX[index] = slopeXSpatial[i][j].real * amplitude
+        this.normalZ[index] = slopeZSpatial[i][j].real * amplitude
+        this.displacementX[index] = dispXSpatial[i][j].real * amplitude
+        this.displacementZ[index] = dispZSpatial[i][j].real * amplitude
         index++
       }
     }
@@ -529,18 +531,18 @@ export class FFTOceanGenerator {
     const maxHeight = Math.max(...heights)
 
     // 计算 RMS（均方根）
-    const sumSquares = heights.reduce((sum, h) => sum + h * h, 0)
-    const rms = Math.sqrt(sumSquares / heights.length)
+    // const sumSquares = heights.reduce((sum, h) => sum + h * h, 0)
+    // const rms = Math.sqrt(sumSquares / heights.length)
 
     // 有效波高 Hs = 4 * RMS
-    const Hs = 4 * rms
+    // const Hs = 4 * rms
 
     console.log('=== 波高统计 (时刻 t=' + time.toFixed(2) + 's) ===')
-    console.log('最小波高:', minHeight.toFixed(3), 'm')
-    console.log('最大波高:', maxHeight.toFixed(3), 'm')
-    console.log('RMS 波高:', rms.toFixed(3), 'm')
-    console.log('有效波高 Hs:', Hs.toFixed(3), 'm')
-    console.log('波高范围:', (maxHeight - minHeight).toFixed(3), 'm')
+    console.log('最小波高:', minHeight, 'm')
+    console.log('最大波高:', maxHeight, 'm')
+    // console.log('RMS 波高:', rms, 'm')
+    // console.log('有效波高 Hs:', Hs, 'm')
+    console.log('波高范围:', maxHeight - minHeight, 'm')
   }
 
   /**
@@ -589,6 +591,7 @@ export class FFTOceanGenerator {
     return this.params.resolution
   }
 
+  // ---------- Test Part ----------
   // test interface
   getTestHeightData(time: number): { heightSpectrum: Complex[][]; heightSpatial: Complex[][] } {
     const N = this.params.resolution
