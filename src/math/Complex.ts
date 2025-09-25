@@ -67,6 +67,15 @@ export class Complex {
   }
 
   /**
+   * 复数乘以实数：(a + bi) * k = (ak) + (bk)i
+   * @param scalar 实数因子
+   * @returns 相乘后的新复数
+   */
+  multiplyByScalar(scalar: number): Complex {
+    return new Complex(this.real * scalar, this.imag * scalar)
+  }
+
+  /**
    * 复数除以实数
    * @param scalar 实数除数
    * @returns 除法后的新复数
