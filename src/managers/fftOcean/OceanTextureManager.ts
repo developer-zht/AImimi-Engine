@@ -1,5 +1,5 @@
 import { FFTOceanGenerator } from '@/managers/fftOcean/FFTOceanGenerator'
-import { OceanParams } from '@/managers/fftOcean/PhillipsSpectrum'
+import { OceanParams } from '@/types/fftOcean'
 
 export class OceanTextureManager {
   private gl: WebGLRenderingContext

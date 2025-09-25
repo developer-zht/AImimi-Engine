@@ -1,28 +1,12 @@
 import { WaterSurface } from '@/objects/WaterSurface'
-import { TransformationParams } from '@/types/transformation'
 import { Mesh } from '@/objects/Mesh'
-import {
-  buildFFTOceanMaterial,
-  FFTOceanMaterial,
-  FFTOceanMaterialParams
-} from '@/materials/FFTOceanMaterial'
+import { buildFFTOceanMaterial, FFTOceanMaterial } from '@/materials/FFTOceanMaterial'
 import { MeshRender } from '@/renderers/MeshRender'
 import { OceanTextureManager } from './OceanTextureManager'
 import { FFTOceanGenerator } from './FFTOceanGenerator'
 import { WebGLRenderer } from '@/renderers/WebGLRenderer'
 import { ShaderPaths } from '@/config/resourcePaths'
-import { OceanParams } from '@/types/fftOcean'
-
-export interface FFTOceanRenderManagerConfig {
-  // 几何参数
-  tranformation: TransformationParams
-
-  // 材质参数
-  materialParams: FFTOceanMaterialParams
-
-  // FFT Ocean
-  oceanParams: OceanParams
-}
+import { FFTOceanRenderManagerConfig } from '@/types/fftOcean'
 
 export class FFTOceanRenderManager {
   // 单例模式
@@ -43,10 +27,10 @@ export class FFTOceanRenderManager {
     this.config = config
 
     // 创建FFT生成器
-    this.fftOceanGenerator = new FFTOceanGenerator(config.oceanParams)
+    this.fftOceanGenerator = new FFTOceanGenerator(config.cascadeConfig)
 
     // 创建纹理管理器
-    this.oceanTextureManager = new OceanTextureManager(gl, config.oceanParams.resolution)
+    this.oceanTextureManager = new OceanTextureManager(gl, config.cascadeConfig.targetResolution)
 
     this.config.materialParams.displacementMap = this.oceanTextureManager.getDisplacementTexture()
     this.config.materialParams.normalMap = this.oceanTextureManager.getNormalTexture()
@@ -65,8 +49,8 @@ export class FFTOceanRenderManager {
   private createWaterSurface(): Mesh {
     const waterSurface = new WaterSurface(
       this.config.tranformation,
-      this.config.oceanParams.size,
-      this.config.oceanParams.resolution
+      this.config.cascadeConfig.targetSize,
+      this.config.cascadeConfig.targetResolution
     )
 
     return waterSurface
@@ -102,7 +86,7 @@ export class FFTOceanRenderManager {
 
   async update(time: number) {
     // 更新FFT数据
-    await this.fftOceanGenerator.update(time)
+    await this.fftOceanGenerator.generateOcean(time)
 
     // console.log(this.meshRender)
 
