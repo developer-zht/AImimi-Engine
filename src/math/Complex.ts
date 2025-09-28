@@ -71,8 +71,11 @@ export class Complex {
    * @param scalar 实数因子
    * @returns 相乘后的新复数
    */
-  multiplyByScalar(scalar: number): Complex {
-    return new Complex(this.real * scalar, this.imag * scalar)
+  multiplyByScalar(scalar: number) {
+    this.real = this.real * scalar
+    this.imag = this.imag * scalar
+    return this
+    // return new Complex(this.real * scalar, this.imag * scalar)
   }
 
   /**
@@ -99,6 +102,26 @@ export class Complex {
    */
   conjugate(): Complex {
     return new Complex(this.real, -this.imag)
+  }
+
+  /**
+   * 复指数形式的复数：
+   * e^(i*theta) = cos(theta) + i*sin(theta)
+   * @param theta 角度（弧度）
+   * @returns e^(i*theta) 对应的复数
+   */
+  static expi(theta: number): Complex {
+    return new Complex(Math.cos(theta), Math.sin(theta))
+  }
+
+  /**
+   * 复指数形式的复数（带负号）：
+   * e^(-i*theta) = cos(theta) - i*sin(theta)
+   * @param theta 角度（弧度）
+   * @returns e^(-i*theta) 对应的复数
+   */
+  static expNegI(theta: number): Complex {
+    return new Complex(Math.cos(theta), -Math.sin(theta))
   }
 
   /**
