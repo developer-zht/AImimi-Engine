@@ -1,4 +1,5 @@
-import { OceanParams } from '@/types/fftOcean'
+import { CascadeLayerParams, OceanParams } from '@/types/fftOcean'
+import { Spectrum } from './Spectrum'
 
 /** Phillips 波谱公式：
  * P(k) = A * exp(-(1 / (kL)^2)) / k^4 * ( (k_hat · w_hat)^2 )
@@ -13,7 +14,7 @@ import { OceanParams } from '@/types/fftOcean'
  *   (k_hat · w_hat)^2          // 方向性分布
  * - 如果 (k_hat · w_hat < 0) 则表示逆风波，此时可将 P(k) 设为 0   // 抑制逆风波
  */
-export class PhillipsSpectrum {
+export class PhillipsSpectrum implements Spectrum {
   /* Phillips 常数，影响整体幅度，如果太小，高频会被过度压制
       很弱的波浪 A = 0.002 
       轻微波浪   A = 0.005  
@@ -96,7 +97,7 @@ export class PhillipsSpectrum {
     // return phillips
   }
 
-  calculateH0Magnitude(kx: number, kz: number, params: OceanParams): number {
+  calculateH0Magnitude(kx: number, kz: number, params: CascadeLayerParams): number {
     const P = this.calculate(kx, kz, params)
 
     // h0_magnitude = sqrt(P/2)
