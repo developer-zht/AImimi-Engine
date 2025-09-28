@@ -5,7 +5,8 @@ import { Uniforms, UniformType } from '@/types/Material'
 export interface FFTOceanMaterialParams extends WaterMaterialParams {
   // 几何纹理
   displacementMap: WebGLTexture
-  // normalTexture: WebGLTexture
+  gradientMap: WebGLTexture
+  dispDerivativeMap: WebGLTexture
 
   // 水体参数
   specularStrength?: number
@@ -54,8 +55,9 @@ export class FFTOceanMaterial extends WaterMaterial {
       fresnelPower: 5.0,
 
       // FFT Ocean Params
-      displacementMap: null
-      // normalTexture: null
+      displacementMap: null,
+      gradientMap: null,
+      dispDerivativeMap: null
     }
 
     const fftOceanParameters = {
@@ -70,7 +72,11 @@ export class FFTOceanMaterial extends WaterMaterial {
         type: UniformType.TEXTURE_2D,
         value: fftOceanParameters.displacementMap
       },
-      uNormalMap: { type: UniformType.TEXTURE_2D, value: fftOceanParameters.normalMap }
+      uGradientMap: { type: UniformType.TEXTURE_2D, value: fftOceanParameters.gradientMap },
+      uDispDerivativeMap: {
+        type: UniformType.TEXTURE_2D,
+        value: fftOceanParameters.dispDerivativeMap
+      }
     }
 
     super(fftOceanParameters, vertexShaderContent, fragmentShaderContent, fftOceanUniforms)

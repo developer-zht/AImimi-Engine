@@ -33,7 +33,9 @@ export class FFTOceanRenderManager {
     this.oceanTextureManager = new OceanTextureManager(gl, config.cascadeConfig.targetResolution)
 
     this.config.materialParams.displacementMap = this.oceanTextureManager.getDisplacementTexture()
-    this.config.materialParams.normalMap = this.oceanTextureManager.getNormalTexture()
+    this.config.materialParams.gradientMap = this.oceanTextureManager.getGradientTexture()
+    this.config.materialParams.dispDerivativeMap =
+      this.oceanTextureManager.getDisDerivativeTexture()
   }
 
   public static getInstance(gl: WebGLRenderingContext, config: FFTOceanRenderManagerConfig) {
