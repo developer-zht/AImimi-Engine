@@ -49,7 +49,8 @@ export class DirectionalLight implements Light {
     this.lightDir = lightDir
     this.lightUp = lightUp
 
-    this.fbo = new FBO(gl, gl_draw_buffers).getFrameBuffer()
+    // this.fbo = new FBO(gl, gl_draw_buffers).getFrameBuffer()
+    this.fbo = new FBO(gl).getFrameBuffer()
     // console.log(this.fbo)
 
     if (!this.fbo) {

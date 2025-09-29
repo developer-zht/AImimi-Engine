@@ -197,7 +197,8 @@ export class Engine {
 
     camera.position.set(this.cameraPosition[0], this.cameraPosition[1], this.cameraPosition[2])
     // let fbo = new FBO(this.gl, this.gl_draw_buffers)
-    camera.fbo = new FBO(this.gl, this.gl_draw_buffers).getFrameBuffer()
+    // camera.fbo = new FBO(this.gl, this.gl_draw_buffers).getFrameBuffer()
+    camera.fbo = new FBO(this.gl).getFrameBuffer()
     this.camera = camera
 
     this.resetCameraSize(this.canvas.clientWidth, this.canvas.clientHeight)

@@ -10,17 +10,21 @@ export class FBO {
 
   constructor(
     gl: WebGLRenderingContext,
-    gl_draw_buffers: WEBGL_draw_buffers,
+    // gl_draw_buffers: WEBGL_draw_buffers,
     width?: number,
-    height?: number
+    height?: number,
+    colorAttachmentCount: number = 5 // 默认5个
   ) {
     this.gl = gl
-    this.gl_draw_buffers = gl_draw_buffers
     this.width = width || window.screen.width
     this.height = height || window.screen.height
+    this.gl_draw_buffers = this.gl.getExtension('WEBGL_draw_buffers')
+    if (!this.gl_draw_buffers) {
+      throw new Error('WEBGL_draw_buffers 扩展不可用')
+    }
 
     try {
-      this.initFrameBuffer()
+      this.initFrameBuffer(colorAttachmentCount)
     } catch (error) {
       console.error('FBO初始化失败:', error)
       this.dispose()
@@ -28,7 +32,7 @@ export class FBO {
   }
 
   // 初始化 framebuffer
-  private initFrameBuffer() {
+  private initFrameBuffer(colorAttachmentCount: number) {
     //创建帧缓冲区对象
     this.framebuffer = this.gl.createFramebuffer()
     if (!this.framebuffer) {
@@ -37,14 +41,14 @@ export class FBO {
     }
     this.gl.bindFramebuffer(this.gl.FRAMEBUFFER, this.framebuffer)
 
-    const GBufferNum = 5
+    // const GBufferNum = 5
     // 给 WebGL 的 framebuffer 附上两个原来没有的 attachments 和 textures 属性
     this.framebuffer.attachments = []
     this.framebuffer.textures = []
-    for (let i = 0; i < GBufferNum; i++) {
-      let attachment: GLenum = this.gl_draw_buffers['COLOR_ATTACHMENT' + i + '_WEBGL']
+    for (let i = 0; i < colorAttachmentCount; i++) {
+      const attachment: GLenum = this.gl_draw_buffers['COLOR_ATTACHMENT' + i + '_WEBGL']
       // 将 texture 作为 framebuffer 中的 color_attachment 中的 buffer
-      let texture = this.CreateAndBindColorTargetTexture(attachment)
+      const texture = this.CreateAndBindColorTargetTexture(attachment)
       this.framebuffer.attachments.push(attachment)
       this.framebuffer.textures.push(texture)
     }
@@ -68,7 +72,7 @@ export class FBO {
 
   //创建纹理对象并设置其尺寸和参数
   private CreateAndBindColorTargetTexture(attachment: GLenum): WebGLTexture {
-    let texture = this.gl.createTexture()
+    const texture = this.gl.createTexture()
     if (!texture) {
       console.log('无法创建纹理对象')
       throw new Error('无法创建纹理对象')
@@ -120,11 +124,6 @@ export class FBO {
     )
   }
 
-  // 获取 framebuffer 属性
-  getFrameBuffer(): WebGLFramebuffer {
-    return this.framebuffer
-  }
-
   // 清理资源
   dispose(): void {
     // 删除纹理
@@ -148,5 +147,21 @@ export class FBO {
     }
 
     this.framebuffer.attachments = []
+  }
+
+  // getter
+  // 获取 framebuffer 属性
+  getFrameBuffer(): WebGLFramebuffer {
+    return this.framebuffer
+  }
+
+  // 获取 width
+  getWidth(): number {
+    return this.width
+  }
+
+  // 获取 height
+  getHeight(): number {
+    return this.height
   }
 }

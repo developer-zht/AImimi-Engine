@@ -45,7 +45,8 @@ export class PointLight implements Light {
     ]
     this.material = new EmissiveMaterial(finalColor)
 
-    this.fbo = new FBO(this.gl, this.gl_draw_buffers).getFrameBuffer()
+    // this.fbo = new FBO(this.gl, this.gl_draw_buffers).getFrameBuffer()
+    this.fbo = new FBO(this.gl).getFrameBuffer()
     if (!this.fbo) {
       console.log('无法设置帧缓冲区对象')
       return
