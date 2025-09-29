@@ -66,7 +66,10 @@ export const ShaderPaths = {
   GERSTNER_WAVE_FRAGMENT: urlJoin(BASES.shaders, '/gerstnerWaveShader/GerstnerWaveFragment.frag'),
   // FFT Ocean
   FFT_OCEAN_VERTEX: urlJoin(BASES.shaders, '/fftOceanShader/FFTOceanVertex.vert'),
-  FFT_OCEAN_FRAGMENT: urlJoin(BASES.shaders, '/fftOceanShader/FFTOceanFragment.frag')
+  FFT_OCEAN_FRAGMENT: urlJoin(BASES.shaders, '/fftOceanShader/FFTOceanFragment.frag'),
+  FFT_STOCKHAM_VERTEX: urlJoin(BASES.shaders, '/fftShader/FFTStockham.vert'),
+  FFT_STOCKHAM_FRAGMENT: urlJoin(BASES.shaders, '/fftShader/FFTStockham.frag'),
+  FFT_STOCKHAM_2D_FRAGMENT: urlJoin(BASES.shaders, '/fftShader/FFTStockham2D.frag')
 }
 
 // 文件扩展名配置
