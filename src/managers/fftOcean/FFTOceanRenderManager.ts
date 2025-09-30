@@ -27,7 +27,7 @@ export class FFTOceanRenderManager {
     this.config = config
 
     // 创建FFT生成器
-    this.fftOceanGenerator = new FFTOceanGenerator(config.cascadeConfig)
+    this.fftOceanGenerator = new FFTOceanGenerator(this.gl, config.cascadeConfig)
 
     // 创建纹理管理器
     this.oceanTextureManager = new OceanTextureManager(gl, config.cascadeConfig.targetResolution)
