@@ -210,6 +210,12 @@ export class MeshRender {
   ) {
     const gl = this.gl
 
+    // ❗ 需要着重注意 update() 的执行顺序，因为其内部有 FBO，如果放在其他渲染管线中执行，可能会影响其他渲染管线的数据。因此需要在 FBO 进行渲染是进行当前状态的保存，并在渲染完毕后恢复原有状态
+    if (this.manager) {
+      this.manager.update(updatedParamters.uTime)
+      // console.log(this.manager)
+    }
+
     gl.bindFramebuffer(gl.FRAMEBUFFER, fbo)
     gl.viewport(0.0, 0.0, window.screen.width, window.screen.height)
     if (fbo != null) {
@@ -222,11 +228,6 @@ export class MeshRender {
 
     // Bind Camera parameters
     this.bindCameraParameters(camera)
-
-    if (this.manager) {
-      this.manager.update(updatedParamters.uTime)
-      // console.log(this.manager)
-    }
 
     // Bind material parameters
     this.updateMaterialParameters(updatedParamters)
