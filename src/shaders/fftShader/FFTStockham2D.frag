@@ -13,6 +13,7 @@ varying vec2 vTexCoord;
 #define M_PI 3.1415926535897932384626433832795
 #define TWO_PI 6.283185307
 
+// 复数乘法
 vec2 complexMul(vec2 a, vec2 b) {
   return vec2(a.x * b.x - a.y * b.y, a.x * b.y + a.y * b.x);
 }
@@ -23,9 +24,11 @@ void main() {
   if (uDirection == 0) {
     // 水平方向：处理当前行
     outputIndex = vTexCoord.x * float(uTransformSize) - 0.5;
+    // outputIndex = floor(vTexCoord.x * float(uTransformSize));
   } else {
     // 垂直方向：处理当前列
     outputIndex = vTexCoord.y * float(uTransformSize) - 0.5;
+    // outputIndex = floor(vTexCoord.y * float(uTransformSize));
   }
 
   // 2. 计算 even/odd 索引（Stockham 重排）
@@ -59,5 +62,65 @@ void main() {
   // 5. 蝶形运算
   vec2 result = even + complexMul(twiddle, odd);
 
-  gl_FragColor = vec4(result.x, result.y, 0.0, 1.0);
+  gl_FragColor = vec4(texture2D(uInputTexture, vTexCoord));
+  // gl_FragColor = vec4(20.0, 0.0, 0.0, 1.0);
 }
+
+// void main() {
+//   // ✅ 1. 修正：直接计算像素索引（整数）
+//   float outputIndex;
+//   if (uDirection == 0) {
+//     // 水平方向
+//     outputIndex = floor(vTexCoord.x * float(uTransformSize));
+//   } else {
+//     // 垂直方向
+//     outputIndex = floor(vTexCoord.y * float(uTransformSize));
+//   }
+
+//   // ✅ 2. Stockham 索引计算
+//   float halfSubSize = float(uSubtransformSize) / 2.0;
+
+//   // evenIndex = (outputIndex / subtransformSize) * halfSubSize + (outputIndex % halfSubSize)
+//   float groupIndex = floor(outputIndex / float(uSubtransformSize));
+//   float indexInGroup = mod(outputIndex, halfSubSize);
+//   float evenIndex = groupIndex * halfSubSize + indexInGroup;
+
+//   // oddIndex 在输入序列的后半部分
+//   float oddIndex = evenIndex + float(uTransformSize) / 2.0;
+
+//   // ✅ 3. 计算纹理坐标（像素中心）
+//   vec2 even, odd;
+
+//   if (uDirection == 0) {
+//     // 水平FFT
+//     float evenU = (evenIndex + 0.5) / float(uTransformSize);
+//     float oddU = (oddIndex + 0.5) / float(uTransformSize);
+
+//     even = texture2D(uInputTexture, vec2(evenU, vTexCoord.y)).rg;
+//     odd = texture2D(uInputTexture, vec2(oddU, vTexCoord.y)).rg;
+//   } else {
+//     // 垂直FFT
+//     float evenV = (evenIndex + 0.5) / float(uTransformSize);
+//     float oddV = (oddIndex + 0.5) / float(uTransformSize);
+
+//     even = texture2D(uInputTexture, vec2(vTexCoord.x, evenV)).rg;
+//     odd = texture2D(uInputTexture, vec2(vTexCoord.x, oddV)).rg;
+//   }
+
+//   // ✅ 4. 计算旋转因子（修正符号）
+//   float sign = uInverse == 1 ? 1.0 : -1.0;
+
+//   // k = outputIndex % subtransformSize
+//   float k = mod(outputIndex, float(uSubtransformSize));
+
+//   // W_n^k = e^(sign * 2πi * k / n)
+//   float angle = sign * TWO_PI * k / float(uSubtransformSize);
+//   vec2 twiddle = vec2(cos(angle), sin(angle));
+
+//   // ✅ 5. 蝶形运算
+//   vec2 result = even + complexMul(twiddle, odd);
+
+//   gl_FragColor = vec4(twiddle, 0.0, 1.0);
+//   // gl_FragColor = vec4(20.0, 10.0, 0.0, 1.0);
+// }
+

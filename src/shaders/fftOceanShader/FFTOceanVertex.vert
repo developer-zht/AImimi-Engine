@@ -18,8 +18,9 @@ uniform vec2 uDepthCenter; // 深度中心点
 uniform float uDepthFalloff; // 深度衰减系数
 
 // 位移/法向纹理贴图
-uniform sampler2D uDisplacementMap; // FFT 生成的位移贴图
-uniform sampler2D uNormalMap; // FFT 生成的法线贴图（或梯度）
+uniform sampler2D uDisplacementMap; // IFFT 生成的位移贴图
+uniform sampler2D uGradientMap; // IFFT 生成的梯度贴图
+uniform sampler2D uDispDerivativeMap; // IFFT 生成的位移导数贴图
 
 // 传入 Fragment 中的 Varying
 varying vec3 vWorldPosition;
@@ -97,7 +98,7 @@ void main() {
 
   // 从纹理读取数据
   vec4 displacement = texture2D(uDisplacementMap, aTextureCoord);
-  vec2 gradient = texture2D(uNormalMap, aTextureCoord).xy;
+  vec2 gradient = texture2D(uGradientMap, aTextureCoord).xy;
 
   // 应用位移
   vec3 displacedPos = aVertexPosition;
@@ -118,7 +119,7 @@ void main() {
   vNormal = normalize(mat3(uModelMatrix) * vec3(-gradient.x, 1.0, -gradient.y));
 
   // 水体深度
-  vWaterDepth = calculateWaterDepth(displacedPos.xz, 1);
+  vWaterDepth = calculateWaterDepth(displacedPos.xz, 0);
 
   // 传递泡沫因子（雅可比值）
   vFoam = displacement.w;
