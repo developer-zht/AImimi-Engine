@@ -1,4 +1,5 @@
 import { OceanParams } from '@/types/fftOcean'
+import { Spectrum } from './Spectrum'
 
 /**
  * From https://geo.libretexts.org/Bookshelves/Oceanography
@@ -38,7 +39,7 @@ import { OceanParams } from '@/types/fftOcean'
  * [公式17] 短波衰减因子: swave(k,f) = exp(-(f|k|)²)
  * [公式18] 衰减系数: f = 0.01
  */
-export class JONSWAPSpectrum {
+export class JONSWAPSpectrum implements Spectrum {
   // ========== 基础参数 ==========
   private gamma = 3.3 // 峰值增强因子 γ [公式3]
   private sigma_a = 0.07 // 低频端宽度参数 σ [公式6]
@@ -75,7 +76,6 @@ export class JONSWAPSpectrum {
    * @returns 峰值角频率 ωp (rad/s)
    */
   private calculatePeakFrequency(params: OceanParams): number {
-    // 如果没有fetch参数,使用简化公式: ωp = 0.877 g / U
     const fetch = params.fetch || ((params.windSpeed * params.windSpeed) / params.gravity) * 1000
 
     // 完整公式: ωp = 22 * (g² / (U₁₀ * F))^(1/3)
@@ -83,11 +83,13 @@ export class JONSWAPSpectrum {
 
     const omegaPeak = 22 * Math.pow(dimensionlessPeak, 1 / 3)
 
-    console.log('omegaPeak:', omegaPeak)
+    // console.log('omegaPeak:', omegaPeak)
 
+    // 如果没有fetch参数,使用简化公式: ωp = 0.877 g / U
     // return (0.877 * params.gravity) / params.windSpeed
 
     return omegaPeak
+    // return 0.1
   }
 
   /**
@@ -443,12 +445,13 @@ export class JONSWAPSpectrum {
     const STMA = this.calculateSOmegaTMACorrection(kx, kz, params)
 
     // 𝐷𝜉(𝜔,𝜃): 方向分布，给不同方向分配能量
-    const Dxi = this.directionHasselmannFactor(kx, kz, params, omega, omegaPeak)
+    // const Dxi = this.directionHasselmannFactor(kx, kz, params, omega, omegaPeak)
+    const Dxi = this.directionMitsuyasuFactor(kx, kz, params, omega, omegaPeak)
 
     // swave: 离散化时的随机化因子（相当于把连续谱转成离散波）
     const swave = this.shortWaveFilter(k)
 
-    const spec = STMA * 1 * swave
+    const spec = STMA * Dxi * swave
 
     // console.log('STMA', STMA, 'spec_no_dir', spec)
 
@@ -476,7 +479,7 @@ export class JONSWAPSpectrum {
    * @param deltaK 波数间隔 Δk = 2π/L
    * @returns |h₀(k)|
    */
-  calculateH0Magnitude(kx: number, kz: number, params: OceanParams, deltaK: number): number {
+  calculateH0Magnitude(kx: number, kz: number, params: OceanParams): number {
     // 1. 计算 k 值
     const k = Math.sqrt(kx * kx + kz * kz)
     if (k < 0.000001) return 0
