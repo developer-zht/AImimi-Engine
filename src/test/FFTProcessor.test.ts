@@ -1,4 +1,4 @@
-import { FFTProcessor } from '@/math/FFTProcessor'
+import { FFTProcessor } from '@/math/FFTProcessor/FFTProcessor'
 
 // 辅助函数：检查两个数组是否近似相等
 function arraysAlmostEqual(a: number[], b: number[], tol: number = 1e-6): boolean {

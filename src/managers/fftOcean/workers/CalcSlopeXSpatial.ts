@@ -1,5 +1,5 @@
 import { SerializedSpectrum } from '@/types/worker'
-import { FFTProcessor } from '@/math/FFTProcessor'
+import { FFTProcessor } from '@/math/FFTProcessor/FFTProcessor'
 import { Complex } from '@/math/Complex'
 import {
   deserializeArraysToSpectrum,
