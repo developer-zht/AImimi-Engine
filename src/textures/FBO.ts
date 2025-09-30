@@ -5,7 +5,7 @@ export class FBO {
   private width: number
   private height: number
 
-  public framebuffer: WebGLFramebuffer
+  private framebuffer: WebGLFramebuffer
   private renderBufferObject: WebGLRenderbuffer
 
   constructor(
