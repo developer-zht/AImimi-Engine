@@ -49,8 +49,8 @@ export interface CascadeLayerParams {
 // Cascade 配置
 export interface CascadeConfig {
   enabled: boolean // 是否启用 cascade，true 为 cascade，false 为 single
-  targetResolution: number // 目标统一分辨率，默认使用最高层分辨率
-  targetSize: number // 目标统一范围，默认使用最大范围
+  meshResolution: number // 目标统一分辨率，默认使用最高层分辨率
+  meshSize: number // 目标统一范围，默认使用最大范围
   blendMode: 'additive' | 'weighted' // 混合模式：相加或加权
   layerParamsSet: CascadeLayerParams[] // cascade 层级配置
 }
