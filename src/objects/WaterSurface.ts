@@ -40,34 +40,61 @@ export class WaterSurface extends Mesh {
     const indices: number[] = []
 
     // 生成顶点
-    for (let i = 0; i <= resolution; i++) {
-      for (let j = 0; j <= resolution; j++) {
-        // (i / resolution) ∈ [0,1];
-        // (i / resolution - 0.5) ∈ [-0.5,0.5];
-        const x = (i / resolution - 0.5) * size
-        const z = (j / resolution - 0.5) * size
-        const u = i / resolution
-        const v = j / resolution
+    // for (let i = 0; i <= resolution; i++) {
+    //   for (let j = 0; j <= resolution; j++) {
+    //     // (i / resolution) ∈ [0,1];
+    //     // (i / resolution - 0.5) ∈ [-0.5,0.5];
+    //     const x = (i / resolution - 0.5) * size
+    //     const z = (j / resolution - 0.5) * size
+    //     const u = i / resolution
+    //     const v = j / resolution
+
+    //     positions.push(x, 0, z)
+    //     normals.push(0, 1, 0) // 初始法线向上
+    //     texCoords.push(u, v)
+    //   }
+    // }
+
+    // 生成索引
+    // for (let i = 0; i < resolution; i++) {
+    //   for (let j = 0; j < resolution; j++) {
+    //     const topLeft = i * (resolution + 1) + j
+    //     const topRight = topLeft + 1
+    //     const bottomLeft = (i + 1) * (resolution + 1) + j
+    //     const bottomRight = bottomLeft + 1
+
+    //     /**
+    //      * 两个三角形组成一个四边形
+    //      * 在WebGL中：正面（front-facing）三角形通常定义为逆时针，背面剔除（back-face culling）会把顺时针的三角形当作背面剔除掉，结果就是些三角形不会被渲染，或者法线方向错误
+    //      */
+    //     // 保证三角形的正确绕序（winding order）
+    //     indices.push(topLeft, bottomLeft, topRight)
+    //     indices.push(topRight, bottomLeft, bottomRight)
+    //   }
+    // }
+
+    // 改为 < resolution 而不是 <= resolution
+    for (let i = 0; i < resolution; i++) {
+      for (let j = 0; j < resolution; j++) {
+        const x = (i / (resolution - 1) - 0.5) * size
+        const z = (j / (resolution - 1) - 0.5) * size
+        const u = i / (resolution - 1)
+        const v = j / (resolution - 1)
 
         positions.push(x, 0, z)
-        normals.push(0, 1, 0) // 初始法线向上
+        normals.push(0, 1, 0)
         texCoords.push(u, v)
       }
     }
 
-    // 生成索引
-    for (let i = 0; i < resolution; i++) {
-      for (let j = 0; j < resolution; j++) {
-        const topLeft = i * (resolution + 1) + j
+    // 索引生成也要相应调整
+    for (let i = 0; i < resolution - 1; i++) {
+      for (let j = 0; j < resolution - 1; j++) {
+        const topLeft = i * resolution + j
         const topRight = topLeft + 1
-        const bottomLeft = (i + 1) * (resolution + 1) + j
+        const bottomLeft = (i + 1) * resolution + j
         const bottomRight = bottomLeft + 1
 
-        /**
-         * 两个三角形组成一个四边形
-         * 在WebGL中：正面（front-facing）三角形通常定义为逆时针，背面剔除（back-face culling）会把顺时针的三角形当作背面剔除掉，结果就是些三角形不会被渲染，或者法线方向错误
-         */
-        // 保证三角形的正确绕序（winding order）
         indices.push(topLeft, bottomLeft, topRight)
         indices.push(topRight, bottomLeft, bottomRight)
       }
