@@ -1,5 +1,5 @@
-import { describe, it, expect } from 'vitest'
-
+import { describe, it, expect, beforeAll } from 'vitest'
+import gl from 'gl'
 import { FFTOceanGenerator } from '@/managers/fftOcean/FFTOceanGenerator'
 import { CascadeConfig } from '@/types/fftOcean'
 import { computeRMS } from '@/utils/calcComplexRMS'
@@ -7,11 +7,26 @@ import { verifyParseval } from '@/utils/verifyParseval'
 
 // ---------- 测试 ----------
 describe('FFTOceanGenerator FFT/IFFT 验证', () => {
+  let glContext: WebGLRenderingContext
+
+  const SIZE = 64 // 测试大小
+
+  beforeAll(() => {
+    // ✅ 使用 headless-gl 创建 WebGL 上下文
+    glContext = gl(SIZE, SIZE, {
+      preserveDrawingBuffer: true
+    }) as unknown as WebGLRenderingContext
+
+    if (!glContext) {
+      throw new Error('WebGL not supported')
+    }
+  })
+
   it('满足 Parseval 定理 & RMS 比例', () => {
     const cascadeConfig: CascadeConfig = {
       enabled: false, // 是否启用 cascade，true 为 cascade，false 为 single
-      targetResolution: 256, // 目标统一分辨率，默认使用最高层分辨率
-      targetSize: 1024, // 目标统一范围，默认使用最大范围
+      meshResolution: 256, // 目标统一分辨率，默认使用最高层分辨率
+      meshSize: 1024, // 目标统一范围，默认使用最大范围
       blendMode: 'weighted', // 混合模式：相加或加权
       layerParamsSet: [
         // cascade 层级配置
@@ -29,7 +44,7 @@ describe('FFTOceanGenerator FFT/IFFT 验证', () => {
       ]
     }
     const time = 0
-    const generator = new FFTOceanGenerator(cascadeConfig)
+    const generator = new FFTOceanGenerator(glContext, cascadeConfig)
     const cascadeLayerData = generator.getCascadeLayers()[0]
 
     const { heightSpectrum, heightSpatial } = generator.getTestHeightData(cascadeLayerData, time)
