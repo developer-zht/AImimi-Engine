@@ -1,5 +1,6 @@
 import { getShaderString } from '@/loaders/loadShader'
 import { WaterMaterial, WaterMaterialParams } from '@/materials/WaterMaterial'
+import { CascadeConfig } from '@/types/fftOcean'
 import { Uniforms, UniformType } from '@/types/Material'
 
 export interface FFTOceanMaterialParams extends WaterMaterialParams {
@@ -18,6 +19,7 @@ export class FFTOceanMaterial extends WaterMaterial {
 
   constructor(
     fftOceanParams: FFTOceanMaterialParams,
+    cascadeConfig: CascadeConfig,
     vertexShaderContent: string,
     fragmentShaderContent: string
   ) {
@@ -68,6 +70,10 @@ export class FFTOceanMaterial extends WaterMaterial {
 
     // 构建 FFT Ocean 特有的 uniforms
     const fftOceanUniforms: Uniforms = {
+      uGeometrySize: {
+        type: UniformType.ONE_F,
+        value: cascadeConfig.meshSize
+      },
       uDisplacementMap: {
         type: UniformType.TEXTURE_2D,
         value: fftOceanParameters.displacementMap
@@ -87,11 +93,17 @@ export class FFTOceanMaterial extends WaterMaterial {
 
 export async function buildFFTOceanMaterial(
   fftOceanParams: FFTOceanMaterialParams,
+  cascadeConfig: CascadeConfig,
   vertexPath: string,
   fragmentPath: string
 ): Promise<FFTOceanMaterial> {
   const vertexShaderContent = await getShaderString(vertexPath)
   const fragmentShaderContent = await getShaderString(fragmentPath)
 
-  return new FFTOceanMaterial(fftOceanParams, vertexShaderContent, fragmentShaderContent)
+  return new FFTOceanMaterial(
+    fftOceanParams,
+    cascadeConfig,
+    vertexShaderContent,
+    fragmentShaderContent
+  )
 }

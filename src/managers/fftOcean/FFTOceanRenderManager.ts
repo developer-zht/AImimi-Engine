@@ -7,6 +7,9 @@ import { FFTOceanGenerator } from './FFTOceanGenerator'
 import { WebGLRenderer } from '@/renderers/WebGLRenderer'
 import { ShaderPaths } from '@/config/resourcePaths'
 import { FFTOceanRenderManagerConfig } from '@/types/fftOcean'
+import { FFTOceanTextureManager } from './FFTOceanTextureManager'
+import { FFTProcessor } from '@/math/FFTProcessor/FFTProcessor'
+import { FFTOceanSpectrumGenerator } from './FFTOceanSpectrumGenerator'
 
 export class FFTOceanRenderManager {
   // 单例模式
@@ -18,6 +21,10 @@ export class FFTOceanRenderManager {
   private fftOceanGenerator: FFTOceanGenerator
   private oceanTextureManager: OceanTextureManager
 
+  private fftProcessor: FFTProcessor
+  private fftOceanSpectrumGenerator: FFTOceanSpectrumGenerator
+  private fftOceanTextureManager: FFTOceanTextureManager
+
   private waterSurface: Mesh
   private fftOceanMaterial: FFTOceanMaterial
   private meshRender: MeshRender
@@ -26,16 +33,32 @@ export class FFTOceanRenderManager {
     this.gl = gl
     this.config = config
 
-    // 创建FFT生成器
-    this.fftOceanGenerator = new FFTOceanGenerator(this.gl, config.cascadeConfig)
+    // // 创建FFT生成器
+    // this.fftOceanGenerator = new FFTOceanGenerator(this.gl, config.cascadeConfig)
 
-    // 创建纹理管理器
-    this.oceanTextureManager = new OceanTextureManager(gl, config.cascadeConfig.targetResolution)
+    // // 创建纹理管理器
+    // this.oceanTextureManager = new OceanTextureManager(gl, config.cascadeConfig.targetResolution)
 
-    this.config.materialParams.displacementMap = this.oceanTextureManager.getDisplacementTexture()
-    this.config.materialParams.gradientMap = this.oceanTextureManager.getGradientTexture()
-    this.config.materialParams.dispDerivativeMap =
-      this.oceanTextureManager.getDisDerivativeTexture()
+    this.fftProcessor = new FFTProcessor(this.gl)
+    this.fftOceanSpectrumGenerator = new FFTOceanSpectrumGenerator(config.cascadeConfig)
+    const spectrumMaxResolution = Math.max(
+      ...config.cascadeConfig.layerParamsSet.map((layer) => layer.resolution)
+    )
+    this.fftOceanTextureManager = new FFTOceanTextureManager(
+      gl,
+      this.fftProcessor,
+      spectrumMaxResolution
+    )
+
+    this.config.materialParams.displacementMap =
+      this.fftOceanTextureManager.getDisplacementTexture()
+    this.config.materialParams.gradientMap = this.fftOceanTextureManager.getGradientTexture()
+    this.config.materialParams.dispDerivativeMap = this.fftOceanTextureManager.getJacobianTexture()
+
+    // this.config.materialParams.displacementMap = this.oceanTextureManager.getDisplacementTexture()
+    // this.config.materialParams.gradientMap = this.oceanTextureManager.getGradientTexture()
+    // this.config.materialParams.dispDerivativeMap =
+    //   this.oceanTextureManager.getDisDerivativeTexture()
   }
 
   public static getInstance(gl: WebGLRenderingContext, config: FFTOceanRenderManagerConfig) {
@@ -51,8 +74,8 @@ export class FFTOceanRenderManager {
   private createWaterSurface(): Mesh {
     const waterSurface = new WaterSurface(
       this.config.tranformation,
-      this.config.cascadeConfig.targetSize,
-      this.config.cascadeConfig.targetResolution
+      this.config.cascadeConfig.meshSize,
+      this.config.cascadeConfig.meshResolution
     )
 
     return waterSurface
@@ -64,6 +87,7 @@ export class FFTOceanRenderManager {
     // console.log(this.config.materialParams)
     return await buildFFTOceanMaterial(
       this.config.materialParams,
+      this.config.cascadeConfig,
       ShaderPaths.FFT_OCEAN_VERTEX,
       ShaderPaths.FFT_OCEAN_FRAGMENT
     )
@@ -88,12 +112,23 @@ export class FFTOceanRenderManager {
 
   async update(time: number) {
     // 更新FFT数据
-    await this.fftOceanGenerator.generateOcean(time)
-
+    // await this.fftOceanGenerator.generateOcean(time)
     // console.log(this.meshRender)
-
     // 更新纹理
-    this.oceanTextureManager.updateTextures(this.fftOceanGenerator)
+    // this.oceanTextureManager.updateTextures(this.fftOceanGenerator)
+    const spectrums = this.fftOceanSpectrumGenerator.generateRealTimeOceanSpectrum(time)
+
+    this.fftOceanTextureManager.updateTextures({
+      height: spectrums.heightSpectrum,
+      dispX: spectrums.dispXSpectrum,
+      dispZ: spectrums.dispZSpectrum,
+      slopeX: spectrums.slopeXSpectrum,
+      slopeZ: spectrums.slopeZSpectrum,
+      dDx_dx: spectrums.dDx_dxSpectrum,
+      dDz_dz: spectrums.dDz_dzSpectrum,
+      dDx_dz: spectrums.dDx_dzSpectrum,
+      dDz_dx: spectrums.dDz_dxSpectrum
+    })
   }
 
   // 获取当前的 MeshRender 对象
