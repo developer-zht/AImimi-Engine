@@ -83,7 +83,7 @@ export class Complex {
    * @param scalar 实数除数
    * @returns 除法后的新复数
    */
-  dividedBy(scalar: number) {
+  dividedByScalar(scalar: number) {
     if (scalar === 0) throw new Error('Division by zero (scalar)')
     return new Complex(this.real / scalar, this.imag / scalar)
   }
