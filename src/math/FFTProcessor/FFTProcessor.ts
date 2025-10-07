@@ -45,6 +45,7 @@ export class FFTProcessor {
 
   // GPU 成员
   private gl: WebGLRenderingContext | null = null
+  private gl_draw_buffers: WEBGL_draw_buffers
   private gpuEnabled: boolean = false
 
   private stockhamShader: Shader | null = null
@@ -57,6 +58,8 @@ export class FFTProcessor {
   } | null = null
   // ✅ FFT 专用纹理单元
   private readonly FFT_TEXTURE_UNIT = 15 // 使用 TEXTURE15
+  // Twiddle Texture
+  private twiddleTexture: WebGLTexture | null = null
 
   private count = 0
   private maxCount = 30
@@ -70,6 +73,10 @@ export class FFTProcessor {
 
     if (gl) {
       this.gl = gl
+      this.gl_draw_buffers = this.gl.getExtension('WEBGL_draw_buffers')
+      if (!this.gl_draw_buffers) {
+        throw new Error('WEBGL_draw_buffers 扩展不可用')
+      }
       this.initGPUResources()
     }
   }
@@ -106,7 +113,20 @@ export class FFTProcessor {
     // 二维 Stockham shader（支持水平/垂直）
     this.stockham2DShader = new Shader(this.gl, vertexShaderContent, stockham2DFragContent, {
       attribs: ['aVertexPosition', 'aTextureCoord'],
-      uniforms: ['uInputTexture', 'uSubtransformSize', 'uTransformSize', 'uInverse', 'uDirection']
+      uniforms: [
+        // 保留原来的单个 Texture 的求解方法，用来验证多个 Texture 的方法的正确性
+        // 'uInputTexture',
+        'uInputTexture0', // ✅ 4 个输入纹理
+        'uInputTexture1',
+        'uInputTexture2',
+        'uInputTexture3',
+        'uNumChannels', // ✅ 实际使用的通道数
+        'uSubtransformSize',
+        'uTransformSize',
+        'uInverse',
+        'uDirection',
+        'isLastStage'
+      ]
     })
   }
 
@@ -180,7 +200,7 @@ export class FFTProcessor {
     this.gl!.deleteTexture(inputTexture)
 
     if (inverse) {
-      return result.map((c) => c.dividedBy(size))
+      return result.map((c) => c.dividedByScalar(size))
     }
 
     return result
@@ -266,7 +286,17 @@ export class FFTProcessor {
         currentPing = !currentPing
       }
 
-      this.renderStockhamStage2D(readTexture, writeFBO, subtransformSize, size, inverse, 0)
+      // 保留原来的单个 Texture 的求解方法，用来验证多个 Texture 的方法的正确性
+      // this.renderStockhamStage2D(readTexture, writeFBO, subtransformSize, size, inverse, 0)
+      this.renderStockhamStage2D_MultiTexture(
+        [readTexture],
+        writeFBO,
+        subtransformSize,
+        size,
+        inverse,
+        0,
+        false
+      )
     }
 
     // 垂直 FFT
@@ -277,17 +307,33 @@ export class FFTProcessor {
       const writeFBO = currentPing ? this.pongFBO : this.pingFBO
       const readTexture = readFBO.getFrameBuffer().textures[0]
 
-      this.renderStockhamStage2D(readTexture, writeFBO, subtransformSize, size, inverse, 1)
+      // 保留原来的单个 Texture 的求解方法，用来验证多个 Texture 的方法的正确性
+      // this.renderStockhamStage2D(readTexture, writeFBO, subtransformSize, size, inverse, 1)
+      this.renderStockhamStage2D_MultiTexture(
+        [readTexture],
+        writeFBO,
+        subtransformSize,
+        size,
+        inverse,
+        1,
+        false
+      )
+
+      currentPing = !currentPing
     }
 
     // 读回结果
     const finalFBO = currentPing ? this.pongFBO : this.pingFBO
     const flatResult = this.readbackComplexData(finalFBO, size, size)
 
+    // ✅ IFFT 归一化
+    const scale = inverse ? 1 / (size * size) : 1
+    const normalizedResult = inverse ? flatResult.map((c) => c.multiplyByScalar(scale)) : flatResult
+
     // 转换为矩阵
     const result: Complex[][] = []
     for (let i = 0; i < size; i++) {
-      result[i] = flatResult.slice(i * size, (i + 1) * size)
+      result[i] = normalizedResult.slice(i * size, (i + 1) * size)
     }
 
     this.gl.deleteTexture(inputTexture)
@@ -295,16 +341,83 @@ export class FFTProcessor {
     return result
   }
 
-  private renderStockhamStage2D(
-    inputTexture: WebGLTexture,
+  // 保留原来的单个 Texture 的求解方法，用来验证多个 Texture 的方法的正确性
+  // private renderStockhamStage2D(
+  //   inputTexture: WebGLTexture,
+  //   outputFBO: FBO,
+  //   subtransformSize: number,
+  //   transformSize: number,
+  //   inverse: boolean,
+  //   direction: number // 0=水平, 1=垂直
+  // ) {
+  //   if (!this.gl || !this.stockham2DShader) return
+  //   const gl = this.gl
+
+  //   // ❗ 1. 保存当前状态
+  //   const savedFramebuffer = gl.getParameter(gl.FRAMEBUFFER_BINDING)
+  //   const savedViewport = gl.getParameter(gl.VIEWPORT)
+  //   const savedProgram = gl.getParameter(gl.CURRENT_PROGRAM)
+  //   const savedTexture = gl.getParameter(gl.TEXTURE_BINDING_2D)
+
+  //   // 2. 执行 FFT 渲染
+  //   gl.bindFramebuffer(gl.FRAMEBUFFER, outputFBO.getFrameBuffer())
+  //   gl.viewport(0, 0, transformSize, transformSize)
+
+  //   // gl.bindFramebuffer(gl.FRAMEBUFFER, null)
+  //   this.stockham2DShader.use()
+  //   this.stockham2DShader.setTexture2D('uInputTexture', inputTexture, this.FFT_TEXTURE_UNIT)
+  //   this.stockham2DShader.setInt('uSubtransformSize', subtransformSize)
+  //   this.stockham2DShader.setInt('uTransformSize', transformSize)
+  //   this.stockham2DShader.setInt('uInverse', inverse ? 1 : 0)
+  //   this.stockham2DShader.setInt('uDirection', direction)
+
+  //   if (__DEBUG__) {
+  //     // ✅ 立即验证绑定是否成功
+  //     gl.activeTexture(gl.TEXTURE0 + this.FFT_TEXTURE_UNIT)
+  //     const boundTexture = gl.getParameter(gl.TEXTURE_BINDING_2D)
+  //     console.log('期望的纹理:', inputTexture)
+  //     console.log('实际绑定的纹理:', boundTexture)
+  //     console.log('绑定是否正确:', boundTexture === inputTexture)
+
+  //     // 验证 uniform 值
+  //     const uniformValue = gl.getUniform(
+  //       this.stockham2DShader.program.glShaderProgram,
+  //       this.stockham2DShader.getUniformLocation('uInputTexture')
+  //     )
+  //     console.log('uInputTexture uniform 值:', uniformValue) // 应该是 0
+  //   }
+
+  //   this.drawFullscreenQuad(this.stockham2DShader)
+
+  //   // ❗ 3. 清理纹理绑定（在绘制完成后）
+  //   gl.activeTexture(gl.TEXTURE0 + this.FFT_TEXTURE_UNIT)
+  //   gl.bindTexture(gl.TEXTURE_2D, null)
+
+  //   // ❗ 4. 恢复状态
+  //   gl.bindFramebuffer(gl.FRAMEBUFFER, savedFramebuffer)
+  //   gl.viewport(savedViewport[0], savedViewport[1], savedViewport[2], savedViewport[3])
+  //   gl.useProgram(savedProgram)
+  //   gl.bindTexture(gl.TEXTURE_2D, savedTexture)
+  // }
+
+  public renderStockhamStage2D_MultiTexture(
+    inputTextures: WebGLTexture[], // ✅ 纹理数组（1-4 个）
     outputFBO: FBO,
     subtransformSize: number,
     transformSize: number,
     inverse: boolean,
-    direction: number // 0=水平, 1=垂直
+    direction: number, // 0=水平, 1=垂直
+    isLastStage: boolean
   ) {
-    if (!this.gl || !this.stockham2DShader) return
+    if (!this.gl || !this.stockham2DShader) {
+      return
+    }
     const gl = this.gl
+
+    const numTextures = inputTextures.length
+    if (numTextures < 1 || numTextures > 4) {
+      throw new Error('支持 1-4 个输入纹理')
+    }
 
     // ❗ 1. 保存当前状态
     const savedFramebuffer = gl.getParameter(gl.FRAMEBUFFER_BINDING)
@@ -316,37 +429,41 @@ export class FFTProcessor {
     gl.bindFramebuffer(gl.FRAMEBUFFER, outputFBO.getFrameBuffer())
     gl.viewport(0, 0, transformSize, transformSize)
 
-    // gl.bindFramebuffer(gl.FRAMEBUFFER, null)
+    //  ✅ 告诉 GPU 写入对应数量的颜色附件
+    const attachments = []
+    for (let i = 0; i < numTextures; i++) {
+      attachments.push(this.gl_draw_buffers[`COLOR_ATTACHMENT${i}_WEBGL`])
+    }
+    this.gl_draw_buffers.drawBuffersWEBGL(attachments)
+
+    // 3. 使用 shader
     this.stockham2DShader.use()
-    this.stockham2DShader.setTexture2D('uInputTexture', inputTexture, 0)
+    // ✅ 绑定多个输入纹理到不同的纹理单元
+    const textureNames = ['uInputTexture0', 'uInputTexture1', 'uInputTexture2', 'uInputTexture3']
+    for (let i = 0; i < numTextures; i++) {
+      this.stockham2DShader.setTexture2D(
+        textureNames[i],
+        inputTextures[i],
+        this.FFT_TEXTURE_UNIT + i
+      )
+    }
+    // 设置其他 uniform
+    this.stockham2DShader.setInt('uNumChannels', numTextures)
     this.stockham2DShader.setInt('uSubtransformSize', subtransformSize)
     this.stockham2DShader.setInt('uTransformSize', transformSize)
     this.stockham2DShader.setInt('uInverse', inverse ? 1 : 0)
     this.stockham2DShader.setInt('uDirection', direction)
-
-    if (__DEBUG__) {
-      // ✅ 立即验证绑定是否成功
-      gl.activeTexture(gl.TEXTURE0)
-      const boundTexture = gl.getParameter(gl.TEXTURE_BINDING_2D)
-      console.log('期望的纹理:', inputTexture)
-      console.log('实际绑定的纹理:', boundTexture)
-      console.log('绑定是否正确:', boundTexture === inputTexture)
-
-      // 验证 uniform 值
-      const uniformValue = gl.getUniform(
-        this.stockham2DShader.program.glShaderProgram,
-        this.stockham2DShader.getUniformLocation('uInputTexture')
-      )
-      console.log('uInputTexture uniform 值:', uniformValue) // 应该是 0
-    }
+    this.stockham2DShader.setInt('uFinalStage', isLastStage ? 1 : 0)
 
     this.drawFullscreenQuad(this.stockham2DShader)
 
-    // ❗ 3. 清理纹理绑定（在绘制完成后）
-    gl.activeTexture(gl.TEXTURE0 + this.FFT_TEXTURE_UNIT)
-    gl.bindTexture(gl.TEXTURE_2D, null)
+    // ❗ 4. 清理纹理绑定（在绘制完成后）
+    for (let i = 0; i < numTextures; i++) {
+      gl.activeTexture(gl.TEXTURE0 + this.FFT_TEXTURE_UNIT + i)
+      gl.bindTexture(gl.TEXTURE_2D, null)
+    }
 
-    // ❗ 4. 恢复状态
+    // ❗ 5. 恢复状态
     gl.bindFramebuffer(gl.FRAMEBUFFER, savedFramebuffer)
     gl.viewport(savedViewport[0], savedViewport[1], savedViewport[2], savedViewport[3])
     gl.useProgram(savedProgram)
@@ -394,7 +511,7 @@ export class FFTProcessor {
     return texture
   }
 
-  private uploadComplexMatrix(matrix: Complex[][]): WebGLTexture {
+  public uploadComplexMatrix(matrix: Complex[][]): WebGLTexture {
     const size = matrix.length
     const flat: Complex[] = []
 
@@ -583,6 +700,59 @@ export class FFTProcessor {
   }
 
   /**
+   * 预计算 Twiddle Factor 纹理
+   * @param size FFT 大小（必须是 2 的幂）
+   */
+  private precomputeTwiddleTexture(size: number) {
+    if (!this.gl) return
+    const gl = this.gl
+    const log2Size = Math.log2(size)
+
+    // 纹理尺寸：width = log2(N), height = N
+    const width = log2Size
+    const height = size
+
+    const pixels = new Float32Array(width * height * 4)
+
+    for (let stage = 0; stage < log2Size; stage++) {
+      const subtransformSize = Math.pow(2, stage + 1)
+      const halfSubSize = subtransformSize / 2
+
+      for (let i = 0; i < size; i++) {
+        const pixelIndex = (stage * size + i) * 4
+
+        // 计算 k（频率索引）
+        const k = i % subtransformSize
+
+        // ✅ 计算旋转因子
+        const angle = (-2 * Math.PI * k) / subtransformSize
+        const twiddleReal = Math.cos(angle)
+        const twiddleImag = Math.sin(angle)
+
+        // ✅ 计算 even/odd 索引
+        const evenIndex = Math.floor(i / subtransformSize) * halfSubSize + (i % halfSubSize)
+        const oddIndex = evenIndex + size / 2
+
+        // 存储到纹理：RGBA = [cos, sin, evenIndex, oddIndex]
+        pixels[pixelIndex + 0] = twiddleReal
+        pixels[pixelIndex + 1] = twiddleImag
+        pixels[pixelIndex + 2] = evenIndex
+        pixels[pixelIndex + 3] = oddIndex
+      }
+    }
+
+    // 创建纹理
+    this.twiddleTexture = gl.createTexture()
+    gl.bindTexture(gl.TEXTURE_2D, this.twiddleTexture)
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, width, height, 0, gl.RGBA, gl.FLOAT, pixels)
+
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST)
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST)
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE)
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE)
+  }
+
+  /**
    * 蝶形变换内部实现
    * 执行单个stage的所有蝶形运算，即执行所有 n 和 k 一致的 wnk 的计算
    * 蝶形运算公式：output = input[up] + wnk * input[down]
@@ -718,7 +888,7 @@ export class FFTProcessor {
     // CPU fallback
     const result = this.calculateFFT1D(complexInput, inverse)
     if (inverse) {
-      return result.map((x) => x.dividedBy(result.length))
+      return result.map((x) => x.dividedByScalar(result.length))
     }
     return result
   }
