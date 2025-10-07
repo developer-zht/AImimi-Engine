@@ -1,4 +1,4 @@
-import { OceanParams } from '@/types/fftOcean'
+import { CascadeLayerParams, OceanParams } from '@/types/fftOcean'
 import { Spectrum } from './Spectrum'
 
 /**
@@ -373,8 +373,10 @@ export class JONSWAPSpectrum implements Spectrum {
     // - 高频(ω > ωp): s小 → 方向性强 → 波浪集中在风向
     const s = 11.5 * Math.pow(omega / omegaPeak, -2.5)
 
-    // Mitsuyasu方向分布: D(θ,ω) = (2/π) * cos^(2s)(θ/2)
-    const D = (2 / Math.PI) * Math.pow(Math.cos(theta / 2), 2 * s)
+    // ✅ 修正：使用绝对值，允许反向波（能量较小）
+    // Mitsuyasu方向分布: D(θ,ω) = (2/π) * cos^(2s)(θ/2) <= 原公式
+    // 修正：考虑 θ ∈ [-π, π]，使用 |cos(θ/2)|^(2s)
+    const D = (2 / Math.PI) * Math.pow(Math.abs(Math.cos(theta / 2)), 2 * s)
 
     return D
   }
@@ -479,7 +481,7 @@ export class JONSWAPSpectrum implements Spectrum {
    * @param deltaK 波数间隔 Δk = 2π/L
    * @returns |h₀(k)|
    */
-  calculateH0Magnitude(kx: number, kz: number, params: OceanParams): number {
+  calculateH0Magnitude(kx: number, kz: number, params: CascadeLayerParams): number {
     // 1. 计算 k 值
     const k = Math.sqrt(kx * kx + kz * kz)
     if (k < 0.000001) return 0
@@ -494,7 +496,12 @@ export class JONSWAPSpectrum implements Spectrum {
     // |h0_magnitude|² = 2 * (spec * |F| / |k|) * (4π² / L²)
     const L = params.size
     const amplitudeSquared = 2 * ((spec * Math.abs(F)) / k) * ((4 * Math.PI * Math.PI) / (L * L))
-    const h0_magnitude = Math.sqrt(Math.max(0, amplitudeSquared))
+    let h0_magnitude = Math.sqrt(Math.max(0, amplitudeSquared))
+
+    const alpha = 0.5
+    const energyScale = 1.0 // 先放大1000倍试试看
+    // h0_magnitude *= energyScale / (1.0 + alpha * k)
+    h0_magnitude *= energyScale
 
     return h0_magnitude
   }
@@ -520,8 +527,8 @@ export class JONSWAPSpectrum implements Spectrum {
     const spec = this.calculateSpec(kx, kz, params)
 
     // 4. 计算 h0_magnitude
-    // |h0_magnitude|² = (spec / |k|) * (dω / dk) * (Δkx * Δkz)
-    const amplitudeSquared = (spec / k) * domegaDk * deltaK * deltaK
+    // |h0_magnitude|² = 2 * (spec / |k|) * (dω / dk) * (Δkx * Δkz)
+    const amplitudeSquared = 2 * (spec / k) * domegaDk * deltaK * deltaK
     const h0_magnitude = Math.sqrt(Math.max(0, amplitudeSquared))
 
     return h0_magnitude
