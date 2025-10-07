@@ -1,12 +1,22 @@
 #ifdef GL_ES
+#extension GL_EXT_draw_buffers: enable
 precision highp float;
 #endif
 
-uniform sampler2D uInputTexture;
+// 保留原来的单个 Texture 的求解方法，用来验证多个 Texture 的方法的正确性
+// uniform sampler2D uInputTexture; 
+// ✅ 多个输入纹理（最多 4 个）
+uniform sampler2D uInputTexture0;
+uniform sampler2D uInputTexture1;
+uniform sampler2D uInputTexture2;
+uniform sampler2D uInputTexture3;
+
+uniform int uNumChannels;
 uniform int uSubtransformSize;
 uniform int uTransformSize;
 uniform int uInverse;
 uniform int uDirection; // 0=水平, 1=垂直
+uniform bool uFinalStage;  // 是否是最后一个 stage，如果是则将所有 result 的 real 部分输出到 gl_FragData[0]
 
 varying vec2 vTexCoord;
 
@@ -35,23 +45,32 @@ void main() {
   float halfSubSize = float(uSubtransformSize) * 0.5;
   float evenIndex = floor(outputIndex / float(uSubtransformSize)) * halfSubSize + mod(outputIndex, halfSubSize);
 
+  // 3. 计算采样坐标
+  vec2 evenCoord, oddCoord;
   // 3. 读取 even 和 odd 样本
-  vec2 even, odd;
+  // 保留原来的单个 Texture 的求解方法，用来验证多个 Texture 的方法的正确性
+  // vec2 even, odd;
 
   if (uDirection == 0) {
     // 水平FFT: 沿x轴读取
     float evenU = (evenIndex + 0.5) / float(uTransformSize);
     float oddU = (evenIndex + float(uTransformSize) * 0.5 + 0.5) / float(uTransformSize);
 
-    even = texture2D(uInputTexture, vec2(evenU, vTexCoord.y)).rg;
-    odd = texture2D(uInputTexture, vec2(oddU, vTexCoord.y)).rg;
+    evenCoord = vec2(evenU, vTexCoord.y);
+    oddCoord = vec2(oddU, vTexCoord.y);
+    // 保留原来的单个 Texture 的求解方法，用来验证多个 Texture 的方法的正确性
+    // even = texture2D(uInputTexture, vec2(evenU, vTexCoord.y)).rg;
+    // odd = texture2D(uInputTexture, vec2(oddU, vTexCoord.y)).rg;
   } else {
     // 垂直FFT: 沿y轴读取
     float evenV = (evenIndex + 0.5) / float(uTransformSize);
     float oddV = (evenIndex + float(uTransformSize) * 0.5 + 0.5) / float(uTransformSize);
 
-    even = texture2D(uInputTexture, vec2(vTexCoord.x, evenV)).rg;
-    odd = texture2D(uInputTexture, vec2(vTexCoord.x, oddV)).rg;
+    evenCoord = vec2(vTexCoord.x, evenV);
+    oddCoord = vec2(vTexCoord.x, oddV);
+    // 保留原来的单个 Texture 的求解方法，用来验证多个 Texture 的方法的正确性
+    // even = texture2D(uInputTexture, vec2(vTexCoord.x, evenV)).rg;
+    // odd = texture2D(uInputTexture, vec2(vTexCoord.x, oddV)).rg;
   }
 
   // 4. 计算旋转因子
@@ -59,11 +78,53 @@ void main() {
   float twiddleArgument = sign * TWO_PI * (outputIndex / float(uSubtransformSize));
   vec2 twiddle = vec2(cos(twiddleArgument), sin(twiddleArgument));
 
-  // 5. 蝶形运算
-  vec2 result = even + complexMul(twiddle, odd);
+  // 保留原来的单个 Texture 的求解方法，用来验证多个 Texture 的方法的正确性
+  // vec2 result = even + complexMul(twiddle,odd);
+  // ✅ 5. 并行处理所有通道（1-4 个）
+  vec2 result0 = vec2(0.0,0.0);
+  vec2 result1 = vec2(0.0,0.0);
+  vec2 result2 = vec2(0.0,0.0);
+  vec2 result3 = vec2(0.0,0.0);
 
-  gl_FragColor = vec4(texture2D(uInputTexture, vTexCoord));
-  // gl_FragColor = vec4(20.0, 0.0, 0.0, 1.0);
+  // Channel 0 (必定存在)
+  vec2 even0 = texture2D(uInputTexture0, evenCoord).rg;
+  vec2 odd0 = texture2D(uInputTexture0, oddCoord).rg;
+  result0 = even0 + complexMul(twiddle, odd0);
+  gl_FragData[0] = vec4( result0 , 0.0, 1.0);
+
+  // Channel 1 (如果存在)
+  if (uNumChannels >= 2) {
+    vec2 even1 = texture2D(uInputTexture1, evenCoord).rg;
+    vec2 odd1 = texture2D(uInputTexture1, oddCoord).rg;
+    result1 = even1 + complexMul(twiddle, odd1);
+    gl_FragData[1] = vec4(result1, 0.0, 1.0);
+  }
+
+  // Channel 2 (如果存在)
+  if (uNumChannels >= 3) {
+    vec2 even2 = texture2D(uInputTexture2, evenCoord).rg;
+    vec2 odd2 = texture2D(uInputTexture2, oddCoord).rg;
+    result2 = even2 + complexMul(twiddle, odd2);
+    gl_FragData[2] = vec4(result2, 0.0, 1.0);
+  }
+
+  // Channel 3 (如果存在)
+  if (uNumChannels >= 4) {
+    vec2 even3 = texture2D(uInputTexture3, evenCoord).rg;
+    vec2 odd3 = texture2D(uInputTexture3, oddCoord).rg;
+    result3 = even3 + complexMul(twiddle, odd3);
+    gl_FragData[3] = vec4(result3, 0.0, 1.0);
+  }
+
+  if(uFinalStage){
+    // IFFT 归一化参数
+    float scale = 1.0 / (float(uTransformSize) * float(uTransformSize));
+    vec4 result = vec4(result0.r, result1.r, result2.r, result3.r);
+    result *= scale;
+    gl_FragData[0] = result;
+  }
+
+  // gl_FragColor = vec4(result,0.0,1.0);
 }
 
 // void main() {
