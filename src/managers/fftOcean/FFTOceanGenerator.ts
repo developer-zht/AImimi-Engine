@@ -735,7 +735,9 @@ export class FFTOceanGenerator {
     // true 为 cascade，false 为 single
     this.cascadeEnabled = cascadeConfig.enabled
     // 确定目标分辨率
-    this.targetResolution = cascadeConfig.targetResolution
+    this.targetResolution = Math.max(
+      ...cascadeConfig.layerParamsSet.map((layer) => layer.resolution)
+    )
 
     this.initializeOutputArrays()
 
@@ -971,49 +973,65 @@ export class FFTOceanGenerator {
       dDz_dxSpectrum
     } = spectrums
 
-    this.fftProcessor.enableGPU(true)
-    const heightSpatial = this.fftProcessor.ifft2DInterface(heightSpectrum)
-    const slopeXSpatial = this.fftProcessor.ifft2DInterface(slopeXSpectrum)
-    const slopeZSpatial = this.fftProcessor.ifft2DInterface(slopeZSpectrum)
-    const dispXSpatial = this.fftProcessor.ifft2DInterface(dispXSpectrum)
-    const dispZSpatial = this.fftProcessor.ifft2DInterface(dispZSpectrum)
-    const dDx_dxSpatial = this.fftProcessor.ifft2DInterface(dDx_dxSpectrum)
-    const dDz_dzSpatial = this.fftProcessor.ifft2DInterface(dDz_dzSpectrum)
-    const dDx_dzSpatial = this.fftProcessor.ifft2DInterface(dDx_dzSpectrum)
-    const dDz_dxSpatial = this.fftProcessor.ifft2DInterface(dDz_dxSpectrum)
+    const controlSign = true
+    if (controlSign) {
+      this.fftProcessor.enableGPU(true)
+      const heightSpatial = this.fftProcessor.ifft2DInterface(heightSpectrum)
+      const slopeXSpatial = this.fftProcessor.ifft2DInterface(slopeXSpectrum)
+      const slopeZSpatial = this.fftProcessor.ifft2DInterface(slopeZSpectrum)
+      const dispXSpatial = this.fftProcessor.ifft2DInterface(dispXSpectrum)
+      const dispZSpatial = this.fftProcessor.ifft2DInterface(dispZSpectrum)
+      const dDx_dxSpatial = this.fftProcessor.ifft2DInterface(dDx_dxSpectrum)
+      const dDz_dzSpatial = this.fftProcessor.ifft2DInterface(dDz_dzSpectrum)
+      const dDx_dzSpatial = this.fftProcessor.ifft2DInterface(dDx_dzSpectrum)
+      const dDz_dxSpatial = this.fftProcessor.ifft2DInterface(dDz_dxSpectrum)
 
-    // ∂η/∂x = IFFT( i * k_x * h(k, t) ) = Σ ik·h(k,t) · e^(ik_x * x)
-    // ∂η/∂z = IFFT( i * k_z * h(k, t) ) = Σ ik·h(k,t) · e^(ik_z * z)
-    // const {
-    //   slopeXSpatial,
-    //   slopeZSpatial,
-    //   dispXSpatial,
-    //   dispZSpatial,
-    //   dDx_dxSpatial,
-    //   dDz_dzSpatial,
-    //   dDx_dzSpatial,
-    //   dDz_dxSpatial
-    // } = await this.computeInWorkers({
-    //   slopeXSpectrum,
-    //   slopeZSpectrum,
-    //   dispXSpectrum,
-    //   dispZSpectrum,
-    //   dDx_dxSpectrum,
-    //   dDz_dzSpectrum,
-    //   dDx_dzSpectrum,
-    //   dDz_dxSpectrum
-    // })
+      return {
+        heightSpatial,
+        slopeXSpatial,
+        slopeZSpatial,
+        dispXSpatial,
+        dispZSpatial,
+        dDx_dxSpatial,
+        dDz_dzSpatial,
+        dDx_dzSpatial,
+        dDz_dxSpatial
+      }
+    } else {
+      const heightSpatial = this.fftProcessor.ifft2DInterface(heightSpectrum)
+      // ∂η/∂x = IFFT( i * k_x * h(k, t) ) = Σ ik·h(k,t) · e^(ik_x * x)
+      // ∂η/∂z = IFFT( i * k_z * h(k, t) ) = Σ ik·h(k,t) · e^(ik_z * z)
+      const {
+        slopeXSpatial,
+        slopeZSpatial,
+        dispXSpatial,
+        dispZSpatial,
+        dDx_dxSpatial,
+        dDz_dzSpatial,
+        dDx_dzSpatial,
+        dDz_dxSpatial
+      } = await this.computeInWorkers({
+        slopeXSpectrum,
+        slopeZSpectrum,
+        dispXSpectrum,
+        dispZSpectrum,
+        dDx_dxSpectrum,
+        dDz_dzSpectrum,
+        dDx_dzSpectrum,
+        dDz_dxSpectrum
+      })
 
-    return {
-      heightSpatial,
-      slopeXSpatial,
-      slopeZSpatial,
-      dispXSpatial,
-      dispZSpatial,
-      dDx_dxSpatial,
-      dDz_dzSpatial,
-      dDx_dzSpatial,
-      dDz_dxSpatial
+      return {
+        heightSpatial,
+        slopeXSpatial,
+        slopeZSpatial,
+        dispXSpatial,
+        dispZSpatial,
+        dDx_dxSpatial,
+        dDz_dzSpatial,
+        dDx_dzSpatial,
+        dDz_dxSpatial
+      }
     }
   }
 
@@ -1237,8 +1255,8 @@ export class FFTOceanGenerator {
          * η 是波高，所有的 η 组成了一个波面
          * 这里用 (0, k_x) 相当于乘以 i k_x
          */
-        // const slopeScale = this.params.size / (2.0 * Math.PI)
         const slopeScale = 1
+        // const slopeScale = this.cascadeConfig.targetSize / (2.0 * Math.PI)
         // Debug Code
         // console.log(this.params.size / (2.0 * Math.PI))
         slopeXSpectrum[n][m] = h_k_t.multiply(new Complex(0, kx * slopeScale))
@@ -1448,6 +1466,22 @@ export class FFTOceanGenerator {
 
       this.printCount++
       console.log(this.printCount, this.printMaxCount)
+
+      // 统计梯度范围
+      let minGradX = Infinity,
+        maxGradX = -Infinity
+      let minGradZ = Infinity,
+        maxGradZ = -Infinity
+
+      for (let i = 0; i < N * N; i++) {
+        minGradX = Math.min(minGradX, this.gradX[i])
+        maxGradX = Math.max(maxGradX, this.gradX[i])
+        minGradZ = Math.min(minGradZ, this.gradZ[i])
+        maxGradZ = Math.max(maxGradZ, this.gradZ[i])
+      }
+
+      console.log('梯度 X 范围:', [minGradX, maxGradX])
+      console.log('梯度 Z 范围:', [minGradZ, maxGradZ])
     }
   }
 
@@ -1597,7 +1631,7 @@ export class FFTOceanGenerator {
 
   private fillOutCascadeLayerputArrays(spatialData: SpatialData, time: number) {
     const { heightSpatial, slopeXSpatial, slopeZSpatial, dispXSpatial, dispZSpatial } = spatialData
-    const N = this.cascadeConfig.targetResolution
+    const N = this.targetResolution
 
     const amplitude = 1
 
@@ -1607,8 +1641,8 @@ export class FFTOceanGenerator {
       for (let j = 0; j < N; j++) {
         // Debug Code -- 检查 heightField[index]、displacementX[index]、displacementZ[index] 是否存在，以及 heightField[index] 中的数据是否被写入了 Displacement Texture
         if (__DEBUG__) {
-          const x = (i / N) * this.cascadeConfig.targetSize
-          const z = (j / N) * this.cascadeConfig.targetSize
+          const x = (i / N) * this.cascadeConfig.meshSize
+          const z = (j / N) * this.cascadeConfig.meshSize
           this.heightField[index] = Math.sin(x * 0.1 + time) * Math.sin(z * 0.1 + time) * 5.0
           this.displacementX[index] = 0
           this.displacementZ[index] = 0
@@ -1645,6 +1679,22 @@ export class FFTOceanGenerator {
       // console.log('RMS 波高:', rms, 'm')
       // console.log('有效波高 Hs:', Hs, 'm')
       console.log('波高范围:', maxHeight - minHeight, 'm')
+
+      // 统计梯度范围
+      let minGradX = Infinity,
+        maxGradX = -Infinity
+      let minGradZ = Infinity,
+        maxGradZ = -Infinity
+
+      for (let i = 0; i < N * N; i++) {
+        minGradX = Math.min(minGradX, this.gradX[i])
+        maxGradX = Math.max(maxGradX, this.gradX[i])
+        minGradZ = Math.min(minGradZ, this.gradZ[i])
+        maxGradZ = Math.max(maxGradZ, this.gradZ[i])
+      }
+
+      console.log('梯度 X 范围:', [minGradX, maxGradX])
+      console.log('梯度 Z 范围:', [minGradZ, maxGradZ])
 
       this.printCount++
       console.log(this.printCount, this.printMaxCount)
@@ -1735,7 +1785,7 @@ export class FFTOceanGenerator {
 
   // 获取有效的大小
   getEffectiveSize(): number {
-    return this.cascadeConfig.targetSize
+    return Math.max(...this.cascadeConfig.layerParamsSet.map((layer) => layer.size))
   }
 
   getCascadeLayers(): CascadeLayerData[] {
@@ -1776,10 +1826,6 @@ export class FFTOceanGenerator {
 
   getDz_dx(): Float32Array {
     return this.dDz_dx
-  }
-
-  getResolution(): number {
-    return this.cascadeConfig.targetResolution
   }
 
   // =============== Test Part ===============
