@@ -27,7 +27,7 @@ export class SineSpectrum implements Spectrum {
   }
 
   // Height Spectrum => t = 0
-  generateSineWaveH0(size: number) {
+  generateSineWaveH0Spectrum(size: number) {
     const spectrum: Complex[][] = []
 
     for (let m = 0; m < size; m++) {
@@ -49,7 +49,7 @@ export class SineSpectrum implements Spectrum {
   }
 
   // Height Spectrum(h_k_t) => t = t0
-  computeHktFromH0(time: number, L: number): Complex[][] {
+  computeHktFromH0Spectrum(time: number, L: number): Complex[][] {
     const h0Spectrum = this.spectrum
     const size = h0Spectrum.length
     const hkt: Complex[][] = []
@@ -123,5 +123,110 @@ export class SineSpectrum implements Spectrum {
     console.log(`最大幅度: ${hktMax}`)
 
     return hkt
+  }
+}
+
+/**
+ * 测试用：生成单个正弦波的 h0 和 h0Conj
+ * 用于验证 calculateSingleLayerAmplitudeAtTime 的正确性
+ */
+export class TestSineWaveSpectrum {
+  private resolution: number
+
+  private h0: Complex[][]
+  private h0Conj: Complex[][]
+
+  /**
+   * 初始化函数
+   * @param N 分辨率
+   */
+  constructor(resolution: number) {
+    this.resolution = resolution
+
+    const h0: Complex[][] = Array(resolution)
+      .fill(null)
+      .map(() =>
+        Array(resolution)
+          .fill(null)
+          .map(() => new Complex(0, 0))
+      )
+
+    this.h0 = h0
+
+    const h0Conj: Complex[][] = Array(resolution)
+      .fill(null)
+      .map(() =>
+        Array(resolution)
+          .fill(null)
+          .map(() => new Complex(0, 0))
+      )
+
+    this.h0Conj = h0Conj
+  }
+  /**
+   * 生成测试用的 h0 和 h0Conj
+   * @param N 分辨率
+   * @param L 物理尺寸
+   * @param waveConfig 波浪配置
+   */
+  generateTestH0andH0Conj(
+    // N: number,
+    // L: number,
+    waveConfig: {
+      frequency: number // 频率（几个波长）
+      direction: 'horizontal' | 'vertical' // 方向
+      amplitude: number // 振幅
+    }
+  ): {
+    h0: Complex[][]
+    h0Conj: Complex[][]
+  } {
+    const N = this.resolution
+    const freq = waveConfig.frequency
+    const amp = waveConfig.amplitude
+
+    // 根据方向设置频率位置
+    let n_pos: number, m_pos: number
+    if (waveConfig.direction === 'horizontal') {
+      // 水平波：沿 y 方向变化
+      n_pos = 0
+      m_pos = freq
+    } else {
+      // 垂直波：沿 x 方向变化
+      n_pos = freq
+      m_pos = 0
+    }
+
+    // 设置正频率和负频率（实信号的共轭对称性）
+    // h0(k)
+    this.h0[m_pos][n_pos] = new Complex(amp / 2, 0)
+    this.h0[N - m_pos][N - n_pos] = new Complex(amp / 2, 0)
+
+    // h0Conj(-k) = h0*(k)
+    // 对于我们设置的实数 h0，共轭就是它自己
+    this.h0Conj[m_pos][n_pos] = new Complex(amp / 2, 0)
+    this.h0Conj[N - m_pos][N - n_pos] = new Complex(amp / 2, 0)
+
+    return { h0: this.h0, h0Conj: this.h0Conj }
+  }
+
+  /**
+   * 打印 h0 的非零元素，用于调试
+   */
+  static printH0NonZero(h0: Complex[][], name: string = 'h0') {
+    console.log(`\n=== ${name} 非零元素 ===`)
+    let count = 0
+    for (let m = 0; m < h0.length; m++) {
+      for (let n = 0; n < h0[m].length; n++) {
+        const mag = h0[m][n].magnitude()
+        if (mag > 0.0001) {
+          console.log(
+            `${name}[${m}][${n}] = ${h0[m][n].real.toFixed(3)} + ${h0[m][n].imag.toFixed(3)}i, mag=${mag.toFixed(3)}`
+          )
+          count++
+        }
+      }
+    }
+    console.log(`非零元素数量: ${count}`)
   }
 }
