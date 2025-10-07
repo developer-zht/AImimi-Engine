@@ -49,6 +49,7 @@ coverage
 # 测试相关
 /cypress/videos/
 /cypress/screenshots/
+/src/debug/
 
 # vscode counter 插件相关
 /.VSCodeCounter/
