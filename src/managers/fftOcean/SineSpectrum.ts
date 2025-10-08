@@ -162,6 +162,12 @@ export class TestSineWaveSpectrum {
       )
 
     this.h0Conj = h0Conj
+
+    this.generateTestH0andH0Conj({
+      frequency: 2,
+      direction: 'horizontal',
+      amplitude: resolution * resolution * 0.05 // 合适的振幅
+    })
   }
   /**
    * 生成测试用的 h0 和 h0Conj
@@ -177,10 +183,7 @@ export class TestSineWaveSpectrum {
       direction: 'horizontal' | 'vertical' // 方向
       amplitude: number // 振幅
     }
-  ): {
-    h0: Complex[][]
-    h0Conj: Complex[][]
-  } {
+  ) {
     const N = this.resolution
     const freq = waveConfig.frequency
     const amp = waveConfig.amplitude
@@ -189,7 +192,7 @@ export class TestSineWaveSpectrum {
     let n_pos: number, m_pos: number
     if (waveConfig.direction === 'horizontal') {
       // 水平波：沿 y 方向变化
-      n_pos = 0
+      n_pos = 3
       m_pos = freq
     } else {
       // 垂直波：沿 x 方向变化
@@ -197,17 +200,31 @@ export class TestSineWaveSpectrum {
       m_pos = 0
     }
 
+    // 设置包含虚部的复数频谱
+    const h0_k = new Complex(amp, 1) // h₀(k) = amp + i
+    const h0_minus_k = h0_k.conjugate() // h₀(-k) 必须是 h₀*(k) 的共轭 = amp - i
+
     // 设置正频率和负频率（实信号的共轭对称性）
     // h0(k)
-    this.h0[m_pos][n_pos] = new Complex(amp / 2, 0)
-    this.h0[N - m_pos][N - n_pos] = new Complex(amp / 2, 0)
+    this.h0[n_pos][m_pos] = h0_k
+    this.h0[N - n_pos][N - m_pos] = h0_minus_k
 
     // h0Conj(-k) = h0*(k)
     // 对于我们设置的实数 h0，共轭就是它自己
-    this.h0Conj[m_pos][n_pos] = new Complex(amp / 2, 0)
-    this.h0Conj[N - m_pos][N - n_pos] = new Complex(amp / 2, 0)
+    this.h0Conj[n_pos][m_pos] = h0_minus_k.conjugate() // h₀*(k) = amp - i
+    this.h0Conj[N - n_pos][N - m_pos] = h0_k.conjugate() // h₀*(-k) = amp + i
 
-    return { h0: this.h0, h0Conj: this.h0Conj }
+    return {
+      h0: this.h0,
+      h0Conj: this.h0Conj
+    }
+  }
+
+  getH0andH0Conj() {
+    return {
+      h0: this.h0,
+      h0Conj: this.h0Conj
+    }
   }
 
   /**
