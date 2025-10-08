@@ -126,10 +126,15 @@ export class Engine {
   // 初始化上下文
   private initGL() {
     const gl = this.canvas.getContext('webgl')
+
     if (!gl) {
       alert('Unable to initialize WebGL. Your browser or machine may not support it.')
       throw new Error('Unable to initialize WebGL. Your browser or machine may not support it.')
     }
+
+    // 设置颜色空间
+    gl.drawingBufferColorSpace = 'srgb'
+
     // 以下功能不需要额外库，都是 WebGL 的标准扩展（这些扩展只在 WebGL1 中需要显式启用，在 WebGL2 中都是默认可用的）
     // 启用 OES_element_index_uint 扩展，支持超过 UNSIGNED_SHORT (16位无符号整数) 存储的最大值 65535
     const ext = gl.getExtension('OES_element_index_uint')
@@ -178,8 +183,8 @@ export class Engine {
         this.cameraTarget = [2.92191, 0.98, 1.55037]
         break
       case 'WaterSceneCamera':
-        this.cameraPosition = [-50, 30, -10]
-        this.cameraTarget = [0, 0, 0]
+        this.cameraPosition = [-300, 750, 0]
+        this.cameraTarget = [-300, 0, 0]
         break
       default:
         this.cameraPosition = [6, 1, 0]
