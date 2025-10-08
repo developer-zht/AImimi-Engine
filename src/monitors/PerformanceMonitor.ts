@@ -40,6 +40,9 @@ export class PerformanceMonitor {
       (canvas.getContext('experimental-webgl') as WebGLRenderingContext)
 
     if (gl) {
+      // 设置颜色空间
+      gl.drawingBufferColorSpace = 'srgb'
+
       // 检查内存信息扩展
       this.glExtension = gl.getExtension('WEBGL_debug_renderer_info')
 
