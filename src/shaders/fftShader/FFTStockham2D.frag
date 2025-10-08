@@ -4,7 +4,7 @@ precision highp float;
 #endif
 
 // 保留原来的单个 Texture 的求解方法，用来验证多个 Texture 的方法的正确性
-// uniform sampler2D uInputTexture; 
+// uniform sampler2D uInputTexture;
 // ✅ 多个输入纹理（最多 4 个）
 uniform sampler2D uInputTexture0;
 uniform sampler2D uInputTexture1;
@@ -16,7 +16,7 @@ uniform int uSubtransformSize;
 uniform int uTransformSize;
 uniform int uInverse;
 uniform int uDirection; // 0=水平, 1=垂直
-uniform bool uFinalStage;  // 是否是最后一个 stage，如果是则将所有 result 的 real 部分输出到 gl_FragData[0]
+uniform bool uFinalStage; // 是否是最后一个 stage，如果是则将所有 result 的 real 部分输出到 gl_FragData[0]
 
 varying vec2 vTexCoord;
 
@@ -81,16 +81,16 @@ void main() {
   // 保留原来的单个 Texture 的求解方法，用来验证多个 Texture 的方法的正确性
   // vec2 result = even + complexMul(twiddle,odd);
   // ✅ 5. 并行处理所有通道（1-4 个）
-  vec2 result0 = vec2(0.0,0.0);
-  vec2 result1 = vec2(0.0,0.0);
-  vec2 result2 = vec2(0.0,0.0);
-  vec2 result3 = vec2(0.0,0.0);
+  vec2 result0 = vec2(0.0, 0.0);
+  vec2 result1 = vec2(0.0, 0.0);
+  vec2 result2 = vec2(0.0, 0.0);
+  vec2 result3 = vec2(0.0, 0.0);
 
   // Channel 0 (必定存在)
   vec2 even0 = texture2D(uInputTexture0, evenCoord).rg;
   vec2 odd0 = texture2D(uInputTexture0, oddCoord).rg;
   result0 = even0 + complexMul(twiddle, odd0);
-  gl_FragData[0] = vec4( result0 , 0.0, 1.0);
+  gl_FragData[0] = vec4(result0, 0.0, 1.0);
 
   // Channel 1 (如果存在)
   if (uNumChannels >= 2) {
@@ -116,15 +116,21 @@ void main() {
     gl_FragData[3] = vec4(result3, 0.0, 1.0);
   }
 
-  if(uFinalStage){
-    // IFFT 归一化参数
-    float scale = 1.0 / (float(uTransformSize) * float(uTransformSize));
-    vec4 result = vec4(result0.r, result1.r, result2.r, result3.r);
-    result *= scale;
-    gl_FragData[0] = result;
+  if (uFinalStage) {
+    // (temp) 检测输入的 height spectrum 是否共轭对称
+    if (abs(result1.g) > 0.01) { // 存在虚部 => 不共轭对称
+      gl_FragData[0] = vec4(0.0, 0.3, 0.0, 1.0);
+    } else {
+      // IFFT 归一化参数
+      float scale = 1.0 / (float(uTransformSize) * float(uTransformSize));
+      vec4 result = vec4(result0.r, result1.r, result2.r, result3.r);
+      result *= scale;
+      gl_FragData[0] = result;
+    }
   }
 
   // gl_FragColor = vec4(result,0.0,1.0);
+
 }
 
 // void main() {
