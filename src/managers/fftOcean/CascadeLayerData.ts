@@ -1,6 +1,6 @@
 import { Complex } from '@/math/Complex'
-import { CascadeLayerParams, OceanParams } from '@/types/fftOcean'
-import { Spectrum } from '@/managers/fftOcean/Spectrum'
+import { CascadeLayerParams } from '@/types/fftOcean'
+import { Spectrum } from '@/managers/fftOcean/spectrums/Spectrum'
 
 export class CascadeLayerData {
   private cascadeLayerParams: CascadeLayerParams
@@ -85,11 +85,12 @@ export class CascadeLayerData {
   private generateInitialSpectrum(): void {
     const N = this.cascadeLayerParams.resolution // 海浪分辨率（vertex 的密度）
     const L = this.cascadeLayerParams.size // 海浪尺寸
+    const half = N / 2 // 处理 Nyquist 频率所需的频点
     const deltaK = (2 * Math.PI) / L // 波数网格间距
-    const h0Magnitudes: number[] = []
 
     // Debug Code
     const kValues: number[] = []
+    const h0Magnitudes: number[] = []
 
     this.h0 = Array(N)
       .fill(null)
@@ -116,23 +117,31 @@ export class CascadeLayerData {
           h0Magnitudes.push(h0Mag)
         }
 
-        // 跳过DC分量
-        if (Math.abs(kx) < 0.001 && Math.abs(kz) < 0.001) {
+        // 1. DC分量必须为0
+        if (n === 0 && m === 0) {
           this.h0[n][m] = new Complex(0, 0)
           continue
         }
 
-        // JONSWAP 波谱
-        // const jonswapValue = this.jonswapSpectrum.calculateJ(kx, kz, this.params)
+        // 波谱
         const h0Magnitude = this.spectrum.calculateH0Magnitude(kx, kz, this.cascadeLayerParams)
-        // console.log(jonswapValue)
-
         // 高斯随机数
         const xi_r = this.gaussianRandom()
         const xi_i = this.gaussianRandom()
 
-        // h0(k) = sqrt(P/2) * (xi_r + i*xi_i)
-        // this.h0[n][m] = new Complex(phillipsH0Magnitude * xi_r, phillipsH0Magnitude * xi_i)
+        // ✅ 2. Nyquist 频率必须是纯实数
+        const isNyquist =
+          (n === 0 && m === half) || // kx=0, kz=Nyquist
+          (n === half && m === 0) || // kx=Nyquist, kz=0
+          (n === half && m === half) // kx=Nyquist, kz=Nyquist
+
+        if (isNyquist) {
+          // 只使用实部，虚部设为 0
+          this.h0[n][m] = new Complex(h0Magnitude * xi_r, 0)
+        } else {
+          // 正常生成
+          this.h0[n][m] = new Complex(h0Magnitude * xi_r, h0Magnitude * xi_i)
+        }
 
         this.h0[n][m] = new Complex(h0Magnitude * xi_r, h0Magnitude * xi_i)
       }
