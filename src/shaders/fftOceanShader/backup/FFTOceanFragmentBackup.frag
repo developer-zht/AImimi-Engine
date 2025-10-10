@@ -1,4 +1,4 @@
-// FFTOceanFragment.glsl (Backup)
+// FFTOceanFragment.frag (Backup)
 // ============================= Backup1(old) =============================
 #ifdef GL_ES
 precision highp float;
