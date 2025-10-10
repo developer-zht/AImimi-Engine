@@ -1,4 +1,5 @@
 #ifdef GL_ES
+// prettier-ignore
 #extension GL_EXT_draw_buffers: enable
 precision highp float;
 #endif
@@ -117,8 +118,20 @@ void main() {
   }
 
   if (uFinalStage) {
-    // (temp) 检测输入的 height spectrum 是否共轭对称
-    if (abs(result1.g) > 0.01) { // 存在虚部 => 不共轭对称
+    // (temp) 检测输入的 spectrum 是否共轭对称
+    // if (abs(result0.g) > 0.01) {
+    //   // 存在虚部 => 不共轭对称
+    //   gl_FragData[0] = vec4(0.0, 1.0, 0.0, 1.0);
+    // } else {
+    //   // IFFT 归一化参数
+    //   float scale = 1.0 / (float(uTransformSize) * float(uTransformSize));
+    //   vec4 result = vec4(result0.r, result1.r, result2.r, result3.r);
+    //   result *= scale;
+    //   gl_FragData[0] = result;
+    // }
+
+    if (abs(result1.g) > 0.01) {
+      // 存在虚部 => 不共轭对称
       gl_FragData[0] = vec4(0.0, 0.3, 0.0, 1.0);
     } else {
       // IFFT 归一化参数
@@ -127,6 +140,29 @@ void main() {
       result *= scale;
       gl_FragData[0] = result;
     }
+
+    // if (abs(result2.g) > 0.01) {
+    //   // 存在虚部 => 不共轭对称
+    //   gl_FragData[0] = vec4(0.0, 1.0, 0.0, 1.0);
+    // } else {
+    //   // IFFT 归一化参数
+    //   float scale = 1.0 / (float(uTransformSize) * float(uTransformSize));
+    //   vec4 result = vec4(result0.r, result1.r, result2.r, result3.r);
+    //   result *= scale;
+    //   gl_FragData[0] = result;
+    // }
+
+    // if (abs(result2.g) > 0.01) {
+    //   // 存在虚部 => 不共轭对称
+    //   gl_FragData[0] = vec4(0.0, 1.0, 0.0, 1.0);
+    // } else {
+    //   // IFFT 归一化参数
+    //   float scale = 1.0 / (float(uTransformSize) * float(uTransformSize));
+    //   vec4 result = vec4(result0.r, result1.r, result2.r, result3.r);
+    //   result *= scale;
+    //   gl_FragData[0] = result;
+    // }
+
   }
 
   // gl_FragColor = vec4(result,0.0,1.0);
