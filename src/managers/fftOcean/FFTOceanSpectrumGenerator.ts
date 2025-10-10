@@ -44,6 +44,8 @@ export class FFTOceanSpectrumGenerator {
   // Debug Code
   private printCount = 0
   private printMaxCount = 5
+  private validCount = 0
+  private validMaxCount = 1
 
   private testSineWaveSpectrum: TestSineWaveSpectrum
 
@@ -301,9 +303,9 @@ export class FFTOceanSpectrumGenerator {
          *   d_z(k) = -i * (kz/|k|) * λ * h(k,t)
          */
         dDx_dxSpectrum[n][m] = dispXSpectrum[n][m].multiply(new Complex(0, kx))
+        dDz_dzSpectrum[n][m] = dispZSpectrum[n][m].multiply(new Complex(0, kz))
         dDx_dzSpectrum[n][m] = dispXSpectrum[n][m].multiply(new Complex(0, kz))
         dDz_dxSpectrum[n][m] = dispZSpectrum[n][m].multiply(new Complex(0, kx))
-        dDz_dzSpectrum[n][m] = dispZSpectrum[n][m].multiply(new Complex(0, kz))
 
         // Displacement Spectrum
         dispXSpectrum[n][m].multiplyByScalar(amplitude)
@@ -320,10 +322,42 @@ export class FFTOceanSpectrumGenerator {
       }
     }
 
-    // this.checkConjugateSymmetry(dispXSpectrum, 'dispXSpectrum')
+    // Debug Code
+    if (this.validCount < this.validMaxCount) {
+      // Displacement Spectrum
+      // this.checkConjugateSymmetry(dispXSpectrum, 'dispXSpectrum')
+      // this.checkConjugateSymmetry(heightSpectrum, 'heightSpectrum')
+      // this.checkConjugateSymmetry(dispZSpectrum, 'dispZSpectrum')
+      // // Slope Spectrum
+      // this.checkConjugateSymmetry(slopeXSpectrum, 'slopeXSpectrum')
+      // this.checkConjugateSymmetry(slopeZSpectrum, 'slopeZSpectrum')
+      // // Jocabian Spectrum
+      // this.checkConjugateSymmetry(dDx_dxSpectrum, 'dDx_dxSpectrum')
+      // this.checkConjugateSymmetry(dDz_dzSpectrum, 'dDz_dzSpectrum')
+      // this.checkConjugateSymmetry(dDx_dzSpectrum, 'dDx_dzSpectrum')
+      // this.checkConjugateSymmetry(dDz_dxSpectrum, 'dDz_dxSpectrum')
+      // this.validCount++
+    }
 
     // 生成完后，统一修正 Nyquist
     this.fixNyquistSymmetry(dispXSpectrum, dispZSpectrum, slopeXSpectrum, slopeZSpectrum, N)
+
+    // Debug Code
+    if (this.validCount < this.validMaxCount) {
+      // Displacement Spectrum
+      // this.checkConjugateSymmetry(dispXSpectrum, 'dispXSpectrum')
+      // this.checkConjugateSymmetry(heightSpectrum, 'heightSpectrum')
+      // this.checkConjugateSymmetry(dispZSpectrum, 'dispZSpectrum')
+      // // Slope Spectrum
+      // this.checkConjugateSymmetry(slopeXSpectrum, 'slopeXSpectrum')
+      // this.checkConjugateSymmetry(slopeZSpectrum, 'slopeZSpectrum')
+      // // Jocabian Spectrum
+      // this.checkConjugateSymmetry(dDx_dxSpectrum, 'dDx_dxSpectrum')
+      // this.checkConjugateSymmetry(dDz_dzSpectrum, 'dDz_dzSpectrum')
+      // this.checkConjugateSymmetry(dDx_dzSpectrum, 'dDx_dzSpectrum')
+      // this.checkConjugateSymmetry(dDz_dxSpectrum, 'dDz_dxSpectrum')
+      this.validCount++
+    }
 
     // Debug Code
     if (this.printCount < this.printMaxCount) {
@@ -340,6 +374,7 @@ export class FFTOceanSpectrumGenerator {
         }
       }
       console.log('heightSpectrum 最大幅值:', maxMag.toExponential(2))
+
       this.printCount++
     }
 
@@ -601,92 +636,31 @@ export class FFTOceanSpectrumGenerator {
     }
   }
 
-  // private checkConjugateSymmetry(spectrum: Complex[][]): void {
-  //   const N = spectrum.length
-  //   for (let n = 0; n < N; n++) {
-  //     for (let m = 0; m < N; m++) {
-  //       const n_neg = (N - n) % N
-  //       const m_neg = (N - m) % N
+  private checkConjugateSymmetry(spectrum: Complex[][], name: string): void {
+    const N = spectrum.length
+    let count = 0
+    console.log(`===== 开始: 检验 ${name} 共轭对称性 =====`)
+    for (let n = 0; n < N; n++) {
+      for (let m = 0; m < N; m++) {
+        const n_neg = (N - n) % N
+        const m_neg = (N - m) % N
+        const conj = new Complex(spectrum[n_neg][m_neg].real, -spectrum[n_neg][m_neg].imag)
 
-  //       const diff_real = Math.abs(spectrum[n][m].real - spectrum[n_neg][m_neg].real)
-  //       const diff_imag = Math.abs(
-  //         spectrum[n][m].imag - -spectrum[n_neg][m_neg].imag // ❌ 改成这样
-  //         // 或者: spectrum[n][m].imag + spectrum[n_neg][m_neg].imag
-  //       )
+        const diff_real = Math.abs(spectrum[n][m].real - conj.real)
+        const diff_imag = Math.abs(spectrum[n][m].imag - conj.imag)
+        const magnitude = Math.sqrt(diff_real ** 2 + diff_imag ** 2)
 
-  //       if (diff_real > 1e-6 || diff_imag > 1e-6) {
-  //         console.warn(`非共轭对称 at (${n},${m})`)
-  //       }
-  //     }
-  //   }
-  // }
+        if (diff_real > 1e-10 || diff_imag > 1e-10 || magnitude > 1e-10) {
+          console.log(`非共轭对称 at (${n},${m}): ${spectrum[n][m]}`)
+          count++
+        }
+      }
+    }
+    console.log(`不对称点个数: ${count}`)
+    console.log(`===== 结束: ${name} 共轭对称性检验完毕 =====`)
+  }
 
-  // private checkConjugateSymmetry(spectrum: Complex[][], name: string): void {
-  //   const N = spectrum.length
-  //   let errorCount = 0
-  //   const errorPoints: {
-  //     n: number
-  //     m: number
-  //     n_neg: number
-  //     m_neg: number
-  //     a: Complex
-  //     b: Complex
-  //     diffReal: number
-  //     diffImag: number
-  //     diffMag: number
-  //   }[] = []
-
-  //   for (let n = 0; n < N; n++) {
-  //     for (let m = 0; m < N; m++) {
-  //       const n_neg = (N - n) % N
-  //       const m_neg = (N - m) % N
-
-  //       const a = spectrum[n][m]
-  //       const b = spectrum[n_neg][m_neg]
-
-  //       const diffReal = Math.abs(a.real - b.real)
-  //       const diffImag = Math.abs(a.imag + b.imag) // imag 应该是相反数
-  //       const magA = Math.hypot(a.real, a.imag)
-  //       const magB = Math.hypot(b.real, b.imag)
-  //       const diffMag = Math.abs(magA - magB)
-
-  //       // 设置误差阈值
-  //       const eps = 1e-10
-  //       if (diffReal > eps || diffImag > eps || diffMag > eps) {
-  //         errorCount++
-  //         errorPoints.push({
-  //           n,
-  //           m,
-  //           n_neg,
-  //           m_neg,
-  //           a,
-  //           b,
-  //           diffReal,
-  //           diffImag,
-  //           diffMag
-  //         })
-  //       }
-  //     }
-  //   }
-
-  //   console.log(`\n=== 共轭对称性检查 [${name}] ===`)
-  //   if (errorCount === 0) {
-  //     console.log(`✅ 全部通过 (${N}×${N})`)
-  //     return
-  //   }
-
-  //   console.warn(`❌ 检测到 ${errorCount} 个不对称点（阈值 1e-6）`)
-  //   console.group('示例不对称点（最多显示前 10 个）')
-  //   errorPoints.slice(0, 10).forEach((e) => {
-  //     console.warn(
-  //       `(${e.n},${e.m}) ↔ (${e.n_neg},${e.m_neg})`,
-  //       `real差=${e.diffReal.toExponential(3)}, imag差=${e.diffImag.toExponential(3)}, mag差=${e.diffMag.toExponential(3)}`,
-  //       `a=(${e.a.real.toExponential(3)}, ${e.a.imag.toExponential(3)}i), b=(${e.b.real.toExponential(3)}, ${e.b.imag.toExponential(3)}i)`
-  //     )
-  //   })
-  //   console.groupEnd()
-  // }
-
+  // 修正 Nyquist 频率点上的不共轭对称
   private fixNyquistSymmetry(
     dispX: Complex[][],
     dispZ: Complex[][],
@@ -752,7 +726,7 @@ export class FFTOceanSpectrumGenerator {
     }
   }
 
-  // 辅助函数
+  // 修正 Nyquist 频率点上的不共轭对称所需的辅助函数
   private makeConjugatePair(
     spectrum: Complex[][],
     n1: number,
