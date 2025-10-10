@@ -1,10 +1,11 @@
 import { Complex } from '@/math/Complex'
-import { PhillipsSpectrum } from '@/managers/fftOcean/PhillipsSpectrum'
-import { JONSWAPSpectrum } from '@/managers/fftOcean/JONSWAPSpectrum'
+import { PhillipsSpectrum } from '@/managers/fftOcean/spectrums/PhillipsSpectrum'
+import { JONSWAPSpectrum } from '@/managers/fftOcean/spectrums/JONSWAPSpectrum'
 import { CascadeConfig, CascadeLayerParams } from '@/types/fftOcean'
 
 import { CascadeLayerData } from './CascadeLayerData'
-import { Spectrum } from './Spectrum'
+import { Spectrum } from '@/managers/fftOcean/spectrums/Spectrum'
+import { TestSineWaveSpectrum } from '@/managers/fftOcean/spectrums/TestSineSpectrum'
 
 interface SpectrumData {
   heightSpectrum: Complex[][]
@@ -22,7 +23,7 @@ interface SingleLayerSpectrumData extends SpectrumData {
   resolution: number
   amplitude: number
 }
-export class FFTOceanGenerator {
+export class FFTOceanSpectrumGenerator {
   private cascadeConfig: CascadeConfig
 
   private spectrum: Spectrum
@@ -40,16 +41,22 @@ export class FFTOceanGenerator {
   // private h0: Complex[][]
   // private h0Conj: Complex[][]
 
-  // Debug 次数
+  // Debug Code
   private printCount = 0
   private printMaxCount = 5
+
+  private testSineWaveSpectrum: TestSineWaveSpectrum
 
   constructor(cascadeConfig: CascadeConfig) {
     this.cascadeConfig = cascadeConfig
 
-    // this.phillipsSpectrum = new PhillipsSpectrum()
+    this.phillipsSpectrum = new PhillipsSpectrum()
     this.jonswapSpectrum = new JONSWAPSpectrum()
-    this.spectrum = this.jonswapSpectrum
+
+    // Debug Code
+    this.testSineWaveSpectrum = new TestSineWaveSpectrum(cascadeConfig.layerParamsSet[0].resolution)
+
+    this.spectrum = this.phillipsSpectrum
 
     /**
      * cascade 参数配置
@@ -57,7 +64,7 @@ export class FFTOceanGenerator {
     // true 为 cascade，false 为 single
     this.cascadeEnabled = cascadeConfig.enabled
     // 确定目标分辨率
-    this.targetResolution = cascadeConfig.targetResolution
+    this.targetResolution = cascadeConfig.meshResolution
 
     this.initializeCascadeLayers(this.cascadeConfig, this.spectrum)
   }
@@ -125,14 +132,14 @@ export class FFTOceanGenerator {
   /**
    * 主要的海洋更新方法 - 现在支持 cascade
    */
-  async generateOceanSpectrum(time: number): Promise<void> {
+  generateRealTimeOceanSpectrum(time: number): SpectrumData {
     if (!this.cascadeEnabled) {
       const cascadeLayerData = this.cascadeLayers[0]
       // 原始单层处理
-      this.updateSingleLayerSpectrum(cascadeLayerData, time)
+      return this.updateSingleLayerSpectrum(cascadeLayerData, time)
     } else {
       // Cascade 处理
-      this.updateCascadeLayersSpectrum(time)
+      return this.updateCascadeLayersSpectrum(time)
     }
   }
 
@@ -243,40 +250,41 @@ export class FFTOceanGenerator {
          *   h(k, t) = h₀(k) * e^(i * ω * t) + h₀*^(-k) * e^(-i * ω * t)
          * 其中 ω = sqrt(g |k|) （深水波色散关系）
          */
-        const h_k_t = this.calculateSingleLayerAmplitudeAtTime(cascadeLayerData, n, m, k, time)
-
+        const hktResult = this.calculateSingleLayerAmplitudeAtTime(cascadeLayerData, n, m, k, time)
+        const h_k_t = new Complex(hktResult.real, hktResult.imag)
         // 高度谱 η̂(k,t)
         heightSpectrum[n][m] = h_k_t
 
-        /**
-         * 梯度谱（不是梯度）：
-         *   i * k_x * h(k, t)
-         *   i * k_z * h(k, t)
-         * 与梯度的关系：
-         *   ∂η/∂x = Σ ik·h(k,t) · e^(ik_x * x) = IFFT( i * k_x * h(k, t) )
-         *   ∂η/∂z = Σ ik·h(k,t) · e^(ik_z * z) = IFFT( i * k_z * h(k, t) )
-         * η 是波高，所有的 η 组成了一个波面
-         * 这里用 (0, k_x) 相当于乘以 i k_x
-         */
-        // const slopeScale = this.params.size / (2.0 * Math.PI)
-        const slopeScale = 1
-        // Debug Code
-        // console.log(this.params.size / (2.0 * Math.PI))
-        slopeXSpectrum[n][m] = h_k_t.multiply(new Complex(0, kx * slopeScale))
-        slopeZSpectrum[n][m] = h_k_t.multiply(new Complex(0, kz * slopeScale))
-
-        /**
-         * 水平位移谱（Choppy waves 模型）
-         *   d_x(k) = -i * (kx/|k|) * λ * h(k,t)
-         *   d_z(k) = -i * (kz/|k|) * λ * h(k,t)
-         * λ 是 choppiness 系数，控制水平拉伸程度
-         */
-        if (k > 0.000001) {
+        if (k <= 10000 && k >= 0.001) {
+          /**
+           * 水平位移谱（Choppy waves 模型）
+           *   d_x(k) = -i * (kx/|k|) * λ * h(k,t)
+           *   d_z(k) = -i * (kz/|k|) * λ * h(k,t)
+           * λ 是 choppiness 系数，控制水平拉伸程度
+           */
           dispXSpectrum[n][m] = h_k_t.multiply(new Complex(0, -kxNorm * cascadeParams.choppiness))
           dispZSpectrum[n][m] = h_k_t.multiply(new Complex(0, -kzNorm * cascadeParams.choppiness))
+
+          /**
+           * 梯度谱（不是梯度）：
+           *   i * k_x * h(k, t)
+           *   i * k_z * h(k, t)
+           * 与梯度的关系：
+           *   ∂η/∂x = Σ ik·h(k,t) · e^(ik_x * x) = IFFT( i * k_x * h(k, t) )
+           *   ∂η/∂z = Σ ik·h(k,t) · e^(ik_z * z) = IFFT( i * k_z * h(k, t) )
+           * η 是波高，所有的 η 组成了一个波面
+           * 这里用 (0, k_x) 相当于乘以 i k_x
+           */
+          // const slopeScale = this.params.size / (2.0 * Math.PI)
+          // Debug Code
+          // console.log(this.params.size / (2.0 * Math.PI))
+          slopeXSpectrum[n][m] = h_k_t.multiply(new Complex(0, kx))
+          slopeZSpectrum[n][m] = h_k_t.multiply(new Complex(0, kz))
         } else {
           dispXSpectrum[n][m] = new Complex(0, 0)
           dispZSpectrum[n][m] = new Complex(0, 0)
+          slopeXSpectrum[n][m] = new Complex(0, 0)
+          slopeZSpectrum[n][m] = new Complex(0, 0)
         }
 
         /**
@@ -297,17 +305,25 @@ export class FFTOceanGenerator {
         dDz_dxSpectrum[n][m] = dispZSpectrum[n][m].multiply(new Complex(0, kx))
         dDz_dzSpectrum[n][m] = dispZSpectrum[n][m].multiply(new Complex(0, kz))
 
+        // Displacement Spectrum
         dispXSpectrum[n][m].multiplyByScalar(amplitude)
         heightSpectrum[n][m].multiplyByScalar(amplitude)
         dispZSpectrum[n][m].multiplyByScalar(amplitude)
+        // Slope Spectrum
         slopeXSpectrum[n][m].multiplyByScalar(amplitude)
         slopeZSpectrum[n][m].multiplyByScalar(amplitude)
+        // Jocabian Spectrum
         dDx_dxSpectrum[n][m].multiplyByScalar(amplitude)
         dDz_dzSpectrum[n][m].multiplyByScalar(amplitude)
         dDx_dzSpectrum[n][m].multiplyByScalar(amplitude)
         dDz_dxSpectrum[n][m].multiplyByScalar(amplitude)
       }
     }
+
+    // this.checkConjugateSymmetry(dispXSpectrum, 'dispXSpectrum')
+
+    // 生成完后，统一修正 Nyquist
+    this.fixNyquistSymmetry(dispXSpectrum, dispZSpectrum, slopeXSpectrum, slopeZSpectrum, N)
 
     // Debug Code
     if (this.printCount < this.printMaxCount) {
@@ -324,6 +340,7 @@ export class FFTOceanGenerator {
         }
       }
       console.log('heightSpectrum 最大幅值:', maxMag.toExponential(2))
+      this.printCount++
     }
 
     return {
@@ -352,18 +369,52 @@ export class FFTOceanGenerator {
     time: number
   ): Complex {
     const cascadeLayerParams = cascadeLayerData.getCascadeLayerParams()
+
+    // 1. 获取  h0 和 h0Conj
     const { h0, h0Conj } = cascadeLayerData.getH0AndH0Conj()
+
+    // const { h0, h0Conj } = this.testSineWaveSpectrum.generateTestH0andH0Conj({
+    //   frequency: 2,
+    //   direction: 'horizontal',
+    //   amplitude: cascadeLayerParams.resolution * cascadeLayerParams.resolution * 0.05 // 合适的振幅
+    // })
+
+    // const { h0, h0Conj } = this.testSineWaveSpectrum.getH0andH0Conj()
+
+    // 2. 根据色散关系求解 ω
     // 色散关系：深水波
     const omega = Math.sqrt(cascadeLayerParams.gravity * k)
 
-    // h(k,t) = h0(k)*exp(iwt) + h0*(-k)*exp(-iwt)
+    // 3. 计算 h(k,t) = h0(k)*exp(iwt) + h0*(-k)*exp(-iwt)
     const exp_iwt = Complex.expi(omega * time)
     const exp_neg_iwt = Complex.expNegI(omega * time)
 
-    const h0_exp = h0[n][m].multiply(exp_iwt)
-    const h0Conj_exp_neg = h0Conj[n][m].multiply(exp_neg_iwt)
+    // 对于任意 (n, m)
+    const h0_k = h0[n][m] // h0(k)
+    // h0*(-k) 在数组中的位置
+    // const n_minus = (N - n) % N
+    // const m_minus = (N - m) % N
+    // let h0_conj_minus_k = h0[n_minus][m_minus] // h0*(-k)
+    const h0_conj_minus_k = h0Conj[n][m] // h0*(-k)
+    // Debug Code
+    // if (h0_k.imag !== h0_conj_minus_k.imag && this.printCount < this.printMaxCount + 10) {
+    //   console.log(h0_k.imag, h0_conj_minus_k.imag)
+    //   this.printCount++
+    // }
 
-    return h0_exp.add(h0Conj_exp_neg)
+    const h0_k_exp = h0_k.multiply(exp_iwt)
+    const h0_conj_minus_k_exp_neg = h0_conj_minus_k.multiply(exp_neg_iwt)
+
+    const h_k_t = h0_k_exp.add(h0_conj_minus_k_exp_neg)
+
+    // Debug Code
+    // if (Math.abs(h_k_t.imag) > 1e-10) {
+    //   console.warn(`非实数结果: real=${h_k_t.real}, imag=${h_k_t.imag}`)
+    // }
+
+    // return h0_k
+    // return h0_conj_minus_k
+    return h_k_t
   }
 
   // =============== Cascade Layers Calculation ===============
@@ -550,6 +601,181 @@ export class FFTOceanGenerator {
     }
   }
 
+  // private checkConjugateSymmetry(spectrum: Complex[][]): void {
+  //   const N = spectrum.length
+  //   for (let n = 0; n < N; n++) {
+  //     for (let m = 0; m < N; m++) {
+  //       const n_neg = (N - n) % N
+  //       const m_neg = (N - m) % N
+
+  //       const diff_real = Math.abs(spectrum[n][m].real - spectrum[n_neg][m_neg].real)
+  //       const diff_imag = Math.abs(
+  //         spectrum[n][m].imag - -spectrum[n_neg][m_neg].imag // ❌ 改成这样
+  //         // 或者: spectrum[n][m].imag + spectrum[n_neg][m_neg].imag
+  //       )
+
+  //       if (diff_real > 1e-6 || diff_imag > 1e-6) {
+  //         console.warn(`非共轭对称 at (${n},${m})`)
+  //       }
+  //     }
+  //   }
+  // }
+
+  // private checkConjugateSymmetry(spectrum: Complex[][], name: string): void {
+  //   const N = spectrum.length
+  //   let errorCount = 0
+  //   const errorPoints: {
+  //     n: number
+  //     m: number
+  //     n_neg: number
+  //     m_neg: number
+  //     a: Complex
+  //     b: Complex
+  //     diffReal: number
+  //     diffImag: number
+  //     diffMag: number
+  //   }[] = []
+
+  //   for (let n = 0; n < N; n++) {
+  //     for (let m = 0; m < N; m++) {
+  //       const n_neg = (N - n) % N
+  //       const m_neg = (N - m) % N
+
+  //       const a = spectrum[n][m]
+  //       const b = spectrum[n_neg][m_neg]
+
+  //       const diffReal = Math.abs(a.real - b.real)
+  //       const diffImag = Math.abs(a.imag + b.imag) // imag 应该是相反数
+  //       const magA = Math.hypot(a.real, a.imag)
+  //       const magB = Math.hypot(b.real, b.imag)
+  //       const diffMag = Math.abs(magA - magB)
+
+  //       // 设置误差阈值
+  //       const eps = 1e-10
+  //       if (diffReal > eps || diffImag > eps || diffMag > eps) {
+  //         errorCount++
+  //         errorPoints.push({
+  //           n,
+  //           m,
+  //           n_neg,
+  //           m_neg,
+  //           a,
+  //           b,
+  //           diffReal,
+  //           diffImag,
+  //           diffMag
+  //         })
+  //       }
+  //     }
+  //   }
+
+  //   console.log(`\n=== 共轭对称性检查 [${name}] ===`)
+  //   if (errorCount === 0) {
+  //     console.log(`✅ 全部通过 (${N}×${N})`)
+  //     return
+  //   }
+
+  //   console.warn(`❌ 检测到 ${errorCount} 个不对称点（阈值 1e-6）`)
+  //   console.group('示例不对称点（最多显示前 10 个）')
+  //   errorPoints.slice(0, 10).forEach((e) => {
+  //     console.warn(
+  //       `(${e.n},${e.m}) ↔ (${e.n_neg},${e.m_neg})`,
+  //       `real差=${e.diffReal.toExponential(3)}, imag差=${e.diffImag.toExponential(3)}, mag差=${e.diffMag.toExponential(3)}`,
+  //       `a=(${e.a.real.toExponential(3)}, ${e.a.imag.toExponential(3)}i), b=(${e.b.real.toExponential(3)}, ${e.b.imag.toExponential(3)}i)`
+  //     )
+  //   })
+  //   console.groupEnd()
+  // }
+
+  private fixNyquistSymmetry(
+    dispX: Complex[][],
+    dispZ: Complex[][],
+    slopeX: Complex[][],
+    slopeZ: Complex[][],
+    N: number
+  ): void {
+    const half = N / 2
+
+    // ========== 修正 n=64 行（x方向Nyquist）==========
+    for (let m = 0; m < N; m++) {
+      const m_mirror = (N - m) % N
+
+      // dispX 和 slopeX 在 n=64 行需要共轭对称
+      this.makeConjugatePair(dispX, half, m, half, m_mirror)
+      this.makeConjugatePair(slopeX, half, m, half, m_mirror)
+
+      // dispZ 和 slopeZ 也需要（虽然是z方向，但仍需要整体对称）
+      this.makeConjugatePair(dispZ, half, m, half, m_mirror)
+      this.makeConjugatePair(slopeZ, half, m, half, m_mirror)
+    }
+
+    // ========== 修正 m=64 列（z方向Nyquist）==========
+    for (let n = 0; n < N; n++) {
+      const n_mirror = (N - n) % N
+
+      this.makeConjugatePair(dispX, n, half, n_mirror, half)
+      this.makeConjugatePair(dispZ, n, half, n_mirror, half)
+      this.makeConjugatePair(slopeX, n, half, n_mirror, half)
+      this.makeConjugatePair(slopeZ, n, half, n_mirror, half)
+    }
+
+    // ========== 修正 n=0 行（DC行）==========
+    for (let m = 0; m < N; m++) {
+      const m_mirror = (N - m) % N
+      this.makeConjugatePair(dispX, 0, m, 0, m_mirror)
+      this.makeConjugatePair(dispZ, 0, m, 0, m_mirror)
+      this.makeConjugatePair(slopeX, 0, m, 0, m_mirror)
+      this.makeConjugatePair(slopeZ, 0, m, 0, m_mirror)
+    }
+
+    // ========== 修正 m=0 列（DC列）==========
+    for (let n = 0; n < N; n++) {
+      const n_mirror = (N - n) % N
+      this.makeConjugatePair(dispX, n, 0, n_mirror, 0)
+      this.makeConjugatePair(dispZ, n, 0, n_mirror, 0)
+      this.makeConjugatePair(slopeX, n, 0, n_mirror, 0)
+      this.makeConjugatePair(slopeZ, n, 0, n_mirror, 0)
+    }
+
+    // ========== 强制角点为实数 ==========
+    const corners = [
+      [0, 0],
+      [0, half],
+      [half, 0],
+      [half, half]
+    ]
+    for (const [n, m] of corners) {
+      dispX[n][m].imag = 0
+      dispZ[n][m].imag = 0
+      slopeX[n][m].imag = 0
+      slopeZ[n][m].imag = 0
+    }
+  }
+
+  // 辅助函数
+  private makeConjugatePair(
+    spectrum: Complex[][],
+    n1: number,
+    m1: number,
+    n2: number,
+    m2: number
+  ): void {
+    // 如果是同一个点，强制为实数
+    if (n1 === n2 && m1 === m2) {
+      spectrum[n1][m1].imag = 0
+      return
+    }
+
+    // 否则强制共轭对称
+    const avgReal = (spectrum[n1][m1].real + spectrum[n2][m2].real) / 2
+    const avgImag = (spectrum[n1][m1].imag - spectrum[n2][m2].imag) / 2
+
+    spectrum[n1][m1].real = avgReal
+    spectrum[n1][m1].imag = avgImag
+    spectrum[n2][m2].real = avgReal
+    spectrum[n2][m2].imag = -avgImag
+  }
+
   // =============== getter ===============
   getCascadeConfig(): CascadeConfig {
     return this.cascadeConfig
@@ -562,6 +788,6 @@ export class FFTOceanGenerator {
 
   // 获取有效的大小
   getEffectiveSize(): number {
-    return this.cascadeConfig.targetSize
+    return this.cascadeConfig.meshSize
   }
 }
