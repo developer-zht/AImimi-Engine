@@ -1,13 +1,8 @@
 import { setTransform } from '@/utils/transformation'
-import { CubeMapRenderManagerParams, CubeMapType } from '@/managers/cubemap/CubeMapRenderManager'
 import { ImgBasedCubeMapTexture } from '@/textures/ImgBasedCubeMapTexture'
 import { FileExtensions, TexturePaths } from '@/config/resourcePaths'
 import { HDRBasedCubeMapTexture } from '@/textures/HDRBasedCubeMapTexture'
-
-export enum TextureType {
-  IMG_CUBE_MAP = 'image', // 已经分割好的 cubemap
-  HDR_CUBE_MAP = 'hdrFile' // 需要从 .hdr/.exr 转换到 cubemap
-}
+import { CubeMapRenderManagerParams, CubeMapType, TextureType } from '@/types/CubeMapRender'
 
 export class CubeMapPreset {
   /**
