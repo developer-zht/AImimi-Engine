@@ -70,9 +70,15 @@ export class FFTOceanMaterial extends WaterMaterial {
 
     // 构建 FFT Ocean 特有的 uniforms
     const fftOceanUniforms: Uniforms = {
+      // 海面网格 mesh 的大小
       uGeometrySize: {
         type: UniformType.ONE_F,
         value: cascadeConfig.meshSize
+      },
+      // texture 的大小（实则是 spectrum 的分辨率）
+      uTextureSize: {
+        type: UniformType.ONE_F,
+        value: Math.max(...cascadeConfig.layerParamsSet.map((layer) => layer.resolution))
       },
       uDisplacementMap: {
         type: UniformType.TEXTURE_2D,
