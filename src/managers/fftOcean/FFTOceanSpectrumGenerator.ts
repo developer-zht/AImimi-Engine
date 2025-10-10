@@ -264,8 +264,12 @@ export class FFTOceanSpectrumGenerator {
            *   d_z(k) = -i * (kz/|k|) * λ * h(k,t)
            * λ 是 choppiness 系数，控制水平拉伸程度
            */
+          // const kmax = cascadeLayerData.getKMax() ?? 1.0
+          // const lambda_k = cascadeParams.choppiness * (k / kmax)
           dispXSpectrum[n][m] = h_k_t.multiply(new Complex(0, -kxNorm * cascadeParams.choppiness))
           dispZSpectrum[n][m] = h_k_t.multiply(new Complex(0, -kzNorm * cascadeParams.choppiness))
+          // dispXSpectrum[n][m] = h_k_t.multiply(new Complex(0, -kxNorm * lambda_k))
+          // dispZSpectrum[n][m] = h_k_t.multiply(new Complex(0, -kzNorm * lambda_k))
 
           /**
            * 梯度谱（不是梯度）：
@@ -336,7 +340,7 @@ export class FFTOceanSpectrumGenerator {
       // this.checkConjugateSymmetry(dDz_dzSpectrum, 'dDz_dzSpectrum')
       // this.checkConjugateSymmetry(dDx_dzSpectrum, 'dDx_dzSpectrum')
       // this.checkConjugateSymmetry(dDz_dxSpectrum, 'dDz_dxSpectrum')
-      // this.validCount++
+      this.validCount++
     }
 
     // 生成完后，统一修正 Nyquist
