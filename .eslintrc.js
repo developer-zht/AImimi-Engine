@@ -11,7 +11,8 @@ module.exports = {
     sourceType: 'module' // 使用 ES 模块
   },
   plugins: [
-    '@typescript-eslint' // 加载 ts 插件
+    '@typescript-eslint', // 加载 ts 插件
+    'markdown'
   ],
   extends: [
     'eslint:recommended', // ESLint 官方推荐规则
@@ -27,6 +28,12 @@ module.exports = {
     '@typescript-eslint/no-unused-vars': ['warn'], // 未使用变量只警告
     '@typescript-eslint/explicit-function-return-type': 'off' // 不强制写函数返回值
   },
+  overrides: [
+    {
+      files: ['*.md'],
+      processor: 'markdown/markdown' // 指定 markdown 处理器
+    }
+  ],
   // 忽略的文件
   ignorePatterns: [
     'node_modules',
