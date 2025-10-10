@@ -56,8 +56,16 @@ export class WebGLRenderer {
     this.lineRenders.push(lineRender)
   }
 
+  deleteLineRender(lineRender: LineRender) {
+    this.lineRenders.splice(this.lineRenders.indexOf(lineRender))
+  }
+
   addMeshRender(meshRender: MeshRender) {
     this.meshRenders.push(meshRender)
+  }
+
+  deleteMeshRender(meshRender: MeshRender) {
+    this.meshRenders.splice(this.meshRenders.indexOf(meshRender))
   }
 
   addShadowMeshRender(meshRender: MeshRender) {

@@ -7,7 +7,7 @@ import { MeshRender } from '@/renderers/MeshRender'
 // import { FFTOceanGenerator } from './FFTOceanGenerator'
 import { WebGLRenderer } from '@/renderers/WebGLRenderer'
 import { ShaderPaths } from '@/config/resourcePaths'
-import { FFTOceanRenderManagerConfig } from '@/types/fftOcean'
+import { FFTOceanRenderManagerConfig, RenderingMode } from '@/types/fftOcean'
 import { FFTOceanTextureManager } from './FFTOceanTextureManager'
 import { FFTProcessor } from '@/math/FFTProcessor/FFTProcessor'
 import { FFTOceanSpectrumGenerator } from './FFTOceanSpectrumGenerator'
@@ -157,14 +157,32 @@ export class FFTOceanRenderManager extends BaseMeshRenderManager {
   getMeshRender(): MeshRender | null {
     return this.meshRender
   }
+
+  // 获取当前的 LineRender 对象
+  getLineRender(): LineRender | null {
+    return this.lineRender
+  }
 }
 
 export async function loadFFTOcean(renderer: WebGLRenderer, config: FFTOceanRenderManagerConfig) {
   try {
     const fftOceanRenderManager = FFTOceanRenderManager.getInstance(renderer.gl, config)
-    await fftOceanRenderManager.initMeshRender()
-    // 将 MeshRender 添加到 WebGLRenderer 中
-    renderer.addMeshRender(fftOceanRenderManager.getMeshRender())
+    renderer.addToManagers(fftOceanRenderManager, 'fftOceanRenderManager')
+
+    if (config.cascadeConfig.renderingMode === RenderingMode.MESH) {
+      await fftOceanRenderManager.initMeshRender()
+      renderer.deleteLineRender(fftOceanRenderManager.getLineRender())
+      // 将 MeshRender 添加到 WebGLRenderer 中
+      renderer.addMeshRender(fftOceanRenderManager.getMeshRender())
+      return
+    }
+
+    if (config.cascadeConfig.renderingMode === RenderingMode.LINE) {
+      await fftOceanRenderManager.initLineRender()
+      renderer.deleteMeshRender(fftOceanRenderManager.getMeshRender())
+      // 将 LineRender 添加到 WebGLRenderer 中
+      renderer.addLineRender(fftOceanRenderManager.getLineRender())
+    }
   } catch (error) {
     console.log('Load water failed: ', error)
   }
