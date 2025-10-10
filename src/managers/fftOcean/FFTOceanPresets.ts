@@ -2,7 +2,7 @@ import { setTransform } from '@/utils/transformation'
 import { HDRBasedCubeMapTexture } from '@/textures/HDRBasedCubeMapTexture'
 import { ImgBasedCubeMapTexture } from '@/textures/ImgBasedCubeMapTexture'
 import { FileExtensions, TexturePaths } from '@/config/resourcePaths'
-import { FFTOceanRenderManagerConfig } from '@/types/fftOcean'
+import { BlendMode, FFTOceanRenderManagerConfig, RenderingMode } from '@/types/fftOcean'
 
 export class FFTOceanPresets {
   private static instance: FFTOceanPresets
@@ -87,35 +87,21 @@ export class FFTOceanPresets {
       //   amplitude: 1000
       // }
       cascadeConfig: {
+        renderingMode: RenderingMode.LINE,
         enabled: false, // 是否启用 cascade，true 为 cascade，false 为 single
-        targetResolution: 128, // 目标统一分辨率，默认使用最高层分辨率
-        targetSize: 1024, // 目标统一范围，默认使用最大范围
-        blendMode: 'weighted', // 混合模式：相加或加权
+        meshResolution: 128, // 目标统一分辨率，默认使用最高层分辨率
+        meshSize: 256, // 目标统一范围，默认使用最大范围
+        blendMode: BlendMode.WEIGHT, // 混合模式：相加或加权
         layerParamsSet: [
-          // ========== Layer 0: 长波主导层 ==========
-          // 覆盖波长：50-500m，主要海浪形态
           {
-            size: 1024, // 1km海面
-            resolution: 256, // 高分辨率
-            amplitude: 10, // 大幅降低，避免过度夸张
-            choppiness: 0.8, // 温和的水平位移
-            windSpeed: 10, // 中等风速
+            size: 256, // 256m 海面
+            resolution: 128, // 保持高分辨率
+            amplitude: 1, // 中等振幅
+            choppiness: 1.3, // 稍强的choppy效果
+            windSpeed: 13, // 稍强风速
             windDirection: { x: 1, y: 1 },
             gravity: 9.81,
-            fetch: 500000, // 50km fetch，更合理的中等海况
-            depth: 1000
-          },
-          // ========== Layer 1: 中长波层 ==========
-          // 覆盖波长：20-100m，增加海面复杂性
-          {
-            size: 512, // 512m海面
-            resolution: 256, // 保持高分辨率
-            amplitude: 100, // 中等振幅
-            choppiness: 1.2, // 稍强的choppy效果
-            windSpeed: 12, // 稍强风速
-            windDirection: { x: 1, y: 1 },
-            gravity: 9.81,
-            fetch: 20000, // 20km fetch
+            fetch: 100000, // 100km fetch
             depth: 1000
           },
           // ========== Layer 2: 中波层 ==========
@@ -147,19 +133,8 @@ export class FFTOceanPresets {
           // ========== Layer 4: 毛细波层 ==========
           // 覆盖波长：0.2-2m，表面张力主导的小波浪
           {
-            size: 64, // 64m海面，精细尺度
-            resolution: 256, // 高分辨率捕捉毛细波
-            amplitude: 10, // 小但可见的振幅
-            choppiness: 3.0, // 最强choppy，模拟尖锐毛细波
-            windSpeed: 20, // 强风产生毛细波
-            windDirection: { x: 1, y: -1 },
-            gravity: 9.81,
-            fetch: 1000, // 短fetch，局部风浪
-            depth: 100
-          },
-          {
             size: 32, // 64m海面，精细尺度
-            resolution: 256, // 高分辨率捕捉毛细波
+            resolution: 128, // 高分辨率捕捉毛细波
             amplitude: 10, // 小但可见的振幅
             choppiness: 3.0, // 最强choppy，模拟尖锐毛细波
             windSpeed: 22, // 强风产生毛细波

@@ -130,8 +130,10 @@ void main() {
   vNormal = normal;
 
   // 应用位移
-  float magnification = 150.0;
-  displacement *= magnification;
+  float magnificationXZ = 300.0;
+  float magnificationY = 200.0;
+  displacement.xz *= magnificationXZ;
+  displacement.y *= magnificationY;
   vec4 displacedPosition = vWorldPosition + vec4(displacement, 0.0);
 
   // 波浪高度
@@ -139,7 +141,8 @@ void main() {
   // 水体深度
   vWaterDepth = calculateWaterDepth(vWorldPosition.xz, 0);
   // 泡沫因子
-  vFoam = (1.0 + dDx_dx) * (1.0 + dDz_dz) - dDx_dz * dDz_dx;
+  float jacobian = (1.0 + dDx_dx) * (1.0 + dDz_dz) - dDx_dz * dDz_dx;
+  vFoam = jacobian;
 
   gl_Position = uProjectionMatrix * uViewMatrix * displacedPosition;
 

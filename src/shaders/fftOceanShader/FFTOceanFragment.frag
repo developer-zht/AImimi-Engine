@@ -105,6 +105,29 @@ void main() {
   //   gl_FragColor = vec4(-height, 0.0, 0.0, 1.0); // 负值：红色
   // }
 
+  // 可视化雅可比（红色 = 折叠区域）
+  // if (jacobian < 0.0) {
+  //   gl_FragColor = vec4(1.0, 0.0, 0.0, 1.0); // 红色：需要泡沫的地方
+  // } else if (jacobian < 1.0) {
+  //   gl_FragColor = vec4(0.0, jacobian, 0.0, 1.0); // 绿色：网格被压缩（波峰）
+  // } else {
+  //   gl_FragColor = vec4(0.0, 0.0, jacobian, 1.0); // 蓝色：网格被拉伸（波谷）
+  // }
+
+  vec3 color;
+  if (jacobian < 0.0) {
+    color = vec3(1.0, 0.0, 0.0); // 红色：折叠！
+  } else if (jacobian < 0.5) {
+    color = vec3(1.0, 1.0, 0.0); // 黄色：即将折叠
+  } else if (jacobian < 1.0) {
+    color = vec3(0.0, 1.0, 0.0); // 绿色：压缩
+  } else if (jacobian < 1.5) {
+    color = vec3(0.0, 1.0, 1.0); // 青色：拉伸
+  } else {
+    color = vec3(0.0, 0.0, 1.0); // 蓝色：过度拉伸
+  }
+  gl_FragColor = vec4(color, 1.0);
+
   // gl_FragColor = vec4(displacement * 100.0, 1.0);
   // gl_FragColor = vec4(dDx_dx, dDx_dz, dDz_dx, dDz_dz);
   // gl_FragColor = vec4(0.3, 0.3, 0.5, 1.0);
