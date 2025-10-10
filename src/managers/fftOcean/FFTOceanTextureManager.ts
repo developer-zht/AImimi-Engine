@@ -2,6 +2,8 @@ import { Complex } from '@/math/Complex'
 import { FFTProcessor } from '@/math/FFTProcessor/FFTProcessor'
 import { FBO } from '@/textures/FBO'
 
+import * as math from 'mathjs'
+
 interface TexturesData {
   name: string
   textures: WebGLTexture[]
@@ -97,6 +99,43 @@ export class FFTOceanTextureManager {
     //   this.initFBOs()
     // }
 
+    // Debug Code
+    const N = spectrums.height.length
+    // testSpectrum[0][0] = new Complex(N * N, 0) // 只有 DC
+    // 生成一个低频正弦波
+    // testSpectrum[0][0] = new Complex(0, 0)
+    // testSpectrum[1][0] = new Complex((N * N) / 2, 0) // 频率 k_x = 1
+    // testSpectrum[N - 1][0] = new Complex((N * N) / 2, 0) // 共轭对称
+    // 生成一个简单的低频波
+    const testSpectrum: Complex[][] = Array(N)
+      .fill(null)
+      .map(() =>
+        Array(N)
+          .fill(null)
+          .map(() => new Complex(0, 0))
+      )
+
+    // 只添加几个低频分量
+    const amplitude = N * N * 0.5
+    // testSpectrum[0][0] = new Complex(amplitude, 0) // DC = 0
+    // testSpectrum[0][0] = new Complex(0, 0) // DC = 0
+    // testSpectrum[1][0] = new Complex(amplitude, 0)
+    // testSpectrum[N - 1][0] = new Complex(amplitude, 0)
+    // testSpectrum[0][1] = new Complex(amplitude, 0)
+    // testSpectrum[0][N - 1] = new Complex(amplitude, 0)
+
+    const freq = 3 // 频率（控制条纹数量）
+
+    // 只在一个方向设置
+    testSpectrum[freq][freq] = new Complex(amplitude, -1)
+    testSpectrum[N - freq][N - freq] = new Complex(amplitude, 1)
+
+    // testSpectrum = this.generateFewWavesSpectrum(128)
+    // testSpectrum = this.generateSimpleSineWave(128)
+    // testSpectrum = this.generateSineWaveH0(128)
+    // testSpectrum = this.computeHktFromH0(testSpectrum, 0, 1000)
+
+    // const dispSpectrumArray = [spectrums.dispX, testSpectrum, spectrums.dispZ]
     const dispSpectrumArray = [spectrums.dispX, spectrums.height, spectrums.dispZ]
     const dispSpectrumData: SpectrumsData = {
       name: 'dispSpectrum',
@@ -252,30 +291,93 @@ export class FFTOceanTextureManager {
 
   // getter
   // 多个纹理
-  public getDisplacementTextures(): WebGLTexture {
+  public getDisplacementTexture(): WebGLTexture {
     // return [
     //   this.dispTextureFBO.getFrameBuffer().textures[1], // dispX
     //   this.dispTextureFBO.getFrameBuffer().textures[0], // height
     //   this.dispTextureFBO.getFrameBuffer().textures[2] // dispZ
     // ]
-    return this.dispTextureFBO.getFrameBuffer().textures[0]
+    const dispTexture = this.dispTextureFBO.getFrameBuffer().textures[0]
+
+    this.gl.bindTexture(this.gl.TEXTURE_2D, dispTexture)
+
+    // 过滤设置
+    this.gl.texParameteri(
+      this.gl.TEXTURE_2D,
+      this.gl.TEXTURE_MIN_FILTER,
+      this.gl.LINEAR_MIPMAP_LINEAR
+    )
+    this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_MAG_FILTER, this.gl.LINEAR)
+
+    // 包裹模式（世界坐标采样需要 REPEAT）
+    this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_WRAP_S, this.gl.REPEAT)
+    this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_WRAP_T, this.gl.REPEAT)
+
+    // 生成 mipmap
+    this.gl.generateMipmap(this.gl.TEXTURE_2D)
+
+    this.gl.bindTexture(this.gl.TEXTURE_2D, null)
+
+    return dispTexture
   }
 
-  public getGradientTextures(): WebGLTexture {
+  public getGradientTexture(): WebGLTexture {
     // return [
     //   this.gradientTextureFBO.getFrameBuffer().textures[0], // slopeX
     //   this.gradientTextureFBO.getFrameBuffer().textures[1] // slopeZ
     // ]
-    return this.gradientTextureFBO.getFrameBuffer().textures[0]
+    const gradTexture = this.gradientTextureFBO.getFrameBuffer().textures[0]
+
+    this.gl.bindTexture(this.gl.TEXTURE_2D, gradTexture)
+
+    // 过滤设置
+    this.gl.texParameteri(
+      this.gl.TEXTURE_2D,
+      this.gl.TEXTURE_MIN_FILTER,
+      this.gl.LINEAR_MIPMAP_LINEAR
+    )
+    this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_MAG_FILTER, this.gl.LINEAR)
+
+    // 包裹模式
+    this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_WRAP_S, this.gl.REPEAT)
+    this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_WRAP_T, this.gl.REPEAT)
+
+    // 生成 mipmap
+    this.gl.generateMipmap(this.gl.TEXTURE_2D)
+
+    this.gl.bindTexture(this.gl.TEXTURE_2D, null)
+
+    return gradTexture
   }
 
-  public getJacobianTextures(): WebGLTexture {
+  public getJacobianTexture(): WebGLTexture {
     // return [
     //   this.jacobianTextureFBO.getFrameBuffer().textures[0], // dDx_dx
     //   this.jacobianTextureFBO.getFrameBuffer().textures[1], // dDz_dz
     //   this.jacobianTextureFBO.getFrameBuffer().textures[2], // dDx_dz
     //   this.jacobianTextureFBO.getFrameBuffer().textures[3] // dDz_dx
     // ]
-    return this.jacobianTextureFBO.getFrameBuffer().textures[0]
+    const jacobTexture = this.jacobianTextureFBO.getFrameBuffer().textures[0]
+
+    this.gl.bindTexture(this.gl.TEXTURE_2D, jacobTexture)
+
+    // 过滤设置
+    this.gl.texParameteri(
+      this.gl.TEXTURE_2D,
+      this.gl.TEXTURE_MIN_FILTER,
+      this.gl.LINEAR_MIPMAP_LINEAR
+    )
+    this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_MAG_FILTER, this.gl.LINEAR)
+
+    // 包裹模式
+    this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_WRAP_S, this.gl.REPEAT)
+    this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_WRAP_T, this.gl.REPEAT)
+
+    // 生成 mipmap
+    this.gl.generateMipmap(this.gl.TEXTURE_2D)
+
+    this.gl.bindTexture(this.gl.TEXTURE_2D, null)
+
+    return jacobTexture
   }
 }
