@@ -27,10 +27,6 @@ export class CascadeLayerData {
   private getWaveNumber(index: number, N: number, L: number): number {
     // index < N/2 为正频率，>= N/2 为负频率
     const n = index < N / 2 ? index : index - N
-    // if (Math.abs(n) < 0.001) {
-    //   n = 0.001 * Math.sign(n) || 0.001 // 给一个小的非零值
-    // }
-
     return (2 * Math.PI * n) / L
   }
 
@@ -117,7 +113,7 @@ export class CascadeLayerData {
           h0Magnitudes.push(h0Mag)
         }
 
-        // 1. DC分量必须为0
+        // DC 分量必须为 0
         if (n === 0 && m === 0) {
           this.h0[n][m] = new Complex(0, 0)
           continue
@@ -129,7 +125,7 @@ export class CascadeLayerData {
         const xi_r = this.gaussianRandom()
         const xi_i = this.gaussianRandom()
 
-        // ✅ 2. Nyquist 频率必须是纯实数
+        // Nyquist 频率必须是纯实数
         const isNyquist =
           (n === 0 && m === half) || // kx=0, kz=Nyquist
           (n === half && m === 0) || // kx=Nyquist, kz=0
