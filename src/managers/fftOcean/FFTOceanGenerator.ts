@@ -1,17 +1,20 @@
 import { FFTProcessor } from '@/math/FFTProcessor/FFTProcessor'
 import { Complex } from '@/math/Complex'
-import { PhillipsSpectrum } from '@/managers/fftOcean/PhillipsSpectrum'
+import { PhillipsSpectrum } from '@/managers/fftOcean/spectrums/PhillipsSpectrum'
 import { SerializedSpatial } from '@/types/worker'
-import { deserializeArraysToSpatial, serializeSpectrumToArrays } from './utils/spectrumSerializer'
-import { JONSWAPSpectrum } from '@/managers/fftOcean/JONSWAPSpectrum'
-import { CascadeConfig, CascadeLayerParams, OceanParams } from '@/types/fftOcean'
+import {
+  deserializeArraysToSpatial,
+  serializeSpectrumToArrays
+} from '@/managers/fftOcean/utils/spectrumSerializer'
+import { JONSWAPSpectrum } from '@/managers/fftOcean/spectrums/JONSWAPSpectrum'
+import { CascadeConfig, CascadeLayerParams } from '@/types/fftOcean'
 
 // Debug Package
 import * as math from 'mathjs'
 import { computeRMS } from '@/utils/calcComplexRMS'
 import { verifyParseval } from '@/utils/verifyParseval'
 import { CascadeLayerData } from './CascadeLayerData'
-import { Spectrum } from './Spectrum'
+import { Spectrum } from './spectrums/Spectrum'
 
 // export class FFTOceanGenerator {
 //   private fftProcessor: FFTProcessor
