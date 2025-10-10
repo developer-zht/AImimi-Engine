@@ -7,6 +7,9 @@ uniform mat4 uModelMatrix;
 uniform mat4 uViewMatrix;
 uniform mat4 uProjectionMatrix;
 
+uniform float uGeometrySize; // 海面网格 mesh 的大小
+uniform float uTextureSize; // texture 的大小（实则是 spectrum 的分辨率）
+
 // Debug Code
 // uniform float uTime;
 
@@ -29,6 +32,7 @@ varying vec2 vTexCoord;
 varying float vFoam; // 泡沫因子
 varying float vWaterDepth;
 varying float vWaveHeight;
+varying vec4 vOriginalWorldPosition;
 
 /**
  * 水深计算模型 （基于真实海洋地形的数学模型）
@@ -94,37 +98,33 @@ float calculateWaterDepth(vec2 position, int depthModel) {
 }
 
 void main() {
-  vTexCoord = aTextureCoord;
+  vec4 vOriginalWorldPosition = uModelMatrix * vec4(aVertexPosition, 1.0);
+
+  float baseScale = 0.002; // 粗糙层：每500m重复
+  float detailScale = 0.008; // 细节层：每125m重复
+  vec2 coord1 = vOriginalWorldPosition.xz * baseScale;
+  vec2 coord2 = vOriginalWorldPosition.xz * detailScale;
+
+  vec2 uv = vOriginalWorldPosition.xz / uGeometrySize + 0.5;
+  vTexCoord = uv;
 
   // 从纹理读取数据
-  vec4 displacement = texture2D(uDisplacementMap, aTextureCoord);
-  vec2 gradient = texture2D(uGradientMap, aTextureCoord).xy;
+  vec3 displacement = texture2D(uDisplacementMap, uv).xyz * (uGeometrySize / uTextureSize);
+  float amplitude = 150.0;
+  displacement *= amplitude;
 
   // 应用位移
-  vec3 displacedPos = aVertexPosition;
-  displacedPos.xyz += displacement.xyz;
+  vec4 displacedPosition = vOriginalWorldPosition + vec4(displacement, 0.0);
 
   // 世界坐标
-  vec4 worldPos = uModelMatrix * vec4(displacedPos, 1.0);
-  vWorldPosition = worldPos.xyz;
+  vWorldPosition = displacement;
   // 波浪高度
-  vWaveHeight = worldPos.y;
-
-  /**
- * 计算法线
- * 如果模型矩阵 M 只包含旋转和平移（没有非均匀缩放、没有错切），就可以直接使用 uModelMatrix，因为旋转矩阵的逆就是转置，且它的转置 = 自身（正交矩阵）
- *  在大多数海面渲染中，网格是单位大小的平面，只做旋转和位置移动，所以直接用 mat3(uModelMatrix) 足够且更快。
- *  WebGL1.0 不支持 transpose 和 inverse，所以没办法在 Shader 中计算 transpose(inverse(uModelMatrix))
- */
-  vNormal = normalize(mat3(uModelMatrix) * vec3(-gradient.x, 1.0, -gradient.y));
+  vWaveHeight = displacedPosition.y;
 
   // 水体深度
-  vWaterDepth = calculateWaterDepth(displacedPos.xz, 0);
+  vWaterDepth = calculateWaterDepth(displacedPosition.xz, 0);
 
-  // 传递泡沫因子（雅可比值）
-  vFoam = displacement.w;
-
-  gl_Position = uProjectionMatrix * uViewMatrix * worldPos;
+  gl_Position = uProjectionMatrix * uViewMatrix * displacedPosition;
 
   /**
  * Debug Code
