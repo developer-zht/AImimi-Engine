@@ -252,11 +252,6 @@ export class LineRender {
     // Bind Camera parameters
     this.bindCameraParameters(camera)
 
-    if (this.manager) {
-      this.manager.update(updatedParamters.uTime)
-      // console.log(this.manager)
-    }
-
     // Bind material parameters
     this.updateMaterialParameters(updatedParamters)
     this.bindMaterialParameters(drawControlParams)
