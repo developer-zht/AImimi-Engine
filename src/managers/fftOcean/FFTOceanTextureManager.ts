@@ -3,6 +3,7 @@ import { FFTProcessor } from '@/math/FFTProcessor/FFTProcessor'
 import { FBO } from '@/textures/FBO'
 
 import * as math from 'mathjs'
+import { JacobianAnalyzer } from './utils/JacobianAnalyzer'
 
 interface TexturesData {
   name: string
@@ -30,12 +31,20 @@ export class FFTOceanTextureManager {
   private pingFBO: FBO | null = null
   private pongFBO: FBO | null = null
 
+  // Debug Code
+  private analyzer: JacobianAnalyzer
+  private printCount: number = 0
+  private printMaxCount: number = 1
+
   constructor(gl: WebGLRenderingContext, fftProcessor: FFTProcessor, size: number) {
     this.gl = gl
     this.fftProcessor = fftProcessor
     this.size = size
 
     this.initFBOs()
+
+    // Debug Code
+    this.analyzer = new JacobianAnalyzer()
   }
 
   private initFBOs() {
@@ -161,6 +170,16 @@ export class FFTOceanTextureManager {
       spectrumArray: jacobSpectrumArray
     }
     this.computePass(jacobSpectrumData, this.jacobianTextureFBO)
+
+    if (this.printCount < this.printMaxCount) {
+      this.analyzer.analyzeJacobianTexture(
+        this.gl,
+        this.jacobianTextureFBO.getFrameBuffer().textures[0],
+        this.size, // 纹理宽度
+        this.size // 纹理高度
+      )
+      this.printCount++
+    }
   }
 
   /**
