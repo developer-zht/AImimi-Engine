@@ -10,6 +10,8 @@ export class CascadeLayerData {
   private h0: Complex[][]
   private h0Conj: Complex[][]
 
+  private kmax: number
+
   constructor(cascadeLayerParams: CascadeLayerParams, spectrum: Spectrum) {
     this.cascadeLayerParams = cascadeLayerParams
     this.spectrum = spectrum
@@ -163,6 +165,8 @@ export class CascadeLayerData {
     console.log('h0_avg:', h0Magnitudes.reduce((a, b) => a + b) / h0Magnitudes.length)
     console.log('非零h0数量:', h0Magnitudes.filter((v) => v > 0.0001).length)
 
+    this.kmax = Math.max(...kValues)
+
     // 第二次循环：计算 h0Conj
     for (let n = 0; n < N; n++) {
       for (let m = 0; m < N; m++) {
@@ -187,5 +191,9 @@ export class CascadeLayerData {
 
   getCascadeLayerParams(): CascadeLayerParams {
     return this.cascadeLayerParams
+  }
+
+  getKMax() {
+    return this.kmax
   }
 }
