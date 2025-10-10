@@ -11,9 +11,6 @@ export abstract class BaseLineRenderManager extends BaseRenderManager {
   }
 
   // 抽象方法 - 子类必须实现
-  protected abstract createMesh(): Mesh
-  protected abstract createMaterial(): Promise<Material>
-
   abstract initLineRender(): Promise<void>
 
   // 公共的具体方法 - 所有子类都可以使用

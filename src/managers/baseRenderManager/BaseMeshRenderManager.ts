@@ -11,9 +11,6 @@ export abstract class BaseMeshRenderManager extends BaseRenderManager {
   }
 
   // 抽象方法 - 子类必须实现
-  protected abstract createMesh(): Mesh
-  protected abstract createMaterial(): Promise<Material>
-
   abstract initMeshRender(): Promise<void>
   abstract update(time: number): Promise<void>
 
