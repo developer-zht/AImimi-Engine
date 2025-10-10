@@ -1,4 +1,3 @@
-import { WaterRenderManagerConfig, WaterRenderType } from '@/managers/water/WaterRenderManager'
 import type { SineWaveMaterialParams } from '@/materials/SineWaveMaterial'
 import { setTransform } from '@/utils/transformation'
 import { GerstnerWaveMaterialParams, GerstnerWaveParams } from '@/materials/GerstnerWaveMaterial'
@@ -6,20 +5,12 @@ import { ImgBasedCubeMapTexture } from '@/textures/ImgBasedCubeMapTexture'
 import { WaterMaterialParams } from '@/materials/WaterMaterial'
 import { HDRBasedCubeMapTexture } from '@/textures/HDRBasedCubeMapTexture'
 import { FileExtensions, TexturePaths } from '@/config/resourcePaths'
-
-// 水体类型
-export enum WaterType {
-  TROPICAL_OCEAN = 'tropicalOcean', // 热带海洋
-  DEEP_OCEAN = 'deepOcean', // 深海
-  LAKE = 'lake', // 湖泊
-  RIVER_MURKY = 'murkyRiver' // 河流（浑浊）
-}
-
-// 波浪类型
-export enum WavesType {
-  OCEAN_WAVES = 'oceanWave', // 海洋级别的波浪
-  LAKE_WAVES = 'lakeWaves' // 湖泊级别的波浪
-}
+import {
+  WaterRenderManagerConfig,
+  WaterRenderType,
+  WaterType,
+  WavesType
+} from '@/types/WaterRender'
 
 export class WaterPresets {
   private static instance: WaterPresets
