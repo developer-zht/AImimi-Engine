@@ -16,7 +16,8 @@ import { Vec3 } from '@/types/math'
 
 import { PerformanceMonitor } from '@/monitors/PerformanceMonitor'
 import { loadCubeMap } from './managers/cubemap/CubeMapRenderManager'
-import { CubeMapPreset, TextureType } from './managers/cubemap/CubeMapPreset'
+import { CubeMapPreset } from '@/managers/cubemap/CubeMapPreset'
+import { TextureType } from '@/types/CubeMapRender'
 import { loadFFTOcean } from './managers/fftOcean/FFTOceanRenderManager'
 import { FFTOceanPresets } from './managers/fftOcean/FFTOceanPresets'
 import { HDRBasedCubeMapTexture } from './textures/HDRBasedCubeMapTexture'
@@ -183,8 +184,8 @@ export class Engine {
         this.cameraTarget = [2.92191, 0.98, 1.55037]
         break
       case 'WaterSceneCamera':
-        this.cameraPosition = [-300, 750, 0]
-        this.cameraTarget = [-300, 0, 0]
+        this.cameraPosition = [0, 200, 0]
+        this.cameraTarget = [0, 0, 0]
         break
       default:
         this.cameraPosition = [6, 1, 0]
