@@ -1,5 +1,5 @@
-import { CascadeLayerParams, OceanParams } from '@/types/fftOcean'
-import { Spectrum } from './Spectrum'
+import { CascadeLayerParams } from '@/types/fftOcean'
+import { Spectrum } from '@/managers/fftOcean/spectrums/Spectrum'
 
 /** Phillips 波谱公式：
  * P(k) = A * exp(-(1 / (kL)^2)) / k^4 * ( (k_hat · w_hat)^2 )
@@ -97,7 +97,7 @@ export class PhillipsSpectrum implements Spectrum {
   //   // return phillips
   // }
 
-  calculate(kx: number, kz: number, params: OceanParams): number {
+  calculate(kx: number, kz: number, params: CascadeLayerParams): number {
     const k2 = kx * kx + kz * kz
     if (k2 < 1e-6) return 0
     const k = Math.sqrt(k2)
@@ -114,9 +114,11 @@ export class PhillipsSpectrum implements Spectrum {
     const kzNorm = kz / k
     const kw = kxNorm * wx + kzNorm * wy
 
-    const phillips = (this.A * Math.exp(-1 / (k2 * L * L)) * (kw * kw)) / (k2 * k2)
+    // const phillips = (this.A * Math.exp(-1 / (k2 * L * L)) * (kw * kw)) / (k2 * k2)
+    // 典型理论公式/常见实践: kw²（余弦平方） --> 使用 abs(kw)或 max(0, kw)
+    const phillips = (this.A * Math.exp(-1 / (k2 * L * L)) * Math.abs(kw)) / (k2 * k2)
 
-    const damping = 0.1
+    const damping = 0.3
     const P = phillips * (kw < 0 ? damping : 1.0)
 
     return P

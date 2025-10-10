@@ -1,5 +1,5 @@
-import { CascadeLayerParams, OceanParams } from '@/types/fftOcean'
-import { Spectrum } from './Spectrum'
+import { CascadeLayerParams } from '@/types/fftOcean'
+import { Spectrum } from '@/managers/fftOcean/spectrums/Spectrum'
 import { Complex } from '@/math/Complex'
 
 export class SineSpectrum implements Spectrum {

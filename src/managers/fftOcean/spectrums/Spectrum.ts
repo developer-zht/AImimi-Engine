@@ -1,4 +1,4 @@
-import { CascadeLayerParams, OceanParams } from '@/types/fftOcean'
+import { CascadeLayerParams } from '@/types/fftOcean'
 
 export interface Spectrum {
   calculateH0Magnitude(kx: number, kz: number, params: CascadeLayerParams): number

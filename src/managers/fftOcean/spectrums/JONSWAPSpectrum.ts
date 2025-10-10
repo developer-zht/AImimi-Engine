@@ -1,5 +1,5 @@
-import { CascadeLayerParams, OceanParams } from '@/types/fftOcean'
-import { Spectrum } from './Spectrum'
+import { CascadeLayerParams } from '@/types/fftOcean'
+import { Spectrum } from '@/managers/fftOcean/spectrums/Spectrum'
 
 /**
  * From https://geo.libretexts.org/Bookshelves/Oceanography
@@ -75,7 +75,7 @@ export class JONSWAPSpectrum implements Spectrum {
    * @param params 海洋参数
    * @returns 峰值角频率 ωp (rad/s)
    */
-  private calculatePeakFrequency(params: OceanParams): number {
+  private calculatePeakFrequency(params: CascadeLayerParams): number {
     const fetch = params.fetch || ((params.windSpeed * params.windSpeed) / params.gravity) * 1000
 
     // 完整公式: ωp = 22 * (g² / (U₁₀ * F))^(1/3)
@@ -132,7 +132,7 @@ export class JONSWAPSpectrum implements Spectrum {
    * @param params 海洋参数
    * @returns S(ω) 频谱密度 (m²·s)
    */
-  calculateSOmega(kx: number, kz: number, params: OceanParams): number {
+  calculateSOmega(kx: number, kz: number, params: CascadeLayerParams): number {
     const k = Math.sqrt(kx * kx + kz * kz)
     if (k < 0.000001) return 0
 
@@ -199,7 +199,7 @@ export class JONSWAPSpectrum implements Spectrum {
    * @param gravity 重力加速度 g
    * @returns J = S(ω) · Φ(ωh)
    */
-  private calculateSOmegaTMACorrection(kx: number, kz: number, params: OceanParams): number {
+  private calculateSOmegaTMACorrection(kx: number, kz: number, params: CascadeLayerParams): number {
     const k = Math.sqrt(kx * kx + kz * kz)
     if (k < 0.000001) return 0
 
@@ -293,7 +293,7 @@ export class JONSWAPSpectrum implements Spectrum {
   private directionHasselmannFactor(
     kx: number,
     kz: number,
-    params: OceanParams,
+    params: CascadeLayerParams,
     omega: number,
     omegaPeak: number
   ): number {
@@ -344,7 +344,7 @@ export class JONSWAPSpectrum implements Spectrum {
   private directionMitsuyasuFactor(
     kx: number,
     kz: number,
-    params: OceanParams,
+    params: CascadeLayerParams,
     omega: number,
     omegaPeak: number
   ): number {
@@ -403,7 +403,7 @@ export class JONSWAPSpectrum implements Spectrum {
    * @param params 海洋参数
    * @returns 频率导数 F
    */
-  private calculateF(kx: number, kz: number, params: OceanParams): number {
+  private calculateF(kx: number, kz: number, params: CascadeLayerParams): number {
     const k = Math.sqrt(kx * kx + kz * kz)
     if (k < 0.000001) return 0
 
@@ -432,7 +432,7 @@ export class JONSWAPSpectrum implements Spectrum {
    * @param params 海洋参数
    * @returns spec 二维方向谱
    */
-  calculateSpec(kx: number, kz: number, params: OceanParams): number {
+  calculateSpec(kx: number, kz: number, params: CascadeLayerParams): number {
     const k = Math.sqrt(kx * kx + kz * kz)
     if (k < 0.000001) return 0
 
@@ -509,7 +509,7 @@ export class JONSWAPSpectrum implements Spectrum {
   calculateH0MagnitudeSimplified(
     kx: number,
     kz: number,
-    params: OceanParams,
+    params: CascadeLayerParams,
     deltaK: number
   ): number {
     // 1. 计算 k 值

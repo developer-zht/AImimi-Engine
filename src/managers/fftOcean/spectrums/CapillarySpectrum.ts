@@ -1,10 +1,11 @@
-import { OceanParams } from '@/types/fftOcean'
+import { CascadeLayerParams } from '@/types/fftOcean'
+import { Spectrum } from '@/managers/fftOcean/spectrums/Spectrum'
 
-export class CapillarySpectrum {
+export class CapillarySpectrum implements Spectrum {
   private baseAmplitude = 0.001 // 基础振幅
   private cutoffWavenumber = 100 // 截止波数 (rad/m)
 
-  calculate(kx: number, kz: number, params: OceanParams): number {
+  calculateH0Magnitude(kx: number, kz: number, params: CascadeLayerParams): number {
     const k = Math.sqrt(kx * kx + kz * kz)
 
     // 毛细波色散关系：ω = sqrt(gk + σk³/ρ)
