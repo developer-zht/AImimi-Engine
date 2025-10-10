@@ -58,7 +58,7 @@ export class Engine {
     // this.renderer = null
 
     // 初始化渲染流程
-    this.init()
+    // this.init()
 
     console.log('Class Engine has initialized')
   }
@@ -121,7 +121,7 @@ export class Engine {
     const fftOceanRenderManagerConfig = await FFTOceanPresets.getInstance(
       this.gl
     ).createFFTOceanParams()
-    loadFFTOcean(this.renderer, fftOceanRenderManagerConfig)
+    await loadFFTOcean(this.renderer, fftOceanRenderManagerConfig)
   }
 
   // 初始化上下文

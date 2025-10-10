@@ -4,6 +4,8 @@ import { PerspectiveCamera } from 'three'
 
 import type { LightObj, UpdatedParamters, UpdatedTimeParameter } from '@/types/WebGLRenderer'
 import type { UpdatedLightParamters } from '@/types/light'
+import { FFTOceanRenderManager } from '@/managers/fftOcean/FFTOceanRenderManager'
+import { BaseRenderManager } from '@/managers/baseRenderManager/BaseRenderManager'
 
 export interface DrawControlParams {
   globalTextureNum: number // TEXTUREi 计数器
@@ -29,6 +31,8 @@ export class WebGLRenderer {
     globalTextureNum: 0
   }
 
+  private managers: Record<string, BaseRenderManager>
+
   constructor(
     gl: WebGLRenderingContext,
     gl_draw_buffers: WEBGL_draw_buffers,
@@ -37,6 +41,7 @@ export class WebGLRenderer {
     this.gl = gl
     this.gl_draw_buffers = gl_draw_buffers
     this.camera = camera
+    this.managers = {}
     this.startTime = Date.now()
   }
 
@@ -65,6 +70,35 @@ export class WebGLRenderer {
 
   setAxisLineRender(axisLineRender: LineRender) {
     this.axisLineRender = axisLineRender
+  }
+
+  addToManagers<T extends BaseRenderManager>(manager: T, name: string) {
+    if (Object.keys(this.managers).includes(name)) {
+      console.log(`⚠️ A manager named ${name} already exists! Please delete the old one first.`)
+      console.log(`❌ Adding ${name} failed!`)
+      return
+    }
+    this.managers[name] = manager
+  }
+
+  getManager<T extends BaseRenderManager>(name: string): T {
+    const manager = this.managers[name]
+    if (!manager) {
+      throw new Error(`❌ No ${name} in Managers!`)
+    }
+    // 添加运行时类型检查（如果可能）
+    if (!(manager instanceof Object.getPrototypeOf(manager).constructor)) {
+      throw new TypeError(`Type mismatch for ${name}`)
+    }
+    return manager as T
+  }
+
+  deleteManager(name: string) {
+    if (!Object.keys(this.managers).includes(name)) {
+      console.log(`❌ No manager named ${name}.`)
+      return
+    }
+    Reflect.deleteProperty(this.managers, name)
   }
 
   render() {
@@ -144,6 +178,12 @@ export class WebGLRenderer {
         this.drawControlParams
       )
       // this.bufferMeshes[i].draw(this.camera);
+    }
+
+    // FFT Ocean Spatial Pass
+    const fftOceanRenderManager = this.getManager<FFTOceanRenderManager>('fftOceanRenderManager')
+    if (fftOceanRenderManager) {
+      fftOceanRenderManager.update(updatedTimeParameter.uTime)
     }
 
     // Camera pass
