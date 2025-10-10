@@ -184,7 +184,7 @@ export class Engine {
         this.cameraTarget = [2.92191, 0.98, 1.55037]
         break
       case 'WaterSceneCamera':
-        this.cameraPosition = [0, 200, 0]
+        this.cameraPosition = [70, 20, 50]
         this.cameraTarget = [0, 0, 0]
         break
       default:
