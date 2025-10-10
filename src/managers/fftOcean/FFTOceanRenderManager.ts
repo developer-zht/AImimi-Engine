@@ -2,24 +2,27 @@ import { WaterSurface } from '@/objects/WaterSurface'
 import { Mesh } from '@/objects/Mesh'
 import { buildFFTOceanMaterial, FFTOceanMaterial } from '@/materials/FFTOceanMaterial'
 import { MeshRender } from '@/renderers/MeshRender'
-import { OceanTextureManager } from './OceanTextureManager'
-import { FFTOceanGenerator } from './FFTOceanGenerator'
+// Deprecated(temp)
+// import { OceanTextureManager } from './OceanTextureManager'
+// import { FFTOceanGenerator } from './FFTOceanGenerator'
 import { WebGLRenderer } from '@/renderers/WebGLRenderer'
 import { ShaderPaths } from '@/config/resourcePaths'
 import { FFTOceanRenderManagerConfig } from '@/types/fftOcean'
 import { FFTOceanTextureManager } from './FFTOceanTextureManager'
 import { FFTProcessor } from '@/math/FFTProcessor/FFTProcessor'
 import { FFTOceanSpectrumGenerator } from './FFTOceanSpectrumGenerator'
+import { LineRender, LineRenderMode } from '@/renderers/LineRender'
+import { BaseMeshRenderManager } from '@/managers/baseRenderManager/BaseMeshRenderManager'
 
-export class FFTOceanRenderManager {
+export class FFTOceanRenderManager extends BaseMeshRenderManager {
   // 单例模式
   private static instance: FFTOceanRenderManager
 
-  private gl: WebGLRenderingContext
   private config: FFTOceanRenderManagerConfig
 
-  private fftOceanGenerator: FFTOceanGenerator
-  private oceanTextureManager: OceanTextureManager
+  // Deprecated(temp)
+  // private fftOceanGenerator: FFTOceanGenerator
+  // private oceanTextureManager: OceanTextureManager
 
   private fftProcessor: FFTProcessor
   private fftOceanSpectrumGenerator: FFTOceanSpectrumGenerator
@@ -27,15 +30,15 @@ export class FFTOceanRenderManager {
 
   private waterSurface: Mesh
   private fftOceanMaterial: FFTOceanMaterial
-  private meshRender: MeshRender
+  private lineRender: LineRender
 
   private constructor(gl: WebGLRenderingContext, config: FFTOceanRenderManagerConfig) {
-    this.gl = gl
+    super(gl)
     this.config = config
 
+    // Deprecated(temp)
     // // 创建FFT生成器
     // this.fftOceanGenerator = new FFTOceanGenerator(this.gl, config.cascadeConfig)
-
     // // 创建纹理管理器
     // this.oceanTextureManager = new OceanTextureManager(gl, config.cascadeConfig.targetResolution)
 
@@ -55,6 +58,7 @@ export class FFTOceanRenderManager {
     this.config.materialParams.gradientMap = this.fftOceanTextureManager.getGradientTexture()
     this.config.materialParams.dispDerivativeMap = this.fftOceanTextureManager.getJacobianTexture()
 
+    // Deprecated(temp)
     // this.config.materialParams.displacementMap = this.oceanTextureManager.getDisplacementTexture()
     // this.config.materialParams.gradientMap = this.oceanTextureManager.getGradientTexture()
     // this.config.materialParams.dispDerivativeMap =
@@ -71,7 +75,7 @@ export class FFTOceanRenderManager {
   }
 
   // 创建网格
-  private createWaterSurface(): Mesh {
+  protected createMesh(): Mesh {
     const waterSurface = new WaterSurface(
       this.config.tranformation,
       this.config.cascadeConfig.meshSize,
@@ -82,7 +86,7 @@ export class FFTOceanRenderManager {
   }
 
   // 创建材质
-  private async createFFTOceanMaterial(): Promise<FFTOceanMaterial> {
+  protected async createMaterial(): Promise<FFTOceanMaterial> {
     // Debug Code
     // console.log(this.config.materialParams)
     return await buildFFTOceanMaterial(
@@ -96,12 +100,30 @@ export class FFTOceanRenderManager {
   // 初始化 MeshRender
   async initMeshRender() {
     try {
-      this.waterSurface = this.createWaterSurface()
-      this.fftOceanMaterial = await this.createFFTOceanMaterial()
+      this.waterSurface = this.createMesh()
+      this.fftOceanMaterial = await this.createMaterial()
       this.meshRender = new MeshRender(
         this.gl,
         this.waterSurface,
         this.fftOceanMaterial,
+        FFTOceanRenderManager.getInstance(this.gl, this.config)
+      )
+    } catch (error) {
+      console.error('Failed to initialize water renderer:', error)
+      throw error
+    }
+  }
+
+  // 初始化 LineRender
+  async initLineRender() {
+    try {
+      this.waterSurface = this.createMesh()
+      this.fftOceanMaterial = await this.createMaterial()
+      this.lineRender = new LineRender(
+        this.gl,
+        this.waterSurface,
+        this.fftOceanMaterial,
+        LineRenderMode.LINES,
         FFTOceanRenderManager.getInstance(this.gl, this.config)
       )
     } catch (error) {

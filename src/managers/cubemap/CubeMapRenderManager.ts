@@ -4,37 +4,29 @@ import { Mesh } from '@/objects/Mesh'
 import { SkyboxMesh } from '@/objects/SkyboxMesh'
 import { MeshRender } from '@/renderers/MeshRender'
 import { WebGLRenderer } from '@/renderers/WebGLRenderer'
-import { TransformationParams } from '@/types/transformation'
+import { CubeMapRenderManagerParams, CubeMapType } from '@/types/CubeMapRender'
+import { BaseMeshRenderManager } from '@/managers/baseRenderManager/BaseMeshRenderManager'
 
-export enum CubeMapType {
-  SKYBOX = 'skybox'
-}
-
-export interface CubeMapRenderManagerParams {
-  // 几何参数
-  transformation: TransformationParams
-
-  // Texture 文件类型
-  // textureType: TextureType
-  texture: WebGLTexture
-
-  // 网格类型 / 渲染类型
-  cubeMapType: CubeMapType
-}
-
-export class CubeMapRenderManager {
-  private gl: WebGLRenderingContext
+export class CubeMapRenderManager extends BaseMeshRenderManager {
+  // private gl: WebGLRenderingContext
+  // private meshRender: MeshRender
   private config: CubeMapRenderManagerParams
-  private meshRender: MeshRender
+  private meshType: CubeMapType
+  private renderType: CubeMapType
+  private materialTexture: WebGLTexture
 
   constructor(gl: WebGLRenderingContext, config: CubeMapRenderManagerParams) {
-    this.gl = gl
+    super(gl)
+    // this.gl = gl
     this.config = config
+    this.meshType = this.config.cubeMapType
+    this.renderType = this.config.cubeMapType
+    this.materialTexture = this.config.texture
   }
 
   // 初始化 Skybox Vertices
-  private createCubeMapMesh(meshType: CubeMapRenderManagerParams['cubeMapType']): Mesh {
-    switch (meshType) {
+  protected createMesh(): Mesh {
+    switch (this.meshType) {
       case CubeMapType.SKYBOX: {
         const skyboxMesh = new SkyboxMesh(this.config.transformation)
         return skyboxMesh
@@ -43,14 +35,14 @@ export class CubeMapRenderManager {
   }
 
   // 初始化 Skybox Material
-  private async createCubeMapMaterial(renderType: CubeMapType, texture: WebGLTexture) {
-    switch (renderType) {
+  protected async createMaterial() {
+    switch (this.renderType) {
       case CubeMapType.SKYBOX:
         return await buildSkyboxMaterial(
           this.gl,
           ShaderPaths.SKYBOX_VERTEX,
           ShaderPaths.SKYBOX_FRAGMENT,
-          texture
+          this.materialTexture
         )
     }
   }
@@ -58,11 +50,8 @@ export class CubeMapRenderManager {
   // 初始化 MeshRender
   async initMeshRender() {
     try {
-      const mesh = this.createCubeMapMesh(this.config.cubeMapType)
-      const material = await this.createCubeMapMaterial(
-        this.config.cubeMapType,
-        this.config.texture
-      )
+      const mesh = this.createMesh()
+      const material = await this.createMaterial()
       this.meshRender = new MeshRender(this.gl, mesh, material)
 
       console.log(`Water renderer initialized with type: ${this.config.cubeMapType}`)
@@ -70,6 +59,11 @@ export class CubeMapRenderManager {
       console.error('Failed to initialize water renderer:', error)
       throw error
     }
+  }
+
+  // 站位函数
+  update(time: number): Promise<void> {
+    return
   }
 
   // 获取当前的MeshRender对象

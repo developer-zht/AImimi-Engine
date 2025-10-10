@@ -1,52 +1,49 @@
 import { ShaderPaths } from '@/config/resourcePaths'
 import { AxisMaterial, buildAxisMaterial } from '@/materials/AxisMaterial'
 import { AxisMesh } from '@/objects/AxisMesh'
-import { MeshRender } from '@/renderers/MeshRender'
 import { TransformationParams } from '@/types/transformation'
 import { WebGLRenderer } from '@/renderers/WebGLRenderer'
 import { LineRender } from '@/renderers/LineRender'
 import { LineRenderMode } from '../../renderers/LineRender'
+import { BaseLineRenderManager } from '../baseRenderManager/BaseLineRenderManager'
 
 export interface AxisManagerParams {
   // 几何参数
   transformation: TransformationParams
 }
 
-class AxisManager {
-  private gl: WebGLRenderingContext
+class AxisManager extends BaseLineRenderManager {
   private config: AxisManagerParams
 
-  private axisLineRender: LineRender
-
   constructor(gl: WebGLRenderingContext, config: AxisManagerParams) {
-    this.gl = gl
+    super(gl)
     this.config = config
   }
 
   // 初始化 Axes Mesh
-  private createAxesMesh(): AxisMesh {
+  protected createMesh(): AxisMesh {
     const mesh = new AxisMesh(this.config.transformation)
 
     return mesh
   }
 
   // 初始化 Axis Material
-  private async createAxisMaterial(): Promise<AxisMaterial> {
+  protected async createMaterial(): Promise<AxisMaterial> {
     const material = await buildAxisMaterial(ShaderPaths.AXIS_VERTEX, ShaderPaths.AXIS_FRAGMENT)
 
     return material
   }
 
   // 初始化 AxisLineRender
-  async initAxisLineRender() {
+  async initLineRender() {
     try {
-      const mesh = this.createAxesMesh()
+      const mesh = this.createMesh()
 
-      const material = await this.createAxisMaterial()
+      const material = await this.createMaterial()
 
       const axisLineRender = new LineRender(this.gl, mesh, material, LineRenderMode.LINES, null)
 
-      this.axisLineRender = axisLineRender
+      this.lineRender = axisLineRender
 
       console.log('Axis renderer initialize successfully.')
     } catch (error) {
@@ -55,18 +52,18 @@ class AxisManager {
     }
   }
 
-  getAxisLineRender() {
-    return this.axisLineRender
+  getLineRender() {
+    return this.lineRender
   }
 }
 
 export async function loadAxis(renderer: WebGLRenderer, config: AxisManagerParams) {
   try {
     const axisManager = new AxisManager(renderer.gl, config)
-    await axisManager.initAxisLineRender()
-    // 将 MeshRender 添加到 WebGLRenderer 中
+    await axisManager.initLineRender()
+    // 将 LineRender 添加到 WebGLRenderer 中
     // renderer.addLineRender(axisManager.getAxisLineRender())
-    renderer.setAxisLineRender(axisManager.getAxisLineRender())
+    renderer.setAxisLineRender(axisManager.getLineRender())
   } catch (error) {
     console.log('Load axes failed: ', error)
   }
