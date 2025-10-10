@@ -9,7 +9,7 @@ import { Spectrum } from '@/managers/fftOcean/spectrums/Spectrum'
  *   k_hat = k / |k|            // 波向量单位方向
  *   w_hat                      // 风向单位向量
  *   k_hat · w_hat              // 波向量与风向的夹角余弦
- *   exp(-1/(kL)^2)             // 长波抑制
+ *   exp(-1/(kL)^2)             // 抑制波长远大于 L 的波
  *   k^-4                       // 短波衰减
  *   (k_hat · w_hat)^2          // 方向性分布
  * - 如果 (k_hat · w_hat < 0) 则表示逆风波，此时可将 P(k) 设为 0   // 抑制逆风波
