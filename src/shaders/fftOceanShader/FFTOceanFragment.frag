@@ -74,6 +74,9 @@ void main() {
   float dDx_dz = jacobianData.b;
   float dDz_dx = jacobianData.a;
   float jacobian = (1.0 + dDx_dx) * (1.0 + dDz_dz) - dDx_dz * dDz_dx;
+  // float choppiness = 1.3;
+  // float jacobian =
+  //   (1.0 + choppiness * dDx_dx) * (1.0 + choppiness * dDz_dz) - choppiness * choppiness * dDx_dz * dDz_dx;
   // ========== 3. 构造法线 ==========
   // 方法一: 切线算法线
   vec3 tangentX = vec3(1.0 + dDx_dx, slope.x, dDz_dx);
@@ -93,44 +96,59 @@ void main() {
   // 方法四: 使用从 vertex shader 中传递过来的 vNormal
   // normal = vNormal;
   // normal *= 500.0;
-  // 查看梯度
+
+  // Debug Code
+  // 斜度/梯度/法线 可视化
   // gl_FragColor = vec4(0.0, slope, 1.0);
   // gl_FragColor = vec4(0.0, gradient, 1.0);
-  gl_FragColor = vec4(normal * 0.5 + 0.5, 1.0);
-
-  // float height = displacement.y * 100.0;
-  // if (height > 0.0) {
-  //   gl_FragColor = vec4(0.0, height, 0.0, 1.0); // 正值：绿色
-  // } else {
-  //   gl_FragColor = vec4(-height, 0.0, 0.0, 1.0); // 负值：红色
-  // }
-
-  // 可视化雅可比（红色 = 折叠区域）
-  // if (jacobian < 0.0) {
-  //   gl_FragColor = vec4(1.0, 0.0, 0.0, 1.0); // 红色：需要泡沫的地方
-  // } else if (jacobian < 1.0) {
-  //   gl_FragColor = vec4(0.0, jacobian, 0.0, 1.0); // 绿色：网格被压缩（波峰）
-  // } else {
-  //   gl_FragColor = vec4(0.0, 0.0, jacobian, 1.0); // 蓝色：网格被拉伸（波谷）
-  // }
-
-  vec3 color;
-  if (jacobian < 0.0) {
-    color = vec3(1.0, 0.0, 0.0); // 红色：折叠！
-  } else if (jacobian < 0.5) {
-    color = vec3(1.0, 1.0, 0.0); // 黄色：即将折叠
-  } else if (jacobian < 1.0) {
-    color = vec3(0.0, 1.0, 0.0); // 绿色：压缩
-  } else if (jacobian < 1.5) {
-    color = vec3(0.0, 1.0, 1.0); // 青色：拉伸
-  } else {
-    color = vec3(0.0, 0.0, 1.0); // 蓝色：过度拉伸
-  }
-  gl_FragColor = vec4(color, 1.0);
-
-  // gl_FragColor = vec4(displacement * 100.0, 1.0);
-  // gl_FragColor = vec4(dDx_dx, dDx_dz, dDz_dx, dDz_dz);
+  // gl_FragColor = vec4(normal * 0.5 + 0.5, 1.0);
   // gl_FragColor = vec4(0.3, 0.3, 0.5, 1.0);
+
+  // 高度可视化
+  float height = vWaveHeight; // 高度就是波峰/波谷的标志
+  // 可视化波峰（红色）和波谷（蓝色）
+  // if (height > 0.5) {
+  //   gl_FragColor = vec4(1, 1, 0, 1); // 黄色：height > 0.5
+  // } else if (height > 0.2) {
+  //   gl_FragColor = vec4(1, 0.5, 0, 1); // 橙色：0.2 < height < 0.5
+  // } else if (height > 0.0) {
+  //   gl_FragColor = vec4(0, 1, 0, 1); // 绿色：0 < height < 0.2
+  // } else if (height > -0.2) {
+  //   gl_FragColor = vec4(0, 0.5, 1, 1); // 浅蓝：-0.2 < height < 0
+  // } else {
+  //   gl_FragColor = vec4(0, 0, 1, 1); // 深蓝：height < -0.2
+  // }
+
+  // choppiness 可视化
+  // 水平位移的模长反映 choppiness 强度, 波峰处水平位移接近 0（理论上）,但实际上由于多波叠加，我们看的是变化率
+  float horizontalDisp = length(displacement.xz);
+  // 波峰判断：高度大 + 水平位移小
+  bool isPeak = height > 0.5 && horizontalDisp < 0.2;
+  // 波谷判断：高度小 + 水平位移大
+  bool isTrough = height < -0.3 && horizontalDisp > 0.2;
+  if (isPeak) {
+    gl_FragColor = vec4(1.0, 0.0, 0.0, 1.0); // 红色：波峰
+  } else if (isTrough) {
+    gl_FragColor = vec4(0.0, 0.0, 1.0, 1.0); // 蓝色：波谷
+  } else {
+    gl_FragColor = vec4(0.0, 1.0, 0.0, 1.0); // 绿色：过渡区
+  }
+
+  // Jacobian 可视化
+  // vec3 color;
+  // if (jacobian < 0.0) {
+  //   color = vec3(1.0, 0.0, 0.0); // 红色：折叠！
+  // } else if (jacobian < 0.5) {
+  //   color = vec3(1.0, 1.0, 0.0); // 黄色：即将折叠
+  // } else if (jacobian < 1.0) {
+  //   color = vec3(0.0, 1.0, 0.0); // 绿色：压缩
+  // } else if (jacobian < 1.5) {
+  //   color = vec3(0.0, 1.0, 1.0); // 青色：拉伸
+  // } else {
+  //   color = vec3(0.0, 0.0, 1.0); // 蓝色：过度拉伸
+  // }
+  // gl_FragColor = vec4(color, 1.0);
+
   return;
 
   // 直接在 Fragment Shader 中计算法线
@@ -153,4 +171,3 @@ void main() {
 
   gl_FragColor = vec4(1.0, 1.0, 1.0, 1.0);
 }
-

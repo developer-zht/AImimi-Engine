@@ -130,8 +130,8 @@ void main() {
   vNormal = normal;
 
   // 应用位移
-  float magnificationXZ = 300.0;
-  float magnificationY = 200.0;
+  float magnificationXZ = 3.0;
+  float magnificationY = 8.0;
   displacement.xz *= magnificationXZ;
   displacement.y *= magnificationY;
   vec4 displacedPosition = vWorldPosition + vec4(displacement, 0.0);
