@@ -34,7 +34,7 @@ export class FFTOceanTextureManager {
   // Debug Code
   private analyzer: JacobianAnalyzer
   private printCount: number = 0
-  private printMaxCount: number = 1
+  private printMaxCount: number = 5
 
   constructor(gl: WebGLRenderingContext, fftProcessor: FFTProcessor, size: number) {
     this.gl = gl
