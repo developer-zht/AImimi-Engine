@@ -88,60 +88,58 @@ export class FFTOceanPresets {
       // }
       cascadeConfig: {
         renderingMode: RenderingMode.LINE,
+        // FIXME: 暂时未完成多波叠加
         enabled: false, // 是否启用 cascade，true 为 cascade，false 为 single
         meshResolution: 128, // 目标统一分辨率，默认使用最高层分辨率
         meshSize: 256, // 目标统一范围，默认使用最大范围
         blendMode: BlendMode.WEIGHT, // 混合模式：相加或加权
         layerParamsSet: [
+          // 效果一
           {
             size: 256, // 256m 海面
-            resolution: 128, // 保持高分辨率
-            amplitude: 1, // 中等振幅
-            choppiness: 1.3, // 稍强的choppy效果
-            windSpeed: 13, // 稍强风速
-            windDirection: { x: 1, y: 1 },
+            resolution: 128, // 128 分辨率
+            amplitude: 30, // 振幅放大系数
+            choppiness: 2.3, // 稍强的 choppy 效果
+            windSpeed: 13, // 风速
+            windDirection: { x: 1, y: 1 }, // 风向
             gravity: 9.81,
-            fetch: 100000, // 100km fetch
-            depth: 1000
+            fetch: 100000, // 100km fetch (单位: 米)
+            depth: 1000 // 水深 (单位: 米)
           },
-          // ========== Layer 2: 中波层 ==========
-          // 覆盖波长：5-30m，海面中等细节
-          // {
-          //   size: 256, // 256m海面
-          //   resolution: 256, // 高分辨率保证质量
-          //   amplitude: 10, // 适中振幅
-          //   choppiness: 2.2, // 更明显的尖锐波峰
-          //   windSpeed: 15, // 强风速产生更多中波
-          //   windDirection: { x: 1, y: 0.2 },
-          //   gravity: 9.81,
-          //   fetch: 8000, // 8km fetch
-          //   depth: 1000
-          // },
-          // ========== Layer 3: 短波层 ==========
-          // 覆盖波长：1-8m，重要的视觉细节
-          // {
-          //   size: 128, // 128m海面
-          //   resolution: 256, // 维持高分辨率
-          //   amplitude: 40, // 小振幅但重要
-          //   choppiness: 2.5, // 强choppy效果
-          //   windSpeed: 18, // 强风产生短波
-          //   windDirection: { x: 1, y: 0 },
-          //   gravity: 9.81,
-          //   fetch: 3000, // 3km fetch
-          //   depth: 100
-          // },
-          // ========== Layer 4: 毛细波层 ==========
-          // 覆盖波长：0.2-2m，表面张力主导的小波浪
+          // 效果二
           {
-            size: 32, // 64m海面，精细尺度
-            resolution: 128, // 高分辨率捕捉毛细波
-            amplitude: 10, // 小但可见的振幅
-            choppiness: 3.0, // 最强choppy，模拟尖锐毛细波
-            windSpeed: 22, // 强风产生毛细波
+            size: 256, // 256m 海面
+            resolution: 128, // 128 分辨率
+            amplitude: 30, // 振幅放大系数
+            choppiness: 3.3, // 稍强的 choppy 效果
+            windSpeed: 13, // 风速
+            windDirection: { x: 1, y: 1 }, // 风向
+            gravity: 9.81,
+            fetch: 100000, // 100km fetch (单位: 米)
+            depth: 1000 // 水深 (单位: 米)
+          },
+          // 效果三
+          {
+            size: 256, // 256m 海面
+            resolution: 128, // 128 分辨率
+            amplitude: 30, // 振幅放大系数
+            choppiness: 5.3, // 很强的 choppy 效果
+            windSpeed: 13, // 风速
+            windDirection: { x: 1, y: 1 }, // 风向
+            gravity: 9.81,
+            fetch: 100000, // 100km fetch (单位: 米)
+            depth: 1000 // 水深 (单位: 米)
+          },
+          {
+            size: 32, // 32m 海面
+            resolution: 128, // 128 分辨率
+            amplitude: 10, // 振幅放大系数
+            choppiness: 3.0, // 稍强的 choppy 效果
+            windSpeed: 22, // 风速
             windDirection: { x: 1, y: -1 },
             gravity: 9.81,
-            fetch: 200, // 短fetch，局部风浪
-            depth: 100
+            fetch: 100000, // 100km fetch (单位: 米)
+            depth: 1000 // 水深
           }
         ]
       }
