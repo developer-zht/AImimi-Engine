@@ -266,8 +266,10 @@ export class FFTOceanSpectrumGenerator {
            */
           // const kmax = cascadeLayerData.getKMax() ?? 1.0
           // const lambda_k = cascadeParams.choppiness * (k / kmax)
-          dispXSpectrum[n][m] = h_k_t.multiply(new Complex(0, -kxNorm * cascadeParams.choppiness))
-          dispZSpectrum[n][m] = h_k_t.multiply(new Complex(0, -kzNorm * cascadeParams.choppiness))
+          dispXSpectrum[n][m] = h_k_t.multiply(new Complex(0, kxNorm * cascadeParams.choppiness))
+          dispZSpectrum[n][m] = h_k_t.multiply(new Complex(0, kzNorm * cascadeParams.choppiness))
+          // dispXSpectrum[n][m] = h_k_t.multiply(new Complex(0, kxNorm))
+          // dispZSpectrum[n][m] = h_k_t.multiply(new Complex(0, kzNorm))
           // dispXSpectrum[n][m] = h_k_t.multiply(new Complex(0, -kxNorm * lambda_k))
           // dispZSpectrum[n][m] = h_k_t.multiply(new Complex(0, -kzNorm * lambda_k))
 
@@ -286,43 +288,60 @@ export class FFTOceanSpectrumGenerator {
           // console.log(this.params.size / (2.0 * Math.PI))
           slopeXSpectrum[n][m] = h_k_t.multiply(new Complex(0, kx))
           slopeZSpectrum[n][m] = h_k_t.multiply(new Complex(0, kz))
+
+          /**
+           * 位移导数谱（不是导数本身）：
+           *   ∂D_x/∂x = IFFT( i * k_x * d_x(k) )
+           *   ∂D_x/∂z = IFFT( i * k_z * d_x(k) )
+           *   ∂D_z/∂x = IFFT( i * k_x * d_z(k) )
+           *   ∂D_z/∂z = IFFT( i * k_z * d_z(k) )
+           *
+           * 这里用 (0, k_x) 相当于乘以 i k_x，
+           * 用 (0, k_z) 相当于乘以 i k_z。
+           * 注意：d_x(k)、d_z(k) 已经在上一步定义为
+           *   d_x(k) = -i * (kx/|k|) * λ * h(k,t)
+           *   d_z(k) = -i * (kz/|k|) * λ * h(k,t)
+           */
+          dDx_dxSpectrum[n][m] = dispXSpectrum[n][m].multiply(new Complex(0, -kx))
+          dDz_dzSpectrum[n][m] = dispZSpectrum[n][m].multiply(new Complex(0, -kz))
+          dDx_dzSpectrum[n][m] = dispXSpectrum[n][m].multiply(new Complex(0, -kz))
+          dDz_dxSpectrum[n][m] = dispZSpectrum[n][m].multiply(new Complex(0, -kx))
+          // dDx_dxSpectrum[n][m] = h_k_t
+          //   .multiply(new Complex(0, -kxNorm))
+          //   .multiply(new Complex(0, kx))
+          // dDz_dzSpectrum[n][m] = h_k_t
+          //   .multiply(new Complex(0, -kzNorm))
+          //   .multiply(new Complex(0, kz))
+          // dDx_dzSpectrum[n][m] = h_k_t
+          //   .multiply(new Complex(0, -kxNorm))
+          //   .multiply(new Complex(0, kz))
+          // dDz_dxSpectrum[n][m] = h_k_t
+          //   .multiply(new Complex(0, -kzNorm))
+          //   .multiply(new Complex(0, kx))
         } else {
           dispXSpectrum[n][m] = new Complex(0, 0)
           dispZSpectrum[n][m] = new Complex(0, 0)
           slopeXSpectrum[n][m] = new Complex(0, 0)
           slopeZSpectrum[n][m] = new Complex(0, 0)
-        }
 
-        /**
-         * 位移导数谱（不是导数本身）：
-         *   ∂D_x/∂x = IFFT( i * k_x * d_x(k) )
-         *   ∂D_x/∂z = IFFT( i * k_z * d_x(k) )
-         *   ∂D_z/∂x = IFFT( i * k_x * d_z(k) )
-         *   ∂D_z/∂z = IFFT( i * k_z * d_z(k) )
-         *
-         * 这里用 (0, k_x) 相当于乘以 i k_x，
-         * 用 (0, k_z) 相当于乘以 i k_z。
-         * 注意：d_x(k)、d_z(k) 已经在上一步定义为
-         *   d_x(k) = -i * (kx/|k|) * λ * h(k,t)
-         *   d_z(k) = -i * (kz/|k|) * λ * h(k,t)
-         */
-        dDx_dxSpectrum[n][m] = dispXSpectrum[n][m].multiply(new Complex(0, kx))
-        dDz_dzSpectrum[n][m] = dispZSpectrum[n][m].multiply(new Complex(0, kz))
-        dDx_dzSpectrum[n][m] = dispXSpectrum[n][m].multiply(new Complex(0, kz))
-        dDz_dxSpectrum[n][m] = dispZSpectrum[n][m].multiply(new Complex(0, kx))
+          dDx_dxSpectrum[n][m] = new Complex(0, 0)
+          dDz_dzSpectrum[n][m] = new Complex(0, 0)
+          dDx_dzSpectrum[n][m] = new Complex(0, 0)
+          dDz_dxSpectrum[n][m] = new Complex(0, 0)
+        }
 
         // Displacement Spectrum
         dispXSpectrum[n][m].multiplyByScalar(amplitude)
         heightSpectrum[n][m].multiplyByScalar(amplitude)
         dispZSpectrum[n][m].multiplyByScalar(amplitude)
         // Slope Spectrum
-        slopeXSpectrum[n][m].multiplyByScalar(amplitude)
-        slopeZSpectrum[n][m].multiplyByScalar(amplitude)
+        // slopeXSpectrum[n][m].multiplyByScalar(amplitude)
+        // slopeZSpectrum[n][m].multiplyByScalar(amplitude)
         // Jocabian Spectrum
-        dDx_dxSpectrum[n][m].multiplyByScalar(amplitude)
-        dDz_dzSpectrum[n][m].multiplyByScalar(amplitude)
-        dDx_dzSpectrum[n][m].multiplyByScalar(amplitude)
-        dDz_dxSpectrum[n][m].multiplyByScalar(amplitude)
+        // dDx_dxSpectrum[n][m].multiplyByScalar(amplitude)
+        // dDz_dzSpectrum[n][m].multiplyByScalar(amplitude)
+        // dDx_dzSpectrum[n][m].multiplyByScalar(amplitude)
+        // dDz_dxSpectrum[n][m].multiplyByScalar(amplitude)
       }
     }
 
