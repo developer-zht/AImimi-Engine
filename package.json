@@ -19,7 +19,8 @@
     "test:run": "vitest run",
     "test:ui": "vitest --ui",
     "coverage": "vitest run --coverage",
-    "prepare": "husky install"
+    "prepare": "husky install",
+    "commit": "git-cz"
   },
   "lint-staged": {
     "src/**/*.{js,ts}": [
@@ -55,9 +56,13 @@
     "@types/webgl2": "^0.0.11",
     "@typescript-eslint/eslint-plugin": "^8.40.0",
     "@typescript-eslint/parser": "^8.40.0",
+    "commitizen": "^4.3.1",
+    "cz-conventional-changelog": "^3.3.0",
+    "cz-customizable": "^7.5.1",
     "eslint": "^8.57.1",
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-markdown": "^5.1.0",
+    "git-cz": "^4.9.0",
     "gl": "^8.1.6",
     "globals": "^16.2.0",
     "husky": "^9.1.7",
@@ -70,5 +75,10 @@
     "typescript": "^5.8.3",
     "vite": "^6.3.5",
     "vitest": "^3.2.4"
+  },
+  "config": {
+    "commitizen": {
+      "path": "./node_modules/cz-conventional-changelog"
+    }
   }
 }

@@ -12,8 +12,13 @@ module.exports = {
         'refactor', // 重构
         'perf', // 性能优化
         'test', // 测试
-        'chore' // 构建/工具
+        'chore', // 构建/工具
+        'ci' // 持续集成
       ]
-    ]
+    ],
+    // 修改提交信息中 subject 的最大字符数
+    'subject-max-length': [2, 'always', 150]
+    // 修改提交信息中 subject 的最小字符数
+    // 'subject-min-length': [1, 'always', 5]
   }
 }
