@@ -8,14 +8,16 @@ export default defineConfig({
       'always',
       [
         'feat', // 新功能
-        'fix', // 修复
-        'docs', // 文档
-        'style', // 格式化
-        'refactor', // 重构
+        'fix', // 修复bug
+        'docs', // 文档变更
+        'style', // 代码格式(不影响功能)
+        'refactor', // 代码重构
         'perf', // 性能优化
-        'test', // 测试
-        'chore', // 构建/工具
-        'ci' // 持续集成
+        'test', // 测试相关
+        'build', // 构建相关
+        'ci', // CI配置
+        'chore', // 其他修改
+        'revert' // 回退
       ]
     ],
     // 修改提交信息中 subject 的最大字符数
