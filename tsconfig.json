@@ -1,22 +1,36 @@
 {
-  "include": ["env.d.ts", "src/**/*"],
-  "exclude": ["node_modules", "dist"],
+  // ==========================================
+  // 项目引用配置
+  // ==========================================
 
-  "compilerOptions": {
-    "target": "es6", // 编译目标：生成的 JS 代码版本
-    "module": "esnext", // 模块系统：如何组织代码
-    "lib": ["ES2019", "DOM", "WebWorker"], // 包含的标准库：提供内置对象的类型定义
-    "allowJs": true, // 允许 TypeScript 处理 .js 文件
-    "noEmit": true, // 只做类型检查，不输出文件
-    "skipLibCheck": true, // 跳过库文件检查：提高编译速度
-    "esModuleInterop": true, // ES 模块互操作：允许默认导入 CommonJS 模块
-    "allowSyntheticDefaultImports": true, // 处理CommonJS模块导入兼容性问题
-    "moduleResolution": "node", // 模块解析(查找)策略
-    "resolveJsonModule": false, // 是否允许导入 JSON 文件
-    "baseUrl": ".",
-    "paths": {
-      "@/*": ["src/*"]
+  // files: [] 表示这个配置文件本身不直接编译任何文件
+  // 所有文件的编译由 references 引用的子配置负责
+  "files": [],
+  // references: 引用其他 TypeScript 项目配置
+  // 这实现了"项目引用"功能,让不同环境的代码使用不同的配置
+  "references": [
+    {
+      "path": "./tsconfig.node.json" // Node.js 环境配置(构建工具等)
     },
-    "types": ["@types/webgl2"] // 只包含全局类型，其他通过 import 使用的库不需要写在这里
+    {
+      "path": "./tsconfig.app.json" // 应用代码配置(浏览器环境)
+    },
+    {
+      "path": "./tsconfig.vitest.json" // 测试代码配置(浏览器/node环境)
+    }
+  ],
+  // ==========================================
+  // 全局编译选项(所有子配置都会继承)
+  // ==========================================
+  "compilerOptions": {
+    // 路径映射的基础目录
+    // "." 表示 tsconfig.json 所在目录
+    "baseUrl": ".",
+
+    // 路径别名配置
+    // 让 import '@/components/Button' 能正确解析
+    "paths": {
+      "@/*": ["./src/*"] // @ 映射到 src 目录
+    }
   }
 }
