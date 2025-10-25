@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeAll } from 'vitest'
 import gl from 'gl'
 import { FFTOceanGenerator } from '@/managers/fftOcean/FFTOceanGenerator'
-import { CascadeConfig } from '@/types/fftOcean'
+import { BlendMode, CascadeConfig, RenderingMode } from '@/types/fftOcean'
 import { computeRMS } from '@/utils/calcComplexRMS'
 import { verifyParseval } from '@/utils/verifyParseval'
 
@@ -24,10 +24,12 @@ describe('FFTOceanGenerator FFT/IFFT 验证', () => {
 
   it('满足 Parseval 定理 & RMS 比例', () => {
     const cascadeConfig: CascadeConfig = {
+      renderingMode: RenderingMode.LINE,
+      // FIXME: 暂时未完成多波叠加
       enabled: false, // 是否启用 cascade，true 为 cascade，false 为 single
       meshResolution: 256, // 目标统一分辨率，默认使用最高层分辨率
       meshSize: 1024, // 目标统一范围，默认使用最大范围
-      blendMode: 'weighted', // 混合模式：相加或加权
+      blendMode: BlendMode.WEIGHTED, // 混合模式：相加或加权
       layerParamsSet: [
         // cascade 层级配置
         {
