@@ -59,7 +59,7 @@ export interface CascadeLayerParams {
 
 export enum BlendMode {
   ADDITIVE = 'additive',
-  WEIGHT = 'weighted'
+  WEIGHTED = 'weighted'
 }
 
 export enum RenderingMode {
