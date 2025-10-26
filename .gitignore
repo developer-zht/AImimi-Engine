@@ -17,8 +17,11 @@ lerna-debug.log*
 
 # Editor directories and files
 # 忽略项目中任何位置的.vscode文件夹
-**/.vscode/
+**/.vscode/*
 .vscode/*
+!.vscode/settings.json
+!.vscode/launch.json
+!.vscode/tasks.json
 !.vscode/extensions.json
 .idea
 *.suo

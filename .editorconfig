@@ -1,0 +1,11 @@
+[*.{js,mjs,cjs,ts,mts,cts,css,scss,sass,less,styl}]
+charset = utf-8
+indent_size = 2
+indent_style = space
+insert_final_newline = true
+trim_trailing_whitespace = true
+end_of_line = lf
+max_line_length = 100
+
+[*.md] # 针对Markdown文件的特殊规则
+trim_trailing_whitespace = false # Markdown中的行尾空格可能有意义，故关闭此规则
