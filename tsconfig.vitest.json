@@ -1,6 +1,6 @@
 {
   // 可以继承 app 配置,然后添加测试特定的选项
-  "extends": "./tsconfig.app.json",
+  // "extends": "",
 
   // ==========================================
   // 文件包含规则
@@ -8,6 +8,7 @@
 
   // 只包含测试文件
   "include": [
+    "src/**/*.ts",
     "src/**/*.test.ts", // 测试文件
     "src/**/*.spec.ts", // 规格测试文件
     "src/__tests__/*", // 测试目录
@@ -44,8 +45,23 @@
     // 模块解析
     // ------------------------------------------
 
+    // 模块解析策略: bundler(Vite 推荐)
+    // 专为打包工具设计,支持更灵活的导入
     "moduleResolution": "bundler",
+
+    // 允许导入 .ts 扩展名
+    // 因为 Vite 会在构建时处理它们
+    "allowImportingTsExtensions": true,
+
+    // 允许导入 JSON 文件
+    // import data from './data.json'
     "resolveJsonModule": true,
+
+    // // 路径映射的基础目录(继承自根配置,也可以在这里覆盖)
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["./src/*"]
+    },
 
     // ------------------------------------------
     // 输出选项
