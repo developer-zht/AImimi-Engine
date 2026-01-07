@@ -1,5 +1,5 @@
 import { TRSTransform } from '@/objects/Mesh'
-import { Vec3 } from './math'
+import { Vec3 } from '@/math/types/math'
 
 export interface Transformation {
   translate: Vec3

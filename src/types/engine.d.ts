@@ -1,4 +1,4 @@
-import type { Vec3 } from './math'
+import type { Vec3 } from '@/math/types/math'
 
 export enum CameraType {
   CUBE_SCENE_CAMERA = 'CubeSceneCamera',

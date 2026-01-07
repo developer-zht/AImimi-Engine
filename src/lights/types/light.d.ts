@@ -1,5 +1,5 @@
 import type { mat3, mat4, vec3 } from 'gl-matrix'
-import type { Vec3 } from './math'
+import type { Vec3 } from '../math/types/math'
 import type { UpdatedParamters } from '@/types/MeshRender'
 
 type LightUp = Vec3

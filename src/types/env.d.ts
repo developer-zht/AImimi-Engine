@@ -28,7 +28,9 @@ interface ImportMetaEnv {
   readonly VITE_TEXTURE_BASE: string
 }
 
-// 保留：作为学习记录
-// export type ViteConfigEnv = 'staging' | 'production'
-// // 确保 global 声明生效
+declare interface ErrorConstructor {
+  // src/errors/BaseError.ts 中 Error.captureStackTrace 所需类型声明
+  captureStackTrace?: (targetObject: object, constructorOpt?: new (...arg)=>unknown) => void
+}
+
 // export {}
