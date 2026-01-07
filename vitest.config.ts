@@ -1,20 +1,26 @@
 import { defineConfig } from 'vitest/config'
-import path from 'path'
+import { fileURLToPath } from 'url'
 
 export default defineConfig({
-  test: {
-    environment: 'jsdom', // ← 提供 DOM API (document, canvas 等)
-    globals: true
-  },
   resolve: {
     alias: {
-      '@': path.resolve(__dirname, './src')
+      '@': fileURLToPath(new URL('./src', import.meta.url))
     }
   },
-  // 定义环境变量
-  define: {
-    'import.meta.env.BASE_URL': JSON.stringify('/'),
-    'import.meta.env.VITE_SHADER_BASE': JSON.stringify('/assets/shaders/'),
-    'import.meta.env.VITE_TEXTURE_BASE': JSON.stringify('/assets/textures/')
-  }
+  test: {
+    environment: 'jsdom', // ← 提供 DOM API (document, canvas 等)
+    globals: true,
+    // 定义环境变量
+    env: {
+      VITE_BASE_URL: '/',
+      VITE_SHADER_BASE: '/assets/shaders',
+      VITE_TEXTURE_BASE: '/assets/textures'
+    },
+    browser: {
+      enabled: true,
+      provider: 'playwright', // ← 使用Playwright驱动
+      name: 'chrome'
+    }
+  },
+  define: {}
 })

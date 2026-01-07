@@ -3,18 +3,25 @@ import { describe, expect, it } from 'vitest'
 
 // 辅助函数：检查两个数组是否近似相等
 function arraysAlmostEqual(a: number[], b: number[], tol: number = 1e-6): boolean {
-  if (a.length !== b.length) return false
-  for (let i = 0; i < a.length; i++) {
-    if (Math.abs(a[i] - b[i]) > tol) {
-      console.error(`Mismatch at index ${i}: expected ${a[i]}, got ${b[i]}`)
-      return false
+  if (a.length !== b.length) {
+    return false
+  } else {
+    for (let i = 0; i < a.length; i++) {
+      if (Math.abs(a[i] - b[i]) > tol) {
+        console.error(`Mismatch at index ${i}: expected ${a[i]}, got ${b[i]}`)
+        return false
+      }
     }
+    return true
   }
-  return true
 }
 
 describe('FFTProcessor', () => {
   const fftProcessor = new FFTProcessor()
+
+  console.log(import.meta.dirname)
+  console.log(import.meta.filename)
+  console.log(import.meta.url)
 
   describe('1D FFT/IFFT', () => {
     it('should correctly reconstruct the original 1D signal', () => {
