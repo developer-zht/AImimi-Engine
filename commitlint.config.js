@@ -21,7 +21,11 @@ export default defineConfig({
       ]
     ],
     // 修改提交信息中 subject 的最大字符数
-    'subject-max-length': [2, 'always', 150]
+    'subject-max-length': [2, 'always', 150],
+    // 限制 subject 的大小写风格，不允许以下风格：(1)Sentence case: Add new feature (2)Start Case: Add New Feature (3)PascalCase: AddNewFeature
+    'subject-case': [2, 'never', ['sentence-case', 'start-case', 'pascal-case']],
+    // 不允许 subject 以句号结尾
+    'subject-full-stop': [2, 'never', '.']
     // 修改提交信息中 subject 的最小字符数
     // 'subject-min-length': [1, 'always', 5]
   },
