@@ -1,4 +1,4 @@
-import { EngineError } from './BaseError'
+import { EngineError } from '../BaseError'
 
 /**
  * 着色器编译错误
