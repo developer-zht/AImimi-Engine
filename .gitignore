@@ -1,3 +1,7 @@
+# AI 相关
+claude-desktop-examples
+.claude
+
 # Logs
 logs
 *.log
@@ -34,9 +38,9 @@ lerna-debug.log*
 
 # PRT编译输出目录
 # 忽略整个build目录及其所有内容
-prt/build/
+# prt/build/
 # prt/build/*   # 忽略build目录下的所有文件和子目录，但保留build目录本身
-prt/
+# prt/
 
 # 前端构建相关
 # npm依赖包目录
