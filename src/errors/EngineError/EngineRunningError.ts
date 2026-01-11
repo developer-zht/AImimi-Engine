@@ -1,4 +1,4 @@
-import { EngineError } from '../BaseError'
+import { EngineError } from './BaseError'
 
 export class EngineRunningError extends EngineError {
   constructor(

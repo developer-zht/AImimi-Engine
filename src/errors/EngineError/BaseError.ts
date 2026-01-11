@@ -77,7 +77,7 @@ export abstract class EngineError extends Error {
 
     // 捕获堆栈跟踪
     if (Error.captureStackTrace) {
-      Error.captureStackTrace(this, this.constructor)
+      Error.captureStackTrace(this, this.constructor as new (...args: any[]) => unknown)
     }
   }
 

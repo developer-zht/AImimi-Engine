@@ -32,7 +32,8 @@ export class ResourceLoadError extends EngineError {
       texture: '纹理',
       shader: '着色器',
       model: '模型',
-      hdr: 'HDR环境贴图'
+      hdr: 'HDR环境贴图',
+      exr: 'EXR环境贴图'
     }
 
     const typeName = typeNames[this.resourceType] || this.resourceType

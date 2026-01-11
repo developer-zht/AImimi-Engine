@@ -1,4 +1,4 @@
-import { EngineError } from '../BaseError'
+import { EngineError } from './BaseError'
 
 /**
  * 引擎初始化错误
