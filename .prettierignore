@@ -15,7 +15,7 @@ coverage/
 .vite/
 
 # 编译文件
-*.d.ts
+# *.d.ts
 
 # 日志文件
 *.log
