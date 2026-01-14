@@ -1,10 +1,76 @@
 import urlJoin from 'url-join'
 
-// 基础路径
+/**
+ * 资源路径配置
+ *
+ * 使用环境变量支持多环境部署：
+ * - 开发环境：直接访问源文件
+ * - 生产环境：访问构建后文件
+ */
+
+// ========== 基础路径 ==========
+
+/**
+ * 应用基础路径
+ * 来源：vite.config.ts 的 base 配置
+ */
+export const BASE_URL = import.meta.env.BASE_URL
+
+/**
+ * 着色器基础路径
+ */
+export const SHADER_BASE = urlJoin(BASE_URL, import.meta.env.VITE_SHADER_BASE || '/shaders')
+
+/**
+ * 纹理基础路径
+ */
+export const TEXTURE_BASE = urlJoin(
+  BASE_URL,
+  import.meta.env.VITE_TEXTURE_BASE || '/assets/textures'
+)
+
+/**
+ * 模型基础路径
+ */
+// export const MODEL_BASE = urlJoin(BASE_URL, import.meta.env.VITE_MODEL_BASE || '/assets/models')
+
+/**
+ * 配置文件基础路径
+ */
+// export const CONFIG_BASE = urlJoin(BASE_URL, import.meta.env.VITE_CONFIG_BASE || '/configs')
+
 const BASES = {
   shaders: urlJoin(import.meta.env.BASE_URL, import.meta.env.VITE_SHADER_BASE),
   textures: urlJoin(import.meta.env.BASE_URL, import.meta.env.VITE_TEXTURE_BASE)
 }
+
+// ========== 纹理路径 ==========
+
+// FIXME: 未来使用的代码
+// export const TexturePaths = {
+//   // 天空盒
+//   Skyboxes: {
+//     SKY_09: urlJoin(TEXTURE_BASE, '/skyboxes/sky_09_cubemap/'),
+//     SKY_18: urlJoin(TEXTURE_BASE, '/skyboxes/sky_18_cubemap/'),
+//     SKY_SUNSET: urlJoin(TEXTURE_BASE, '/skyboxes/sky_sunset/')
+//   },
+
+//   // 环境贴图
+//   Environment: {
+//     QWANTANI_MOONRISE_EXR: urlJoin(
+//       TEXTURE_BASE,
+//       '/environment/skies/qwantani_moonrise_puresky_2k/puresky.exr'
+//     ),
+//     QWANTANI_MOONRISE_HDR: urlJoin(
+//       TEXTURE_BASE,
+//       '/environment/skies/qwantani_moonrise_puresky_2k/puresky.hdr'
+//     ),
+//     EVENING_SKY_EXR: urlJoin(
+//       TEXTURE_BASE,
+//       '/environment/skies/EveningSkyHDRI039B/EveningSkyHDRI039B_2K-HDR.exr'
+//     )
+//   }
+// }
 
 // 纹理资源路径配置
 export const TexturePaths = {
@@ -25,6 +91,35 @@ export const TexturePaths = {
     '/environment/skies/EveningSkyHDRI039B/EveningSkyHDRI039B_2K-HDR.exr'
   )
 }
+
+// ========== 着色器路径 ==========
+
+// FIXME: 未来使用的代码
+// export const ShaderPaths = {
+//   // 坐标轴
+//   Axis: {
+//     VERTEX: urlJoin(SHADER_BASE, '/axisShader/AxisVertex.vert'),
+//     FRAGMENT: urlJoin(SHADER_BASE, '/axisShader/AxisFragment.frag')
+//   },
+
+//   // 直接光
+//   DirectLight: {
+//     VERTEX: urlJoin(SHADER_BASE, '/directLightShader/directLightVertex.vert'),
+//     FRAGMENT: urlJoin(SHADER_BASE, '/directLightShader/directLightFragment.frag')
+//   },
+
+//   // Skybox
+//   Skybox: {
+//     VERTEX: urlJoin(SHADER_BASE, '/skyboxShader/SkyboxVertex.vert'),
+//     FRAGMENT: urlJoin(SHADER_BASE, '/skyboxShader/SkyboxFragment.frag')
+//   },
+
+//   // FFT Ocean
+//   FFTOcean: {
+//     VERTEX: urlJoin(SHADER_BASE, '/fftOceanShader/FFTOceanVertex.vert'),
+//     FRAGMENT: urlJoin(SHADER_BASE, '/fftOceanShader/FFTOceanFragment.frag')
+//   }
+// }
 
 // Shader 路径配置
 export const ShaderPaths = {
@@ -47,8 +142,16 @@ export const ShaderPaths = {
   SHADOW_VERTEX: `${BASES.shaders}/shadowShader/shadowVertex.vert`,
   SHADOW_FRAGMENT: `${BASES.shaders}/shadowShader/shadowFragment.frag`,
   // Equirect To Cubemap
-  EQUIRECT_TO_CUBEMAP_VERTEX: `${BASES.shaders}/IBLShader/equirectToCubemapShader/EquirectToCubemapVertex.glsl`,
-  EQUIRECT_TO_CUBEMAP_FRAGMENT: `${BASES.shaders}/IBLShader/equirectToCubemapShader/EquirectToCubemapFragment.glsl`,
+  // EQUIRECT_TO_CUBEMAP_VERTEX: `${BASES.shaders}/IBLShader/equirectToCubemapShader/EquirectToCubemapVertex.glsl`,
+  // EQUIRECT_TO_CUBEMAP_FRAGMENT: `${BASES.shaders}/IBLShader/equirectToCubemapShader/EquirectToCubemapFragment.glsl`,
+  EQUIRECT_TO_CUBEMAP_VERTEX: urlJoin(
+    BASES.shaders,
+    'IBLShader/equirectToCubemapShader/EquirectToCubemapVertex.vert'
+  ),
+  EQUIRECT_TO_CUBEMAP_FRAGMENT: urlJoin(
+    BASES.shaders,
+    'IBLShader/equirectToCubemapShader/EquirectToCubemapFragment.frag'
+  ),
   // Irradiance
   IRRADIANCE_VERTEX: `${BASES.shaders}/IBLShader/irradianceShader/IrradianceVertex.glsl`,
   IRRADIANCE_FRAGMENT: `${BASES.shaders}/IBLShader/irradianceShader/IrradianceVertex.glsl`,
@@ -73,7 +176,7 @@ export const ShaderPaths = {
 }
 
 // 文件扩展名配置
-export enum FileExtensions {
+export enum ResourceFileExtensions {
   PNG = '.png',
   JPG = '.jpg',
   WEBP = '.webp',
