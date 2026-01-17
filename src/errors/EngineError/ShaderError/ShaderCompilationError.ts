@@ -1,29 +1,42 @@
-import { EngineError } from '../BaseError'
+import { ShaderTpye } from '@/shaders/types/Shader'
+import { ShaderError } from './BaseError'
 
 /**
  * 着色器编译错误
  */
-export class ShaderCompilationError extends EngineError {
-  public readonly shaderType: 'vertex' | 'fragment'
-  public readonly shaderPath: string
+export class ShaderCompilationError extends ShaderError {
   public readonly compileLog: string
 
-  constructor(shaderType: 'vertex' | 'fragment', shaderPath: string, compileLog: string) {
+  constructor(
+    shaderType: ShaderTpye,
+    shaderPath: string,
+    compileLog: string,
+    context?: {
+      shaderSource?: string
+      line?: number
+    }
+  ) {
     super(`Shader compilation failed: ${shaderPath}`, 'SHADER_COMPILATION_FAILED', {
+      shaderType,
+      shaderPath,
       context: {
-        shaderType,
-        shaderPath,
-        compileLog
+        compileLog,
+        ...context
       },
       recoverable: false
     })
 
-    this.shaderType = shaderType
-    this.shaderPath = shaderPath
     this.compileLog = compileLog
   }
 
   override toUserMessage(): string {
-    return `着色器编译失败：${this.shaderPath}\n${this.compileLog}`
+    const typeNames = {
+      vertex: '顶点着色器',
+      fragment: '片段着色器',
+      compute: '计算着色器'
+    }
+
+    const typeName = this.shaderType ? typeNames[this.shaderType] : '着色器'
+    return `${typeName}编译失败：${this.shaderPath}\n${this.compileLog}`
   }
 }
