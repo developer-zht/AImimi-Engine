@@ -1,39 +1,52 @@
-import { EngineError } from '../BaseError'
+import { ResourceError } from './BaseError'
+import { ResourceType } from './types/ResourceError'
 
 /**
- * 资源加载错误
+ * 资源加载错误（仅用于外部用户资源）
+ *
+ * 使用场景：
+ * - GLTF 模型加载失败
+ * - 图片文件加载失败
+ * - 音频/视频文件加载失败
+ * - 字体文件加载失败
+ *
+ * 不包括：
+ * - Shader 文件（使用 ShaderLoadError）
+ * - HDR/EXR 纹理（使用 TextureLoadError）
+ * - 配置文件（使用 ConfigLoadError）
  */
-export class ResourceLoadError extends EngineError {
-  public readonly resourceType: string
-  public readonly resourcePath: string
-
+export class ResourceLoadError extends ResourceError {
   constructor(
-    resourceType: string,
+    resourceType: ResourceType,
     resourcePath: string,
     context?: Record<string, any>,
     cause?: Error
   ) {
-    super(`Failed to load ${resourceType}: ${resourcePath}`, 'RESOURCE_LOAD_FAILED', {
-      context: {
-        resourceType,
-        resourcePath,
-        ...context
-      },
-      recoverable: false,
-      cause
-    })
-
-    this.resourceType = resourceType
-    this.resourcePath = resourcePath
+    super(
+      resourceType,
+      resourcePath,
+      `Failed to load ${resourceType}: ${resourcePath}`,
+      'RESOURCE_LOAD_FAILED',
+      {
+        context: {
+          resourceType,
+          resourcePath,
+          ...context
+        },
+        recoverable: false,
+        cause
+      }
+    )
   }
 
   override toUserMessage(): string {
     const typeNames: Record<string, string> = {
-      texture: '纹理',
-      shader: '着色器',
       model: '模型',
-      hdr: 'HDR环境贴图',
-      exr: 'EXR环境贴图'
+      gltf: 'GLTF模型',
+      image: '图片',
+      audio: '音频',
+      video: '视频',
+      font: '字体'
     }
 
     const typeName = typeNames[this.resourceType] || this.resourceType

@@ -4,10 +4,13 @@ import { NetworkError } from './BaseError'
  * HTTP状态错误
  */
 export class HttpError extends NetworkError {
+  public readonly statusText: string
   constructor(url: string, status: number, statusText: string) {
     super(url, `HTTP ${status} ${statusText}: ${url}`, {
       httpStatus: status
     })
+
+    this.statusText = statusText
   }
 
   override toUserMessage(): string {
