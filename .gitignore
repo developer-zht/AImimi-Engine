@@ -2,6 +2,9 @@
 claude-desktop-examples
 .claude
 
+# .md
+src/**/*.md
+
 # Logs
 logs
 *.log
