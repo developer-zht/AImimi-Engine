@@ -30,6 +30,7 @@ export class MeshValidationError extends MeshError {
       empty_indices: '网格索引数据为空',
       invalid_attribute_size: '网格属性大小无效',
       attribute_length_mismatch: '网格属性长度不匹配',
+      vertex_count_mismatch: '网格顶点数量不匹配',
       inconsistent_vertex_count: '网格顶点数不一致',
       index_out_of_range: '网格索引超出范围',
       invalid_index_count: '网格索引数量无效',

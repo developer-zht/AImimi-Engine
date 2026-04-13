@@ -27,9 +27,10 @@ import { ResourceType } from './types/ResourceError'
 export class ResourceError extends EngineError {
   /**
    * 资源类型
-   * @example 'texture', 'shader', 'model', 'hdr', 'gltf'
+   * @example 'model', 'image', 'audio', 'video', 'font', 'model', 'hdr', 'gltf'
    */
-  public readonly resourceType: ResourceType
+  // public readonly resourceType: ResourceType
+  public readonly resourceType: string
 
   /**
    * 资源路径或标识符
@@ -38,7 +39,7 @@ export class ResourceError extends EngineError {
   public readonly resourcePath: string
 
   constructor(
-    resourceType: ResourceType,
+    resourceType: string,
     resourcePath: string,
     message: string,
     code: string,

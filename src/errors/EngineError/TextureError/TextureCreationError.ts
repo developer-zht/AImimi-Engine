@@ -13,7 +13,7 @@ export class TextureCreationError extends TextureError {
   public readonly height?: number
 
   constructor(
-    textureType: string, // 'TEXTURE_2D', 'TEXTURE_CUBE_MAP'
+    textureType: 'TEXTURE_2D' | 'TEXTURE_CUBE_MAP', // 'TEXTURE_2D', 'TEXTURE_CUBE_MAP'
     context?: {
       width?: number
       height?: number

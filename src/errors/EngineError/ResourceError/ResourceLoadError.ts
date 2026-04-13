@@ -17,7 +17,7 @@ import { ResourceType } from './types/ResourceError'
  */
 export class ResourceLoadError extends ResourceError {
   constructor(
-    resourceType: ResourceType,
+    resourceType: string,
     resourcePath: string,
     context?: Record<string, any>,
     cause?: Error

@@ -1,7 +1,9 @@
 import { MeshError } from './BaseError'
 
 // ============================================================
-//  MeshDisposeError - Mesh 清理错误
+// ⚠️ Mesh 的 dispose() 方法几乎不会发生错误，因此该错误可以删除
+
+// MeshDisposeError - Mesh 清理错误
 // ============================================================
 export class MeshDisposeError extends MeshError {
   constructor(

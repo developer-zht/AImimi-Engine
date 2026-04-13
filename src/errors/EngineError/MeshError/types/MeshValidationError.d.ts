@@ -3,6 +3,7 @@ export type MeshValidationErrorType =
   | 'empty_indices'
   | 'invalid_attribute_size'
   | 'attribute_length_mismatch'
+  | 'vertex_count_mismatch'
   | 'inconsistent_vertex_count'
   | 'index_out_of_range'
   | 'invalid_index_count'
