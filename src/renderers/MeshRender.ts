@@ -1,13 +1,13 @@
 import { mat4 } from 'gl-matrix'
 
 import { Mesh } from '@/objects/Mesh'
-import { Material } from '@/materials/Material'
+import { Material } from '@/materials/Material-deprecated'
 import { Shader } from '@/shaders/Shader'
 import { PerspectiveCamera } from 'three'
 
 import type { DrawControlParams } from '@/renderers/WebGLRenderer'
 import { FFTOceanRenderManager } from '@/managers/fftOcean/FFTOceanRenderManager'
-import { UpdatedParamters } from '@/types/WebGLRenderer'
+import { UpdatedParamters } from '@/renderers/types/WebGLRenderer-deprecated'
 
 export class MeshRender {
   // public
@@ -26,7 +26,7 @@ export class MeshRender {
     gl: WebGLRenderingContext,
     mesh: Mesh,
     material: Material,
-    manager: FFTOceanRenderManager = null
+    manager: FFTOceanRenderManager | null = null
   ) {
     this.gl = gl
     this.mesh = mesh
@@ -217,7 +217,7 @@ export class MeshRender {
     // }
 
     gl.bindFramebuffer(gl.FRAMEBUFFER, fbo)
-    gl.viewport(0.0, 0.0, window.screen.width, window.screen.height)
+    // gl.viewport(0.0, 0.0, window.screen.width, window.screen.height)
     if (fbo != null) {
       gl_draw_buffers.drawBuffersWEBGL(fbo.attachments)
     }

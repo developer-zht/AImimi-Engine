@@ -1,13 +1,13 @@
 import { mat4 } from 'gl-matrix'
 
 import { Mesh } from '@/objects/Mesh'
-import { Material } from '@/materials/Material'
+import { Material } from '@/materials/Material-deprecated'
 import { Shader } from '@/shaders/Shader'
 import { PerspectiveCamera } from 'three'
 
 import type { DrawControlParams } from '@/renderers/WebGLRenderer'
 import { FFTOceanRenderManager } from '@/managers/fftOcean/FFTOceanRenderManager'
-import { UpdatedParamters } from '@/types/WebGLRenderer'
+import { UpdatedParamters } from '@/renderers/types/WebGLRenderer-deprecated'
 
 export enum LineRenderMode {
   LINES = 'LINES', // 基本线段
@@ -34,7 +34,7 @@ export class LineRender {
     mesh: Mesh,
     material: Material,
     renderMode: LineRenderMode,
-    manager: FFTOceanRenderManager = null
+    manager: FFTOceanRenderManager | null = null
   ) {
     this.gl = gl
     this.mesh = mesh
@@ -140,6 +140,8 @@ export class LineRender {
     mat4.rotateX(modelMatrix, modelMatrix, this.mesh.transform.rotate[0])
     mat4.rotateY(modelMatrix, modelMatrix, this.mesh.transform.rotate[1])
     mat4.rotateZ(modelMatrix, modelMatrix, this.mesh.transform.rotate[2])
+    // console.log('modelMatrix:', Array.from(modelMatrix))
+    console.log('this.mesh.transform:', this.mesh.transform)
 
     // View transform
     camera.updateMatrixWorld()
@@ -240,7 +242,7 @@ export class LineRender {
     const gl = this.gl
 
     gl.bindFramebuffer(gl.FRAMEBUFFER, fbo)
-    gl.viewport(0.0, 0.0, window.screen.width, window.screen.height)
+    // gl.viewport(0.0, 0.0, window.screen.width, window.screen.height)
     if (fbo != null) {
       gl_draw_buffers.drawBuffersWEBGL(fbo.attachments)
     }
@@ -265,6 +267,7 @@ export class LineRender {
       // 使用线型渲染模式
       gl.drawElements(this.getWebGLDrawMode(), vertexCount, type, offset)
     }
+
     gl.bindFramebuffer(gl.FRAMEBUFFER, null)
   }
 

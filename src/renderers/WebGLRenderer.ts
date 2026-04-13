@@ -2,10 +2,14 @@ import { LineRender } from '@/renderers/LineRender'
 import { MeshRender } from '@/renderers/MeshRender'
 import { PerspectiveCamera } from 'three'
 
-import type { LightObj, UpdatedParamters, UpdatedTimeParameter } from '@/types/WebGLRenderer'
+import type {
+  LightObj,
+  UpdatedParamters,
+  UpdatedTimeParameter
+} from '@/renderers/types/WebGLRenderer-deprecated'
 import type { UpdatedLightParamters } from '@/types/light'
 import { FFTOceanRenderManager } from '@/managers/fftOcean/FFTOceanRenderManager'
-import { BaseRenderManager } from '@/managers/baseRenderManager/BaseRenderManager'
+import { BaseRenderManager } from '@/managers/BaseRenderManager-deprecated/BaseRenderManager'
 
 export interface DrawControlParams {
   globalTextureNum: number // TEXTUREi 计数器
@@ -193,7 +197,6 @@ export class WebGLRenderer {
     if (fftOceanRenderManager) {
       fftOceanRenderManager.update(updatedTimeParameter.uTime)
     }
-
     // Camera pass
     // 坐标轴HUD渲染 - 在所有其他渲染完成后
     for (let i = 0; i < this.lineRenders.length; i++) {

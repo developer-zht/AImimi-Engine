@@ -1,5 +1,6 @@
-import { Vec2, Vec3 } from '@/types/math'
-import type { ShaderParameters, ShaderProgram } from '@/types/Shader'
+import { ShaderCompilationError } from '@/errors/EngineError/ShaderError/ShaderCompilationError'
+import { Vec2, Vec3 } from '@/math/types/math'
+import type { ShaderParameters, ShaderProgram } from '@/shaders/types/Shader'
 import { mat3, mat4 } from 'gl-matrix'
 
 export class Shader {
@@ -33,7 +34,11 @@ export class Shader {
       console.error(this.gl.getShaderInfoLog(shader))
 
       // ❌ 抛出错误而不是继续
-      throw new Error(`${shaderTypeName} Shader 编译失败`)
+      throw new ShaderCompilationError(
+        shaderType === this.gl.VERTEX_SHADER ? 'vertex' : 'fragment',
+        '',
+        '编译失败'
+      )
     }
 
     console.log(
@@ -75,7 +80,7 @@ export class Shader {
     // result.uniforms = {}
     // result.attribs = {}
 
-    if (shaderParameters && shaderParameters.uniforms && shaderParameters.uniforms.length) {
+    if (shaderParameters?.uniforms?.length) {
       for (let i = 0; i < shaderParameters.uniforms.length; ++i) {
         result.uniforms = Object.assign(result.uniforms, {
           [shaderParameters.uniforms[i]]: this.gl.getUniformLocation(
@@ -85,7 +90,7 @@ export class Shader {
         })
       }
     }
-    if (shaderParameters && shaderParameters.attribs && shaderParameters.attribs.length) {
+    if (shaderParameters?.attribs?.length) {
       for (let i = 0; i < shaderParameters.attribs.length; ++i) {
         result.attribs = Object.assign(result.attribs, {
           [shaderParameters.attribs[i]]: this.gl.getAttribLocation(

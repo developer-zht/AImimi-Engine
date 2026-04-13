@@ -1,6 +1,6 @@
-import { TransformationParams } from '@/types/transformation'
+import { TransformationParams } from '@/objects/types/transformation'
 import { Mesh } from '@/objects/Mesh'
-import { AttributeData } from '@/types/mesh'
+import { AttributeData } from '@/objects/types/Mesh'
 
 export class AxisMesh extends Mesh {
   constructor(transform: TransformationParams) {

@@ -1,24 +1,13 @@
-import type { Transformation, TransformationParams } from '@/types/transformation'
-import type { Vec3 } from '@/types/math'
-import type { AttributeData } from '@/types/mesh'
-
-export class TRSTransform implements Transformation {
-  public translate: Vec3
-  public scale: Vec3
-  public rotate: Vec3
-
-  constructor(translate: Vec3 = [0, 0, 0], scale: Vec3 = [1, 1, 1], rotate: Vec3 = [0, 0, 0]) {
-    this.translate = translate
-    this.scale = scale
-    this.rotate = rotate
-  }
-}
+import type { TransformationParams } from '@/objects/types/transformation'
+import type { Vec3 } from '@/math/types/math'
+import type { AttributeData } from '@/objects/types/Mesh'
+import { Transformation } from './utils/Transform'
 
 export class Mesh {
   // 基本属性
   // public indices: number[]
   public count: number
-  public transform: TRSTransform
+  public transform: Transformation
   public indicesData: Uint32Array
 
   // 动态属性系统
@@ -87,11 +76,10 @@ export class Mesh {
       transform.modelRotateY,
       transform.modelRotateZ
     ]
-    const meshTrans = new TRSTransform(modelTranslation, modelScale, modelRotate)
+    const meshTrans = new Transformation(modelTranslation, modelRotate, modelScale)
 
     this.transform = meshTrans
   }
-
   // 检查是否有特定属性
   hasAttribute(name: string): boolean {
     return this.attributes.get(name) ? true : false
@@ -178,7 +166,14 @@ export class Mesh {
     ]
 
     return new Mesh(
-      [{ name: 'aVertexPosition', array: new Float32Array(positions) }],
+      [
+        {
+          name: 'aVertexPosition',
+          array: new Float32Array(positions),
+          size: 3,
+          type: WebGLRenderingContext.FLOAT
+        }
+      ],
       indices,
       transform
     )

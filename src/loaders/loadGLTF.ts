@@ -10,11 +10,11 @@ import { Mesh } from '@/objects/Mesh'
 import { Texture } from '@/textures/Texture'
 import { WebGLRenderer } from '@/renderers/WebGLRenderer'
 import { MeshRender } from '@/renderers/MeshRender'
-import { setTransform } from '@/utils/transformation'
-import { buildSSRMaterial, SSRMaterial } from '@/materials/SSRMaterial'
-import { buildShadowMaterial, ShadowMaterial } from '@/materials/ShadowMaterial'
-import { buildGbufferMaterial, GBufferMaterial } from '@/materials/GBufferMaterial'
-import { Vec3 } from '@/types/math'
+import { setTransform } from '@/utils/transformation-deprecated'
+import { buildSSRMaterial, SSRMaterial } from '@/materials/deferred/SSRMaterial'
+import { buildShadowMaterial, ShadowMaterial } from '@/materials/ShadowMaterial-deprecated'
+import { buildGbufferMaterial, GBufferMaterial } from '@/materials/deferred/GBufferMaterial'
+import { Vec3 } from '@/math/types/math'
 
 export function loadGLTF(
   renderer: WebGLRenderer,
@@ -49,7 +49,7 @@ export function loadGLTF(
         if (child.type === 'Mesh') {
           // child 是 Mesh 类型
           const threeMesh = child as THREEMesh
-          const geo = threeMesh.geometry as THREEBufferGeometry
+          const geo = threeMesh.geometry
           let material: THREEMeshStandardMaterial
           if (Array.isArray(threeMesh.material))
             material = threeMesh.material[0] as THREEMeshStandardMaterial

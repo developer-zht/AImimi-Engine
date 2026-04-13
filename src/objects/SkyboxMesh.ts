@@ -1,6 +1,6 @@
 import { Mesh } from '@/objects/Mesh'
-import { AttributeData } from '@/types/mesh'
-import { TransformationParams } from '@/types/transformation'
+import { AttributeData } from '@/objects/types/Mesh'
+import { TransformationParams } from '@/objects/types/transformation'
 
 export class SkyboxMesh extends Mesh {
   constructor(transform: TransformationParams) {

@@ -1,6 +1,6 @@
 import { Mesh } from '@/objects/Mesh'
-import { AttributeData } from '@/types/mesh'
-import type { TransformationParams } from '@/types/transformation'
+import { AttributeData } from '@/objects/types/Mesh'
+import type { TransformationParams } from '@/objects/types/transformation'
 
 export interface MeshData {
   positions: AttributeData
