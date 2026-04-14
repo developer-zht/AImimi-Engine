@@ -1,189 +1,99 @@
-import type {
-  Mesh as THREEMesh,
-  MeshStandardMaterial as THREEMeshStandardMaterial,
-  BufferGeometry as THREEBufferGeometry
-} from 'three'
-import { LoadingManager } from 'three'
-import { GLTF, GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader'
-
-import { Mesh } from '@/objects/Mesh'
-import { Texture } from '@/textures/Texture'
-import { WebGLRenderer } from '@/renderers/WebGLRenderer'
-import { MeshRender } from '@/renderers/MeshRender'
-import { setTransform } from '@/utils/transformation-deprecated'
-import { buildSSRMaterial, SSRMaterial } from '@/materials/deferred/SSRMaterial'
-import { buildShadowMaterial, ShadowMaterial } from '@/materials/ShadowMaterial-deprecated'
-import { buildGbufferMaterial, GBufferMaterial } from '@/materials/deferred/GBufferMaterial'
 import { Vec3 } from '@/math/types/math'
+import { Transform } from '@/objects/utils/Transform'
+import { Mesh as THREEMesh, MeshStandardMaterial } from 'three'
+import { GLTFLoader } from 'three/examples/jsm/Addons.js'
+import { GLTFMeshData } from './types/GLTFMeshData'
 
-export function loadGLTF(
-  renderer: WebGLRenderer,
+/** 只负责加载和解析，返回纯数据 */
+export async function loadGLTF(
   path: string,
   name: string,
-  materialName: string
-) {
-  const manager = new LoadingManager()
-  manager.onProgress = function (url, loaded, total) {
-    console.log(`GLTF loaded from ${url.slice(0, 100)}`)
-    console.log(`✅ GLTF loaded「${loaded}」of「${total}」successfully`)
-  }
-  manager.onError = onError
+  transformOverride?: Transform
+): Promise<GLTFMeshData[]> {
+  return new Promise((resolve, reject) => {
+    const dataArr: GLTFMeshData[] = []
 
-  function onProgress(xhr: ProgressEvent) {
-    if (xhr.lengthComputable) {
-      const percentComplete = (xhr.loaded / xhr.total) * 100
-      console.log('model ' + Math.round(percentComplete) + '% downloaded')
-    }
-  }
+    new GLTFLoader().setPath(path).load(
+      name + '.gltf',
+      (gltf) => {
+        gltf.scene.traverse((child) => {
+          if (child.type !== 'Mesh') return
 
-  function onError(url: string): void {
-    console.error('❌ Failed to load:', url)
-  }
-
-  new GLTFLoader(manager).setPath(path).load(
-    name + '.gltf',
-    function (gltf: GLTF) {
-      // console.log(gltf)
-      gltf.scene.traverse(async function (child) {
-        // console.log(child)
-        if (child.type === 'Mesh') {
-          // child 是 Mesh 类型
           const threeMesh = child as THREEMesh
           const geo = threeMesh.geometry
-          let material: THREEMeshStandardMaterial
-          if (Array.isArray(threeMesh.material))
-            material = threeMesh.material[0] as THREEMeshStandardMaterial
-          else material = threeMesh.material as THREEMeshStandardMaterial
-          const gltfTransform = setTransform(
-            child.position.x,
-            child.position.y,
-            child.position.z,
-            child.scale.x,
-            child.scale.y,
-            child.scale.z,
-            child.rotation.x,
-            child.rotation.y,
-            child.rotation.z
-          )
-          // let indices = Array.from({ length: geo.attributes.position.count }, (v, k) => k)
-          const mesh = new Mesh(
-            [
-              {
-                name: 'aVertexPosition',
-                array: new Float32Array(geo.attributes.position.array),
-                size: 3
-              },
-              {
-                name: 'aNormalPosition',
-                array: new Float32Array(geo.attributes.normal.array),
-                size: 3
-              },
-              { name: 'aTextureCoord', array: new Float32Array(geo.attributes.uv.array), size: 2 }
-            ],
-            Array.from(geo.index.array),
-            gltfTransform
-          )
 
-          // console.log(material.map.image)
-          // console.log(material.color.toArray())
+          const mat = Array.isArray(threeMesh.material)
+            ? (threeMesh.material[0] as MeshStandardMaterial)
+            : (threeMesh.material as MeshStandardMaterial)
 
-          const diffuseMap = new Texture()
-          if (material.map != null) {
-            diffuseMap.CreateImageTexture(renderer.gl, material.map.image)
-          } else {
-            diffuseMap.CreateConstantTexture(renderer.gl, material.color.toArray() as Vec3, true)
+          // ✅ 用 getAttribute() 取出后检查
+          const positionAttr = geo.getAttribute('position')
+          if (!positionAttr) {
+            console.warn(`[GLTFLoader] Mesh "${child.name}" has no position attribute, skipping`)
+            return // 跳过这个 mesh
           }
 
-          const specularMap = new Texture()
-          specularMap.CreateConstantTexture(renderer.gl, [0, 0, 0])
-          const normalMap = new Texture()
-          if (material.normalMap != null) {
-            normalMap.CreateImageTexture(renderer.gl, material.normalMap.image)
-          } else {
-            normalMap.CreateConstantTexture(renderer.gl, [0.5, 0.5, 1], false)
+          const normalAttr = geo.getAttribute('normal')
+          const uvAttr = geo.getAttribute('uv')
+          const tangentAttr = geo.getAttribute('tangent')
+          const colorAttr = geo.getAttribute('color')
+
+          // 索引：非索引几何体需要自己生成
+          const indices = geo.index
+            ? Array.from(geo.index.array)
+            : Array.from({ length: positionAttr.count }, (_, i) => i)
+
+          if (!geo.index) {
+            geo.setIndex(indices)
           }
 
-          const light = renderer.lights[0].entity
-          let ssrMaterial: SSRMaterial
-          let shadowMaterial: ShadowMaterial
-          let bufferMaterial: GBufferMaterial
-
-          // switch (materialName) {
-          //   case 'SSRMaterial':
-          //     material = buildSSRMaterial(
-          //       diffuseMap,
-          //       specularMap,
-          //       light,
-          //       renderer.camera,
-          //       `./src/shaders/ssrShader/ssrVertex.glsl`,
-          //       './src/shaders/ssrShader/ssrFragment.glsl'
-          //     )
-          //     shadowMaterial = buildShadowMaterial(
-          //       light,
-          //       './src/shaders/shadowShader/shadowVertex.glsl',
-          //       './src/shaders/shadowShader/shadowFragment.glsl'
-          //     )
-          //     bufferMaterial = buildGbufferMaterial(
-          //       diffuseMap,
-          //       normalMap,
-          //       light,
-          //       renderer.camera,
-          //       './src/shaders/gbufferShader/gbufferVertex.glsl',
-          //       './src/shaders/gbufferShader/gbufferFragment.glsl'
-          //     )
-          //     break
-          // }
-
-          // material.then((material) => {
-          //   let meshRender = new MeshRender(renderer.gl, mesh, material)
-          //   renderer.addMeshRender(meshRender)
-          // })
-          // shadowMaterial.then((material) => {
-          //   let shadowMeshRender = new MeshRender(renderer.gl, mesh, material)
-          //   renderer.addShadowMeshRender(shadowMeshRender)
-          // })
-          // bufferMaterial.then((material) => {
-          //   let bufferMeshRender = new MeshRender(renderer.gl, mesh, material)
-          //   renderer.addBufferMeshRender(bufferMeshRender)
-          // })
-
-          switch (materialName) {
-            case 'SSRMaterial': {
-              ssrMaterial = await buildSSRMaterial(
-                diffuseMap,
-                specularMap,
-                light,
-                renderer.camera,
-                './src/shaders/ssrShader/ssrVertex.glsl',
-                './src/shaders/ssrShader/ssrFragment.glsl'
-              )
-              shadowMaterial = await buildShadowMaterial(
-                light,
-                './src/shaders/shadowShader/shadowVertex.glsl',
-                './src/shaders/shadowShader/shadowFragment.glsl'
-              )
-              bufferMaterial = await buildGbufferMaterial(
-                diffuseMap,
-                normalMap,
-                light,
-                renderer.camera,
-                './src/shaders/gbufferShader/gbufferVertex.glsl',
-                './src/shaders/gbufferShader/gbufferFragment.glsl'
-              )
-
-              const meshRender = new MeshRender(renderer.gl, mesh, ssrMaterial)
-              renderer.addMeshRender(meshRender)
-              const shadowMeshRender = new MeshRender(renderer.gl, mesh, shadowMaterial)
-              renderer.addShadowMeshRender(shadowMeshRender)
-              const bufferMeshRender = new MeshRender(renderer.gl, mesh, bufferMaterial)
-              renderer.addBufferMeshRender(bufferMeshRender)
-              break
-            }
+          // 加载后，如果有 normal + uv 但没有 tangent，自动计算
+          if (!tangentAttr && normalAttr && uvAttr) {
+            geo.computeTangents()
           }
+          const computedTangentAttr = geo.getAttribute('tangent')
+
+          dataArr.push({
+            name: child.name || 'unnamed',
+            positions: new Float32Array(positionAttr.array),
+            normals: normalAttr ? new Float32Array(normalAttr.array) : null,
+            uvs: uvAttr ? new Float32Array(uvAttr.array) : null,
+            indices: indices,
+            tangents: computedTangentAttr ? new Float32Array(computedTangentAttr.array) : null,
+            colors: colorAttr ? new Float32Array(colorAttr.array) : null,
+            transform:
+              transformOverride ??
+              new Transform(
+                [child.position.x, child.position.y, child.position.z],
+                [child.rotation.x, child.rotation.y, child.rotation.z],
+                [child.scale.x, child.scale.y, child.scale.z]
+              ),
+            // PBR 材质数据 -- PBR 贴图
+            diffuseImage: mat.map?.image ?? null,
+            normalImage: mat.normalMap?.image ?? null,
+            metalnessImage: mat.metalnessMap?.image ?? null,
+            aoImage: mat.aoMap?.image ?? null,
+            emissiveImage: mat.emissiveMap?.image ?? null,
+            roughnessImage: mat.roughnessMap?.image ?? null,
+            displacementImage: mat.displacementMap?.image ?? null,
+            alphaImage: mat.alphaMap?.image ?? null,
+            // PBR 材质数据 -- PBR 标量参数
+            diffuseColor: mat.color.toArray() as Vec3,
+            metalness: mat.metalness ?? 0,
+            roughness: mat.roughness ?? 0.5,
+            emissiveColor: mat.emissive.toArray() as Vec3,
+            emissiveIntensity: mat.emissiveIntensity ?? 0
+          })
+        })
+        resolve(dataArr)
+      },
+      (xhr) => {
+        if (xhr.lengthComputable) {
+          const percentComplete = (xhr.loaded / xhr.total) * 100
+          console.log('model ' + Math.round(percentComplete) + '% downloaded')
         }
-      })
-    },
-    onProgress,
-    onError
-  )
+      },
+      (error) => reject(error)
+    )
+  })
 }
