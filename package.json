@@ -1,6 +1,7 @@
 {
   "name": "refactored-games202-project",
   "version": "1.0.0",
+  "type": "module",
   "scripts": {
     "dev": "vite",
     "build": " sh ./scripts/copy-shaders.sh && vite build",
@@ -15,8 +16,12 @@
     "format:check": "prettier --check \"src/**/*.{js,json,css,html}\"",
     "check": "npm run type-check && npm run lint && npm run format:check",
     "fix": "npm run lint:fix && npm run format",
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "prepare": "husky install"
+    "test": "vitest",
+    "test:run": "vitest run",
+    "test:ui": "vitest --ui",
+    "coverage": "vitest run --coverage",
+    "prepare": "husky install",
+    "commit": "cz"
   },
   "lint-staged": {
     "src/**/*.{js,ts}": [
@@ -32,10 +37,13 @@
   "license": "ISC",
   "description": "",
   "dependencies": {
+    "core-js": "^3.45.1",
     "dat.gui": "^0.7.9",
     "dotenv": "^17.0.1",
     "gl-matrix": "^3.4.3",
     "imgui": "^1.0.10",
+    "mathjs": "^14.7.0",
+    "regenerator-runtime": "^0.14.1",
     "three": "^0.177.0",
     "url-join": "^5.0.0"
   },
@@ -43,21 +51,34 @@
     "@commitlint/cli": "^19.8.1",
     "@commitlint/config-conventional": "^19.8.1",
     "@types/dat.gui": "^0.7.13",
+    "@types/gl": "^6.0.5",
     "@types/node": "^24.0.3",
     "@types/three": "^0.177.0",
     "@types/webgl2": "^0.0.11",
     "@typescript-eslint/eslint-plugin": "^8.40.0",
     "@typescript-eslint/parser": "^8.40.0",
+    "commitizen": "^4.3.1",
+    "cz-git": "^1.12.0",
     "eslint": "^8.57.1",
     "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-markdown": "^5.1.0",
+    "git-cz": "^4.9.0",
+    "gl": "^8.1.6",
     "globals": "^16.2.0",
     "husky": "^9.1.7",
+    "jsdom": "^27.0.0",
     "lint-staged": "^16.1.5",
     "prettier": "^3.6.2",
     "prettier-plugin-glsl": "^0.2.2",
     "rollup-plugin-visualizer": "^6.0.3",
     "terser": "^5.43.1",
     "typescript": "^5.8.3",
-    "vite": "^6.3.5"
+    "vite": "^6.3.5",
+    "vitest": "^3.2.4"
+  },
+  "config": {
+    "commitizen": {
+      "path": "node_modules/cz-git"
+    }
   }
 }

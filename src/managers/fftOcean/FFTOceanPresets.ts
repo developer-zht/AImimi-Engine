@@ -1,8 +1,8 @@
 import { setTransform } from '@/utils/transformation'
-import { FFTOceanRenderManagerConfig } from './FFTOceanRenderManager'
-import { HDRCubeMapTexture } from '@/textures/HDRCubeMapTexture'
-import { CubeMapTexture } from '@/textures/CubeMapTexture'
+import { HDRBasedCubeMapTexture } from '@/textures/HDRBasedCubeMapTexture'
+import { ImgBasedCubeMapTexture } from '@/textures/ImgBasedCubeMapTexture'
 import { FileExtensions, TexturePaths } from '@/config/resourcePaths'
+import { BlendMode, FFTOceanRenderManagerConfig, RenderingMode } from '@/types/fftOcean'
 
 export class FFTOceanPresets {
   private static instance: FFTOceanPresets
@@ -22,14 +22,15 @@ export class FFTOceanPresets {
   }
 
   async createSkybox(): Promise<WebGLTexture> {
-    // const skybox = new CubeMapTexture(this.gl)
-    // await skybox.createCubeMapFromImages({
-    //   basePath: TexturePaths.SKY_09_CUBEMAP,
-    //   extension: FileExtensions.PNG
-    // })
-    // const skyboxTexture = skybox.texture
+    // FIXME: skybox 和 ocean 实际上都是使用的是同一个 skybox texture，但又各自创建了一个 ImgBasedCubeMapTexture 实例，造成了内存浪费
+    const skybox = new ImgBasedCubeMapTexture(this.gl)
+    await skybox.createCubeMapFromImages({
+      basePath: TexturePaths.SKY_SUNSET,
+      extension: FileExtensions.PNG
+    })
+    const skyboxTexture = skybox.texture
 
-    const skyboxTexture = HDRCubeMapTexture.getInstance(this.gl).envCubemap
+    // const skyboxTexture = HDRBasedCubeMapTexture.getInstance(this.gl).envCubemap
 
     return skyboxTexture
   }
@@ -41,7 +42,7 @@ export class FFTOceanPresets {
       materialParams: {
         // 纹理使用标志
         useDiffuseMap: 0,
-        useNormalMap: 1,
+        useNormalMap: 0,
         useEnvironmentMap: 1,
         // 基础纹理
         diffuseMap: null,
@@ -59,27 +60,88 @@ export class FFTOceanPresets {
         time: 0.0,
         // 水深模型参数
         depthModel: 2,
-        maxDepth: 50.0,
-        minDepth: 1.0,
+        maxDepth: 1000.0,
+        minDepth: 1000.0,
         depthCenter: [0, 0],
         depthFalloff: 1.5,
         // 光照参数
-        lightColor: [0.9, 0.9, 0.9],
+        lightColor: [0.5, 0.5, 0.5],
         lightPos: [2, 2, 2],
         lightDir: [0.3, -0.7, 0.2],
         specularPower: 2.0,
         fresnelPower: 5.0,
 
-        displacementMap: null
+        displacementMap: null,
+        gradientMap: null,
+        dispDerivativeMap: null
       },
-      oceanParams: {
-        size: 512, // 100米的海面
-        resolution: 128, // 256x256网格
-        windSpeed: 30, // 20m/s风速
-        windDirection: { x: 1, y: 1 }, // 东风
-        gravity: 9.81,
-        choppiness: 1.2,
-        amplitude: 50
+      // oceanParams: {
+      //   size: 1024, // size 米的海面
+      //   resolution: 256, // resolution x resolution 网格
+      //   windSpeed: 12, // windSpeed m/s风速
+      //   windDirection: { x: 2, y: 1 }, // wind direction
+      //   gravity: 9.81,
+      //   choppiness: 2,
+      //   fetch: 500000, // 风区长度 F, 单位米 (m)
+      //   depth: 100,
+      //   amplitude: 1000
+      // }
+      cascadeConfig: {
+        renderingMode: RenderingMode.LINE,
+        // FIXME: 暂时未完成多波叠加
+        enabled: false, // 是否启用 cascade，true 为 cascade，false 为 single
+        meshResolution: 128, // 目标统一分辨率，默认使用最高层分辨率
+        meshSize: 256, // 目标统一范围，默认使用最大范围
+        blendMode: BlendMode.WEIGHT, // 混合模式：相加或加权
+        layerParamsSet: [
+          // 效果一
+          {
+            size: 256, // 256m 海面
+            resolution: 128, // 128 分辨率
+            amplitude: 30, // 振幅放大系数
+            choppiness: 2.3, // 稍强的 choppy 效果
+            windSpeed: 13, // 风速
+            windDirection: { x: 1, y: 1 }, // 风向
+            gravity: 9.81,
+            fetch: 100000, // 100km fetch (单位: 米)
+            depth: 1000 // 水深 (单位: 米)
+          },
+          // 效果二
+          {
+            size: 256, // 256m 海面
+            resolution: 128, // 128 分辨率
+            amplitude: 30, // 振幅放大系数
+            choppiness: 3.3, // 稍强的 choppy 效果
+            windSpeed: 13, // 风速
+            windDirection: { x: 1, y: 1 }, // 风向
+            gravity: 9.81,
+            fetch: 100000, // 100km fetch (单位: 米)
+            depth: 1000 // 水深 (单位: 米)
+          },
+          // 效果三
+          {
+            size: 256, // 256m 海面
+            resolution: 128, // 128 分辨率
+            amplitude: 30, // 振幅放大系数
+            choppiness: 5.3, // 很强的 choppy 效果
+            windSpeed: 13, // 风速
+            windDirection: { x: 1, y: 1 }, // 风向
+            gravity: 9.81,
+            fetch: 100000, // 100km fetch (单位: 米)
+            depth: 1000 // 水深 (单位: 米)
+          },
+          {
+            size: 32, // 32m 海面
+            resolution: 128, // 128 分辨率
+            amplitude: 10, // 振幅放大系数
+            choppiness: 3.0, // 稍强的 choppy 效果
+            windSpeed: 22, // 风速
+            windDirection: { x: 1, y: -1 },
+            gravity: 9.81,
+            fetch: 100000, // 100km fetch (单位: 米)
+            depth: 1000 // 水深
+          }
+        ]
       }
     }
   }

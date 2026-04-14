@@ -1,0 +1,133 @@
+{
+  "scenes": {
+    "fft-ocean": {
+      "name": "FFT Ocean Scene",
+      "description": "高级FFT海洋模拟场景",
+      "camera": {
+        "type": "WaterSceneCamera",
+        "position": [70, 20, 50],
+        "target": [0, 0, 0]
+      },
+      "light": {
+        "type": "WAVE_LIGHT",
+        "radiance": [10, 10, 10],
+        "position": [1, 500, 0],
+        "direction": {
+          "x": 0.39048811,
+          "y": -0.89896828,
+          "z": 0.19843153
+        }
+      },
+      "environment": {
+        "type": "HDR",
+        "path": "assets/textures/environment/skies/EveningSkyHDRI039B/EveningSkyHDRI039B_2K-HDR.exr",
+        "format": "EXR"
+      },
+      "skybox": {
+        "enabled": true,
+        "type": "IMG_CUBE_MAP",
+        "preset": "sky_sunset"
+      },
+      "entities": [
+        {
+          "type": "FFTOcean",
+          "preset": "default"
+        },
+        {
+          "type": "Axis",
+          "enabled": true
+        }
+      ]
+    },
+
+    "gerstner-wave": {
+      "name": "Gerstner Wave Scene",
+      "description": "Gerstner波浪模拟",
+      "camera": {
+        "type": "WaterSceneCamera",
+        "position": [70, 20, 50],
+        "target": [0, 0, 0]
+      },
+      "light": {
+        "type": "WAVE_LIGHT"
+      },
+      "environment": {
+        "type": "HDR",
+        "path": "assets/textures/environment/skies/qwantani_moonrise_puresky_2k/puresky.hdr",
+        "format": "HDR"
+      },
+      "skybox": {
+        "enabled": true,
+        "type": "IMG_CUBE_MAP"
+      },
+      "entities": [
+        {
+          "type": "GerstnerWave",
+          "preset": "default"
+        }
+      ]
+    },
+
+    "cube-scene": {
+      "name": "Cube Scene",
+      "description": "简单立方体场景",
+      "camera": {
+        "type": "CubeSceneCamera",
+        "position": [6, 1, 0],
+        "target": [0, 0, 0]
+      },
+      "light": {
+        "type": "CUBE_LIGHT",
+        "radiance": [1, 1, 1],
+        "position": [-2, 4, 1],
+        "direction": {
+          "x": 0.4,
+          "y": -0.9,
+          "z": -0.2
+        }
+      },
+      "skybox": {
+        "enabled": true,
+        "type": "IMG_CUBE_MAP"
+      },
+      "entities": [
+        {
+          "type": "GLTF",
+          "path": "assets/cube/",
+          "name": "cube1",
+          "material": "SSRMaterial"
+        }
+      ]
+    },
+
+    "cave-scene": {
+      "name": "Cave Scene",
+      "description": "洞穴场景",
+      "camera": {
+        "type": "CaveSceneCamera",
+        "position": [4.18927, 1.0313, 2.07331],
+        "target": [2.92191, 0.98, 1.55037]
+      },
+      "light": {
+        "type": "CAVE_LIGHT",
+        "radiance": [20, 20, 20],
+        "position": [-0.45, 5.40507, 0.637043],
+        "direction": {
+          "x": 0.39048811,
+          "y": -0.89896828,
+          "z": 0.19843153
+        }
+      },
+      "entities": [
+        {
+          "type": "GLTF",
+          "path": "assets/cave/",
+          "name": "cave",
+          "material": "SSRMaterial"
+        }
+      ]
+    }
+  },
+
+  "defaultScene": "fft-ocean"
+}

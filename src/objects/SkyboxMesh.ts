@@ -1,9 +1,9 @@
-import { Mesh } from '@/objects/Mesh'
-import { AttributeData } from '@/types/mesh'
-import { TransformationParams } from '@/types/transformation'
+import { AttributeData } from '@/objects/types/Mesh'
+import { Mesh } from './Mesh'
+import { Transform } from './utils/Transform'
 
 export class SkyboxMesh extends Mesh {
-  constructor(transform: TransformationParams) {
+  constructor(gl: WebGLRenderingContext, label: string) {
     const skyboxVertices: number[] = [
       -1.0, 1.0, -1.0, -1.0, -1.0, -1.0, 1.0, -1.0, -1.0, 1.0, -1.0, -1.0, 1.0, 1.0, -1.0, -1.0,
       1.0, -1.0,
@@ -23,10 +23,14 @@ export class SkyboxMesh extends Mesh {
       -1.0, -1.0, -1.0, -1.0, -1.0, 1.0, 1.0, -1.0, -1.0, 1.0, -1.0, -1.0, -1.0, -1.0, 1.0, 1.0,
       -1.0, 1.0
     ]
-    const verticesAttrib: AttributeData = {
-      name: 'aVertexPosition',
-      array: new Float32Array(skyboxVertices)
-    }
+    const verticesAttribs: AttributeData[] = [
+      {
+        name: 'aVertexPosition',
+        array: new Float32Array(skyboxVertices),
+        size: 3,
+        type: gl.FLOAT
+      }
+    ]
     const skyboxIndices: number[] = []
     for (let i = 0; i < 36; i += 6) {
       // 每个面的两个三角形
@@ -39,6 +43,6 @@ export class SkyboxMesh extends Mesh {
         i + 5 // 第二个三角形
       )
     }
-    super(verticesAttrib, null, null, skyboxIndices, transform)
+    super(verticesAttribs, skyboxIndices, Transform.identity(), label, gl)
   }
 }

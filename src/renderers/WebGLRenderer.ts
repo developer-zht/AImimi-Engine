@@ -1,8 +1,15 @@
+import { LineRender } from '@/renderers/LineRender'
 import { MeshRender } from '@/renderers/MeshRender'
 import { PerspectiveCamera } from 'three'
 
-import type { LightObj, UpdatedParamters, UpdatedTimeParameter } from '@/types/WebGLRenderer'
+import type {
+  LightObj,
+  UpdatedParamters,
+  UpdatedTimeParameter
+} from '@/renderers/types/WebGLRenderer-deprecated'
 import type { UpdatedLightParamters } from '@/types/light'
+import { FFTOceanRenderManager } from '@/managers/fftOcean/FFTOceanRenderManager'
+import { BaseRenderManager } from '@/managers/BaseRenderManager-deprecated/BaseRenderManager'
 
 export interface DrawControlParams {
   globalTextureNum: number // TEXTUREi 计数器
@@ -14,9 +21,12 @@ export class WebGLRenderer {
   public camera: PerspectiveCamera
 
   public lights: LightObj[] = []
+  private lineRenders: LineRender[] = []
   private meshRenders: MeshRender[] = []
   private shadowMesheRenders: MeshRender[] = []
   private bufferMesheRenders: MeshRender[] = []
+
+  private axisLineRender: LineRender
 
   private startTime: number
 
@@ -24,6 +34,8 @@ export class WebGLRenderer {
     // TEXTUREi 计数器
     globalTextureNum: 0
   }
+
+  private managers: Record<string, BaseRenderManager>
 
   constructor(
     gl: WebGLRenderingContext,
@@ -33,6 +45,7 @@ export class WebGLRenderer {
     this.gl = gl
     this.gl_draw_buffers = gl_draw_buffers
     this.camera = camera
+    this.managers = {}
     this.startTime = Date.now()
   }
 
@@ -42,20 +55,68 @@ export class WebGLRenderer {
       meshRender: new MeshRender(this.gl, light.mesh, light.material)
     })
   }
+
+  addLineRender(lineRender: LineRender) {
+    this.lineRenders.push(lineRender)
+  }
+
+  deleteLineRender(lineRender: LineRender) {
+    this.lineRenders.splice(this.lineRenders.indexOf(lineRender))
+  }
+
   addMeshRender(meshRender: MeshRender) {
     this.meshRenders.push(meshRender)
   }
+
+  deleteMeshRender(meshRender: MeshRender) {
+    this.meshRenders.splice(this.meshRenders.indexOf(meshRender))
+  }
+
   addShadowMeshRender(meshRender: MeshRender) {
     this.shadowMesheRenders.push(meshRender)
   }
+
   addBufferMeshRender(meshRender: MeshRender) {
     this.bufferMesheRenders.push(meshRender)
+  }
+
+  setAxisLineRender(axisLineRender: LineRender) {
+    this.axisLineRender = axisLineRender
+  }
+
+  addToManagers<T extends BaseRenderManager>(manager: T, name: string) {
+    if (Object.keys(this.managers).includes(name)) {
+      console.log(`⚠️ A manager named ${name} already exists! Please delete the old one first.`)
+      console.log(`❌ Adding ${name} failed!`)
+      return
+    }
+    this.managers[name] = manager
+  }
+
+  getManager<T extends BaseRenderManager>(name: string): T {
+    const manager = this.managers[name]
+    if (!manager) {
+      throw new Error(`❌ No ${name} in Managers!`)
+    }
+    // 添加运行时类型检查（如果可能）
+    if (!(manager instanceof Object.getPrototypeOf(manager).constructor)) {
+      throw new TypeError(`Type mismatch for ${name}`)
+    }
+    return manager as T
+  }
+
+  deleteManager(name: string) {
+    if (!Object.keys(this.managers).includes(name)) {
+      console.log(`❌ No manager named ${name}.`)
+      return
+    }
+    Reflect.deleteProperty(this.managers, name)
   }
 
   render() {
     console.assert(this.lights.length != 0, 'No light')
     console.assert(this.lights.length == 1, 'Multiple lights')
-    let light = this.lights[0]
+    const light = this.lights[0]
 
     const gl = this.gl
     gl.clearColor(0.0, 0.0, 0.0, 1.0)
@@ -74,19 +135,19 @@ export class WebGLRenderer {
      * 合并参数
      */
     // 每一帧光源的位置、方向可能会变化，需要重新计算
-    let lightVP = light.entity.CalcDirectionalLightVP()
-    let lightDir = light.entity.CalcDirectionalShadingDirection()
-    let updatedLightParamters: UpdatedLightParamters = {
+    const lightVP = light.entity.CalcDirectionalLightVP()
+    const lightDir = light.entity.CalcDirectionalShadingDirection()
+    const updatedLightParamters: UpdatedLightParamters = {
       uLightVP: lightVP,
       uLightDir: lightDir
     }
 
     // 动画需要时间更新
-    let updatedTimeParameter: UpdatedTimeParameter = {
+    const updatedTimeParameter: UpdatedTimeParameter = {
       uTime: (Date.now() - this.startTime) / 1000
     }
     // 合并参数
-    let updatedParameters: UpdatedParamters = {
+    const updatedParameters: UpdatedParamters = {
       ...updatedLightParamters,
       ...updatedTimeParameter
     }
@@ -131,7 +192,22 @@ export class WebGLRenderer {
       // this.bufferMeshes[i].draw(this.camera);
     }
 
+    // FFT Ocean Spatial Pass
+    const fftOceanRenderManager = this.getManager<FFTOceanRenderManager>('fftOceanRenderManager')
+    if (fftOceanRenderManager) {
+      fftOceanRenderManager.update(updatedTimeParameter.uTime)
+    }
     // Camera pass
+    // 坐标轴HUD渲染 - 在所有其他渲染完成后
+    for (let i = 0; i < this.lineRenders.length; i++) {
+      this.lineRenders[i].draw(
+        this.camera,
+        this.gl_draw_buffers,
+        null,
+        updatedParameters,
+        this.drawControlParams
+      )
+    }
     for (let i = 0; i < this.meshRenders.length; i++) {
       this.meshRenders[i].draw(
         this.camera,
@@ -139,6 +215,15 @@ export class WebGLRenderer {
         null,
         updatedParameters,
         this.drawControlParams
+      )
+    }
+    if (this.axisLineRender) {
+      // 假设您有一个专门的轴线渲染器
+      this.axisLineRender.renderAsHUD(
+        this.camera,
+        this.drawControlParams,
+        { x: 0.05, y: 0.05 }, // 左下角，距离边缘5%
+        120 // HUD区域120x120像素
       )
     }
   }

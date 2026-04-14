@@ -1,3 +1,10 @@
+# AI 相关
+claude-desktop-examples
+.claude
+
+# .md
+src/**/*.md
+
 # Logs
 logs
 *.log
@@ -17,8 +24,11 @@ lerna-debug.log*
 
 # Editor directories and files
 # 忽略项目中任何位置的.vscode文件夹
-**/.vscode/
+**/.vscode/*
 .vscode/*
+!.vscode/settings.json
+!.vscode/launch.json
+!.vscode/tasks.json
 !.vscode/extensions.json
 .idea
 *.suo
@@ -31,9 +41,9 @@ lerna-debug.log*
 
 # PRT编译输出目录
 # 忽略整个build目录及其所有内容
-prt/build/
+# prt/build/
 # prt/build/*   # 忽略build目录下的所有文件和子目录，但保留build目录本身
-prt/
+# prt/
 
 # 前端构建相关
 # npm依赖包目录
@@ -49,6 +59,7 @@ coverage
 # 测试相关
 /cypress/videos/
 /cypress/screenshots/
+/src/debug/
 
 # vscode counter 插件相关
 /.VSCodeCounter/

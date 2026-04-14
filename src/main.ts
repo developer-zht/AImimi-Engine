@@ -17,4 +17,11 @@ canvas.height = window.screen.height
 
 const engine = new Engine(canvas)
 
-engine.mainLoop()
+;(async () => {
+  try {
+    await engine.init()
+    engine.mainLoop()
+  } catch (error) {
+    console.error('引擎启动失败:', error)
+  }
+})()
