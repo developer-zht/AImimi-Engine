@@ -1,110 +1,81 @@
 import { Mesh } from '@/objects/Mesh'
-import { AttributeData } from '@/objects/types/Mesh'
-import type { TransformationParams } from '@/objects/types/transformation'
+import { Transform } from './utils/Transform'
+import { generateGridMeshData } from './utils/generateGridMeshData'
 
-export interface MeshData {
-  positions: AttributeData
-  normals: AttributeData
-  texCoords: AttributeData
-  indices: number[]
-}
+// FIXME:水面通常需要动态更新顶点数据（如波浪动画），需要考虑：
+// - 是否需要 `gl.DYNAMIC_DRAW` 而不是 `gl.STATIC_DRAW`
+// - 是否需要提供 `updateVertexData()` 方法
 
+/**
+ * 水面网格对象。
+ *
+ * 作用：
+ * - 生成规则平面网格（Grid Mesh）
+ * - 提供顶点位置、法线、UV、索引数据
+ * - 交由 {@link Mesh} 负责 GPU Buffer 创建与绑定
+ *
+ * 特点：
+ * - 初始为静态平面（Y = 0）
+ * - 法线默认朝上 (0, 1, 0)
+ * - UV 均匀分布
+ *
+ * 生命周期：
+ * - 构造时生成完整顶点数据
+ * - 数据上传由父类 Mesh 完成
+ * - 如需动态波浪效果，应扩展 updateVertexData()
+ *
+ * WebGL 限制：
+ * - WebGL1 默认使用 UNSIGNED_SHORT 作为索引类型
+ * - 最大索引值 65535
+ * - resolution^2 不能超过 65536
+ * - 若需要更高分辨率，必须启用 OES_element_index_uint 扩展
+ *
+ * 性能建议：
+ * - 静态水面：使用 gl.STATIC_DRAW
+ * - 动态波浪：建议使用 gl.DYNAMIC_DRAW
+ *
+ * 架构位置：
+ * - 几何层（Geometry Layer）
+ * - 不负责材质、着色、波浪计算逻辑
+ */
 export class WaterSurface extends Mesh {
+  /**
+   * 创建水面网格。
+   *
+   * @param transform 模型变换参数
+   * @param surfaceSize 水面物理尺寸（世界空间单位）
+   * @param vertexCount 网格分辨率（每行/列顶点数）
+   *
+   * resolution 说明：
+   * - resolution 表示“顶点数量”而不是“网格数量”
+   * - 实际生成 resolution × resolution 个顶点
+   * - 实际生成 (resolution - 1)^2 个网格
+   */
+
   // private size: number
   // private resolution: number
 
   constructor(
-    // meshData: MeshData,
-    transform: TransformationParams,
-    size: number,
-    resolution: number
+    gl: WebGLRenderingContext,
+    transform: Transform,
+    surfaceSize: number,
+    vertexCount: number
   ) {
-    const meshData = WaterSurface.generateWaterMeshParams(size, resolution)
-    super([meshData.positions, meshData.normals, meshData.texCoords], meshData.indices, transform)
+    const meshData = generateGridMeshData(gl, surfaceSize, vertexCount)
+
+    // const transform = new Transform(
+    //   [transformParams.modelTransX, transformParams.modelTransY, transformParams.modelTransZ],
+    //   [transformParams.modelRotateX, transformParams.modelRotateY, transformParams.modelRotateZ],
+    //   [transformParams.modelScaleX, transformParams.modelScaleY, transformParams.modelScaleZ]
+    // )
+    super(
+      [meshData.posData, meshData.normData, meshData.texCoordsData],
+      meshData.indices,
+      transform,
+      'WaterSurface',
+      gl
+    )
     // this.size = size
     // this.resolution = resolution
-  }
-
-  /**
-   * 生成 vertex 的 positions 和 indies
-   * @param {number} size 水面大小
-   * @param {number} resolution 水面分辨率，即每行、每列有多少个 vertex
-   * 由于 WebGL1.0 的限制，indices 的大小最多为 unsigned int 16 bit，也就是 65536
-   * 因此 resolution 的值不能太高，否则图中的 vertex 的个数超过了 65536 的话，就会显示错误
-   * */
-  private static generateWaterMeshParams(size: number, resolution: number): MeshData {
-    const positions: number[] = []
-    const normals: number[] = []
-    const texCoords: number[] = []
-
-    const indices: number[] = []
-
-    // 生成顶点
-    // for (let i = 0; i <= resolution; i++) {
-    //   for (let j = 0; j <= resolution; j++) {
-    //     // (i / resolution) ∈ [0,1];
-    //     // (i / resolution - 0.5) ∈ [-0.5,0.5];
-    //     const x = (i / resolution - 0.5) * size
-    //     const z = (j / resolution - 0.5) * size
-    //     const u = i / resolution
-    //     const v = j / resolution
-
-    //     positions.push(x, 0, z)
-    //     normals.push(0, 1, 0) // 初始法线向上
-    //     texCoords.push(u, v)
-    //   }
-    // }
-
-    // 生成索引
-    // for (let i = 0; i < resolution; i++) {
-    //   for (let j = 0; j < resolution; j++) {
-    //     const topLeft = i * (resolution + 1) + j
-    //     const topRight = topLeft + 1
-    //     const bottomLeft = (i + 1) * (resolution + 1) + j
-    //     const bottomRight = bottomLeft + 1
-
-    //     /**
-    //      * 两个三角形组成一个四边形
-    //      * 在WebGL中：正面（front-facing）三角形通常定义为逆时针，背面剔除（back-face culling）会把顺时针的三角形当作背面剔除掉，结果就是些三角形不会被渲染，或者法线方向错误
-    //      */
-    //     // 保证三角形的正确绕序（winding order）
-    //     indices.push(topLeft, bottomLeft, topRight)
-    //     indices.push(topRight, bottomLeft, bottomRight)
-    //   }
-    // }
-
-    // 改为 < resolution 而不是 <= resolution
-    for (let i = 0; i < resolution; i++) {
-      for (let j = 0; j < resolution; j++) {
-        const x = (i / (resolution - 1) - 0.5) * size
-        const z = (j / (resolution - 1) - 0.5) * size
-        const u = i / (resolution - 1)
-        const v = j / (resolution - 1)
-
-        positions.push(x, 0, z)
-        normals.push(0, 1, 0)
-        texCoords.push(u, v)
-      }
-    }
-
-    // 索引生成也要相应调整
-    for (let i = 0; i < resolution - 1; i++) {
-      for (let j = 0; j < resolution - 1; j++) {
-        const topLeft = i * resolution + j
-        const topRight = topLeft + 1
-        const bottomLeft = (i + 1) * resolution + j
-        const bottomRight = bottomLeft + 1
-
-        indices.push(topLeft, bottomLeft, topRight)
-        indices.push(topRight, bottomLeft, bottomRight)
-      }
-    }
-
-    return {
-      positions: { name: 'aVertexPosition', array: new Float32Array(positions), size: 3 },
-      normals: { name: 'aNormalPosition', array: new Float32Array(normals), size: 3 },
-      texCoords: { name: 'aTextureCoord', array: new Float32Array(texCoords), size: 2 },
-      indices
-    }
   }
 }
