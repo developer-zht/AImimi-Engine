@@ -1,9 +1,10 @@
-import { FFTOceanMaterialParams } from '@/materials/FFTOceanMaterial'
-import { TransformationParams } from '@/types/transformation'
+import { FFTOceanMaterialParams } from '@/materials/water/deprecated/FFTOceanMaterial-deprecated'
+import { TransformationParams } from '@/objects/types/transformation'
+import { Transform } from '@/objects/utils/Transform'
 
 export interface FFTOceanRenderManagerConfig {
   // 几何参数
-  tranformation: TransformationParams
+  transform: Transform
 
   // 材质参数
   materialParams: FFTOceanMaterialParams
