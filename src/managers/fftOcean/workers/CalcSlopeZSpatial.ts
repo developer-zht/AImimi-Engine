@@ -1,10 +1,10 @@
-import { SerializedSpectrum } from '@/types/worker'
-import { FFTProcessor } from '@/math/FFTProcessor/FFTProcessor'
+import { SerializedSpectrum } from '@/managers/fftOcean/workers/types/worker'
+import { FFTProcessor } from '@/math/FFTProcessor-deprecated/FFTProcessor'
 import { Complex } from '@/math/Complex'
 import {
   deserializeArraysToSpectrum,
   serializeSpatialToArrays
-} from '@/managers/fftOcean/utils/spectrumSerializer'
+} from '@/managers/fftOcean/deprecated/utils/spectrumSerializer'
 
 const fftProcessor = new FFTProcessor()
 
