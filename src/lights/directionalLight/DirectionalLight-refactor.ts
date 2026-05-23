@@ -4,6 +4,7 @@ import { IDirectionalLight } from './types/directionalLight'
 import { DirectionalLightParams } from './types/DirectionalLightParams'
 import { ShadowConfig } from '@/renderers/passes/shadow/types/shadow'
 import { DEFAULT_SHADOW_CONFIG } from '@/renderers/passes/shadow/_config/defaultConfig'
+import { DirectionalLightConfigError } from '@/errors/EngineError/LightError/DirectionalLightConfigError'
 
 /**
  * 表示一个**方向光（Directional Light）**
@@ -116,23 +117,95 @@ export class DirectionalLight implements IDirectionalLight {
     this._worldSize = params.worldSize ?? 5.0
 
     // target / direction 二选一
-    if ('target' in params && params.target !== undefined) {
-      // target 模式：存 target，direction 由 getter 派生
-      this._target = params.target
-    } else {
-      // direction 模式：由 direction 反推 target = position + direction
-      const dir = params.direction
-      this._target = [
-        this._position[0] + dir[0],
-        this._position[1] + dir[1],
-        this._position[2] + dir[2]
-      ]
+    // if ('target' in params && params.target !== undefined) {
+    //   // target 模式：存 target，direction 由 getter 派生
+    //   this._target = params.target
+    // } else {
+    //   // direction 模式：由 direction 反推 target = position + direction
+    //   const dir = params.direction
+    //   this._target = [
+    //     this._position[0] + dir[0],
+    //     this._position[1] + dir[1],
+    //     this._position[2] + dir[2]
+    //   ]
+    // }
+    if (!('target' in params) || params.target === undefined) {
+      throw new DirectionalLightConfigError(
+        '必须传 target。direction 由 (target − position) 推导，' +
+          '禁止显式传 direction（否则 visualizer / shadow ortho eye / shader L 三处可能不一致）',
+        { hasTarget: 'target' in params, position: params.position }
+      )
     }
+    this._target = params.target
 
     // shadow
     this.castShadow = params.shadowOptions?.castShadow ?? true
     this.shadowResolution = params.shadowOptions?.shadowResolution ?? 2048
     this._shadowConfig = { ...DEFAULT_SHADOW_CONFIG, ...params.shadowOptions?.shadowConfig }
+  }
+
+  /**
+   * 工厂：以 direction + 场景半径自动反推 position
+   *
+   * 物理含义：
+   *   方向光没有真实位置，position 只是 shadow ortho camera 的 eye。
+   *   只要满足：
+   *     1) (target - position) 平行于 direction（保证 shadow 相机看光的方向）
+   *     2) |position - target| > sceneRadius（保证 ortho frustum 远裁面能罩住场景）
+   *   即可正确生成 shadow map。
+   *
+   * 计算：
+   *   target   = sceneCenter
+   *   position = sceneCenter - normalize(direction) * sceneRadius * SAFETY_FACTOR
+   *
+   *   SAFETY_FACTOR = 2：position 到 sceneCenter 距离 = 2·R，
+   *   shadowConfig.near/far 区间至少 [0, 2R] 就能罩住半径 R 的包围球。
+   *
+   * @param direction   光传播方向 light → scene；可以不归一化，内部会做 normalize
+   * @param sceneCenter 场景包围球中心，默认原点
+   * @param sceneRadius 场景包围球半径（米）。受光照影响的最大区域即可，不必是全场景
+   */
+  static fromDirection(params: {
+    radiance: Vec3
+    direction: Vec3
+    sceneRadius: number
+    sceneCenter?: Vec3
+    up?: Vec3
+    worldSize?: number
+    shadowOptions?: DirectionalLightParams['shadowOptions']
+  }): DirectionalLight {
+    const SAFETY_FACTOR = 2
+
+    const dx = params.direction[0]
+    const dy = params.direction[1]
+    const dz = params.direction[2]
+    const len = Math.sqrt(dx * dx + dy * dy + dz * dz)
+    if (len < 1e-6) {
+      throw new DirectionalLightConfigError('direction 长度接近 0，无法反推 position', {
+        direction: params.direction
+      })
+    }
+    const nx = dx / len
+    const ny = dy / len
+    const nz = dz / len
+
+    const center: Vec3 = params.sceneCenter ?? [0, 0, 0]
+    const offset = params.sceneRadius * SAFETY_FACTOR
+
+    const position: Vec3 = [
+      center[0] - nx * offset,
+      center[1] - ny * offset,
+      center[2] - nz * offset
+    ]
+
+    return new DirectionalLight({
+      radiance: params.radiance,
+      position,
+      target: center,
+      up: params.up,
+      worldSize: params.worldSize,
+      shadowOptions: params.shadowOptions
+    })
   }
 
   // ============================================================
