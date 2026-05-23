@@ -3,8 +3,10 @@ import { TextureCreationError } from '@/errors/EngineError/TextureError/TextureC
 import { WebGLExtensionError } from '@/errors/EngineError/WebGLError/WebGLExtensionError'
 import { FramebufferIncompleteError } from '../errors/EngineError/FramebufferError/FramebufferIncompleteError'
 import { RenderbufferCreationError } from '@/errors/EngineError/FramebufferError/RenderbufferCreationError'
-import { FBOOptions } from './types/FBO'
+import { ColorTextureConfig, FBOOptions } from './types/FBO'
 import { getCapabilities } from '@/_config/glCapabilities'
+import { isPowerOf2 } from '@/math/isPowerOf2'
+import { FramebufferReleaseError } from '@/errors/EngineError/FramebufferError/FramebufferReleaseError'
 
 export class FBO {
   private gl: WebGLRenderingContext
@@ -19,10 +21,11 @@ export class FBO {
   private renderBufferObject: WebGLRenderbuffer | null = null
   private depthTexture: WebGLTexture | null = null
 
-  private textures: WebGLTexture[] = [] // 纹理由 FBO 自己管理
+  private textures: (WebGLTexture | null)[] = [] // 纹理由 FBO 自己管理，null = 该槽已 release
   private attachments: GLenum[] = [] // 附件由 FBO 自己管理
+  private released: boolean = false // texture 是否已被释放，bind() 时警告
 
-  private colorTextureConfig
+  private colorTextureConfig: Required<ColorTextureConfig>
 
   constructor(gl: WebGLRenderingContext, options: FBOOptions) {
     this.gl = gl
@@ -63,7 +66,8 @@ export class FBO {
       minFilter: ctc?.minFilter ?? gl.NEAREST,
       magFilter: ctc?.magFilter ?? gl.NEAREST,
       wrapS: ctc?.wrapS ?? gl.CLAMP_TO_EDGE,
-      wrapT: ctc?.wrapT ?? gl.CLAMP_TO_EDGE
+      wrapT: ctc?.wrapT ?? gl.CLAMP_TO_EDGE,
+      generateMipmap: ctc?.generateMipmap ?? false
     }
 
     this.initFrameBuffer(colorAttachmentCount)
@@ -73,7 +77,7 @@ export class FBO {
   private initFrameBuffer(colorAttachmentCount: number) {
     const gl = this.gl
 
-    //创建帧缓冲区对象
+    // 创建帧缓冲区对象
     this.framebuffer = gl.createFramebuffer()
     if (!this.framebuffer) {
       console.error('无法创建帧缓冲区对象')
@@ -121,32 +125,13 @@ export class FBO {
     this.gl.bindRenderbuffer(gl.RENDERBUFFER, null)
   }
 
-  //创建纹理对象并设置其尺寸和参数
+  // 创建纹理对象并设置其尺寸和参数
   private createAndBindColorTargetTexture(attachment: GLenum): WebGLTexture {
     const gl = this.gl
     const config = this.colorTextureConfig
 
-    // 检查 OES_texture_float 扩展，该扩展允许 WebGL 使用浮点数像素类型的纹理
-    if (config.type === gl.FLOAT) {
-      if (!getCapabilities().floatTexture) throw new WebGLExtensionError('OES_texture_float')
-    }
-    // float 纹理 + 线性过滤 → 需要扩展 ==> 检查 OES_texture_float_linear 扩展
-    if (
-      config.type === gl.FLOAT &&
-      (config.minFilter === gl.LINEAR || config.magFilter === gl.LINEAR)
-    ) {
-      if (!getCapabilities().floatLinearFilter) {
-        console.warn('[FBO] OES_texture_float_linear not supported, falling back to NEAREST')
-        config.minFilter = gl.NEAREST
-        config.magFilter = gl.NEAREST
-      }
-    }
-    // 检查 OES_texture_half_float 扩展，该扩展允许 WebGL 使用 16 位浮点数（半精度）像素类型的纹理
-    if (config.type === 0x8d61) {
-      // HALF_FLOAT_OES
-      if (!getCapabilities().halfFloatTexture)
-        throw new WebGLExtensionError('OES_texture_half_float')
-    }
+    // 校验 Texture Config
+    this.checkTexureConfig(config)
 
     const width = this.width
     const height = this.height
@@ -173,6 +158,10 @@ export class FBO {
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, config.magFilter)
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, config.wrapS)
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, config.wrapT)
+
+    if (config.generateMipmap) {
+      gl.generateMipmap(gl.TEXTURE_2D)
+    }
 
     gl.framebufferTexture2D(gl.FRAMEBUFFER, attachment, gl.TEXTURE_2D, texture, 0)
 
@@ -266,6 +255,14 @@ export class FBO {
   // ============================================================
 
   bind(): void {
+    if (this.released) {
+      // FBO 已经把 texture 交出去了，外部（caller）拿在手里、可能正在用；如果你这时候再 fbo.bind() 渲染，渲染会写到那张已经被 caller 持有的 texture 上——形成两个"使用者"同时写同一张纹理的混乱局面。
+      console.warn(
+        '[FBO.bind] FBO 已 release texture，bind 后渲染会写到 caller 持有的 texture 中。' +
+          '通常你想立刻 dispose() 而不是再 bind()。'
+      )
+    }
+
     this.gl.bindFramebuffer(this.gl.FRAMEBUFFER, this.framebuffer)
     // MRT 时重新设置 draw buffers
     if (this.gl_draw_buffers && this.attachments.length > 1) {
@@ -275,6 +272,91 @@ export class FBO {
 
   unbind(): void {
     this.gl.bindFramebuffer(this.gl.FRAMEBUFFER, null)
+  }
+
+  // ============================================================
+  //  release texture(s)
+  // ============================================================
+  /**
+   * 把指定 attachment 的 texture 所有权转移给调用方。
+   *
+   * 转移后：
+   *   - 该 texture 不会被本 FBO 的 dispose() 删除
+   *   - 该槽 textures[index] 标记为 null（保持索引稳定，不 splice）
+   *   - FBO 进入 "released" 状态，再次 bind() 会发出警告
+   *
+   * MRT 注意：
+   *   - 单 attachment FBO 调用是安全的（之后立即 dispose 即可）
+   *   - MRT FBO 部分释放 = drawBuffersWEBGL 行为未定义；
+   *     MRT 场景请用 releaseAllTextures()
+   *
+   * @throws 如果 index 越界或该槽已被释放或者 MRT 场景
+   */
+  releaseTexture(index: number): WebGLTexture {
+    if (this.attachments.length > 1) {
+      throw new FramebufferReleaseError(this.width, this.height, {
+        reason:
+          '[FBO.releaseTexture] MRT FBO 不允许部分释放——会让 drawBuffersWEBGL 的 attachment 索引和 textures 数组失配。' +
+          '请用 releaseAllTextures() 后调用 gl.deleteTexture() 丢弃不要的纹理。',
+        context: { attachmentCount: this.attachments.length, requestedIndex: index }
+      })
+    }
+
+    const tex = this.textures[index]
+    if (!tex) {
+      throw new FramebufferReleaseError(this.width, this.height, {
+        reason: `[FBO.releaseTexture] index=${index}：纹理不存在或已被释放`,
+        context: { requestedIndex: index, textureCount: this.textures.length }
+      })
+    }
+    this.textures[index] = null
+    this.released = true
+
+    return tex
+  }
+
+  /**
+   * 一次性把所有 attachment 的 texture 转移给调用方。
+   * 通常用于 MRT FBO bake 出多张 texture 后批量交出。
+   *
+   * @returns 按 attachment index 顺序的 WebGLTexture 数组（不含 null）
+   */
+  releaseAllTexture(): WebGLTexture[] {
+    const result: WebGLTexture[] = []
+
+    for (let i = 0; i < this.textures.length; i++) {
+      const tex = this.textures[i]
+      if (tex) {
+        result.push(tex)
+        this.textures[i] = null
+      }
+    }
+    this.released = true
+
+    return result
+  }
+
+  // ============================================================
+  //  mipmap
+  // ============================================================
+  /**
+   * 重新生成所有 color texture 的 mipmap 链
+   *
+   * 用途：每帧向 FBO 渲染新内容后调用，让远距离采样可以用到最新的低分辨率层级
+   *
+   * 只对构造时配置了 generateMipmap=true 的 FBO 生效，
+   * 其他 FBO 调用此方法是安全的 no-op（避免调用方需要判断）
+   */
+  regenerateMipmaps(): void {
+    if (!this.colorTextureConfig.generateMipmap) return
+
+    const gl = this.gl
+    for (const tex of this.textures) {
+      if (!tex) continue // tex 为 null 时跳过
+      gl.bindTexture(gl.TEXTURE_2D, tex)
+      gl.generateMipmap(gl.TEXTURE_2D)
+    }
+    gl.bindTexture(gl.TEXTURE_2D, null)
   }
 
   // ============================================================
@@ -288,12 +370,12 @@ export class FBO {
 
   /** 获取所有 texture */
   getTextures(): WebGLTexture[] {
-    return this.textures
+    return this.textures.filter((tex) => tex !== null)
   }
 
   /** 获取指定 texture */
   getTexture(index: number): WebGLTexture | undefined {
-    return this.textures[index]
+    return this.textures[index] ?? undefined // null → undefined，
   }
 
   /**
@@ -316,6 +398,107 @@ export class FBO {
   }
 
   // ============================================================
+  //  Check Texture Config
+  // ============================================================
+  private checkTexureConfig(config: Required<ColorTextureConfig>) {
+    const gl = this.gl
+
+    // --- Step 0：FLOAT / HALF_FLOAT 纹理存在性校验（最基础，不降级，必须抛） ---
+    // 检查 OES_texture_float 扩展，该扩展允许 WebGL 使用浮点数像素类型的纹理
+    if (config.type === gl.FLOAT) {
+      if (!getCapabilities().floatTexture) throw new WebGLExtensionError('OES_texture_float')
+    }
+
+    // 检查 OES_texture_half_float 扩展，该扩展允许 WebGL 使用 16 位浮点数（半精度）像素类型的纹理
+    if (config.type === 0x8d61) {
+      // HALF_FLOAT_OES
+      if (!getCapabilities().halfFloatTexture)
+        throw new WebGLExtensionError('OES_texture_half_float')
+    }
+
+    // --- Step 1：POT + mipmap 兼容性（降级 mipmap filter）---
+    if (config.generateMipmap || this.isMipmapFilter(config.minFilter, gl)) {
+      const isPot = isPowerOf2(this.width) && isPowerOf2(this.height)
+      if (!isPot) {
+        console.warn(
+          `[FBO] Non-POT dimensions (${this.width}×${this.height}) in WebGL1: ` +
+            'mipmap disabled, minFilter downgraded'
+        )
+        config.generateMipmap = false
+        // minFilter 现在只可能是 NEAREST 或 LINEAR
+        config.minFilter = this.stripMipmap(config.minFilter, gl)
+      }
+    }
+
+    // --- Step 2：FLOAT + LINEAR 兼容性（此时 minFilter 已是最终值）---
+    const needsFloatLinear =
+      config.type === gl.FLOAT &&
+      (this.hasIntraLevelLinear(config.minFilter, gl) ||
+        this.hasInterLevelLinear(config.minFilter, gl) ||
+        config.magFilter === gl.LINEAR)
+
+    if (needsFloatLinear && !getCapabilities().floatLinearFilter) {
+      console.warn(
+        '[FBO] OES_texture_float_linear not supported: ` + `LINEAR filters downgraded to NEAREST'
+      )
+      // 所有 LINEAR 系列全部降级
+      if (this.hasIntraLevelLinear(config.minFilter, gl)) {
+        config.minFilter =
+          this.stripMipmap(config.minFilter, gl) === gl.LINEAR ? gl.NEAREST : config.minFilter
+      }
+      // 处理跨层 linear（NEAREST_MIPMAP_LINEAR → NEAREST_MIPMAP_NEAREST）
+      if (config.minFilter === gl.NEAREST_MIPMAP_LINEAR) {
+        config.minFilter = gl.NEAREST_MIPMAP_NEAREST
+      }
+      if (config.magFilter === gl.LINEAR) {
+        config.magFilter = gl.NEAREST
+      }
+      // 注意：mipmap 本身不需要关（NEAREST_MIPMAP_NEAREST 仍可工作）
+    }
+  }
+
+  // ============================================================
+  //  Helper
+  // ============================================================
+  /** 某个 minFilter 是否属于 mipmap 系列（需要 mipmap 链存在） */
+  private isMipmapFilter(filter: GLenum, gl: WebGLRenderingContext): boolean {
+    return (
+      filter === gl.NEAREST_MIPMAP_NEAREST ||
+      filter === gl.NEAREST_MIPMAP_LINEAR ||
+      filter === gl.LINEAR_MIPMAP_NEAREST ||
+      filter === gl.LINEAR_MIPMAP_LINEAR
+    )
+  }
+
+  /** 某个 filter 所属的"非 mipmap 等价 filter"（降级用） */
+  private stripMipmap(filter: GLenum, gl: WebGLRenderingContext): GLenum {
+    switch (filter) {
+      case gl.NEAREST_MIPMAP_NEAREST:
+      case gl.NEAREST_MIPMAP_LINEAR:
+        return gl.NEAREST
+      case gl.LINEAR_MIPMAP_NEAREST:
+      case gl.LINEAR_MIPMAP_LINEAR:
+        return gl.LINEAR
+      default:
+        return filter
+    }
+  }
+
+  /** 某个 filter 是否包含"层内 linear 插值" */
+  private hasIntraLevelLinear(filter: GLenum, gl: WebGLRenderingContext): boolean {
+    return (
+      filter === gl.LINEAR ||
+      filter === gl.LINEAR_MIPMAP_NEAREST ||
+      filter === gl.LINEAR_MIPMAP_LINEAR
+    )
+  }
+
+  /** 某个 filter 是否包含"跨层 linear 插值"（即"三线性"的层间那部分） */
+  private hasInterLevelLinear(filter: GLenum, gl: WebGLRenderingContext): boolean {
+    return filter === gl.NEAREST_MIPMAP_LINEAR || filter === gl.LINEAR_MIPMAP_LINEAR
+  }
+
+  // ============================================================
   //  Dispose
   // ============================================================
 
@@ -323,9 +506,9 @@ export class FBO {
   dispose(): void {
     const gl = this.gl
 
-    // 删除纹理
+    // 删除还属于 FBO 的纹理（已 release 的 textures[i] = null 不会再删）
     for (const texture of this.textures) {
-      gl.deleteTexture(texture)
+      if (texture) gl.deleteTexture(texture)
     }
     this.textures = []
     this.attachments = []
