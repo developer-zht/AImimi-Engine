@@ -1,123 +1,77 @@
-import { LineRender } from '@/renderers/LineRender'
-import { MeshRender } from '@/renderers/MeshRender'
+import { MeshRenderer } from '@/renderers/MeshRenderer'
 import { PerspectiveCamera } from 'three'
-
-import type {
-  LightObj,
-  UpdatedParamters,
-  UpdatedTimeParameter
-} from '@/renderers/types/WebGLRenderer-deprecated'
-import type { UpdatedLightParamters } from '@/types/light'
-import { FFTOceanRenderManager } from '@/managers/fftOcean/FFTOceanRenderManager'
-import { BaseRenderManager } from '@/managers/BaseRenderManager-deprecated/BaseRenderManager'
-
-export interface DrawControlParams {
-  globalTextureNum: number // TEXTUREi 计数器
-}
+import { BaseRenderer } from './BaseRenderer'
+import { FrameContext } from './types/FrameContext'
+import { RenderPass } from './passes/types/RenderPass'
+import { OverlayRenderPass } from './passes/overlay/OverlayRenderPass'
 
 export class WebGLRenderer {
   public gl: WebGLRenderingContext
-  public gl_draw_buffers: WEBGL_draw_buffers
   public camera: PerspectiveCamera
+  private startTime = Date.now()
+  private lastTime = 0
+  private frameCount = 0
 
-  public lights: LightObj[] = []
-  private lineRenders: LineRender[] = []
-  private meshRenders: MeshRender[] = []
-  private shadowMesheRenders: MeshRender[] = []
-  private bufferMesheRenders: MeshRender[] = []
+  public lights: Map<string, MeshRenderer> = new Map()
 
-  private axisLineRender: LineRender
+  private renderPasses: RenderPass[] = []
 
-  private startTime: number
+  private overlayRenderPass: OverlayRenderPass
 
-  private drawControlParams: DrawControlParams = {
-    // TEXTUREi 计数器
-    globalTextureNum: 0
-  }
-
-  private managers: Record<string, BaseRenderManager>
-
-  constructor(
-    gl: WebGLRenderingContext,
-    gl_draw_buffers: WEBGL_draw_buffers,
-    camera: PerspectiveCamera
-  ) {
+  constructor(gl: WebGLRenderingContext, camera: PerspectiveCamera) {
     this.gl = gl
-    this.gl_draw_buffers = gl_draw_buffers
     this.camera = camera
-    this.managers = {}
-    this.startTime = Date.now()
+    // this.lightSystem = new LightSystem(gl)
+
+    // this.overlayPass = new OverlayPass(this.lights, this.hudEntries)
+    this.overlayRenderPass = new OverlayRenderPass()
+  }
+  // ============================================================
+  //  Pass 管理
+  // ============================================================
+  addRenderPass(pass: RenderPass): void {
+    this.renderPasses.push(pass)
   }
 
-  addLight(light: LightObj['entity']) {
-    this.lights.push({
-      entity: light,
-      meshRender: new MeshRender(this.gl, light.mesh, light.material)
-    })
-  }
-
-  addLineRender(lineRender: LineRender) {
-    this.lineRenders.push(lineRender)
-  }
-
-  deleteLineRender(lineRender: LineRender) {
-    this.lineRenders.splice(this.lineRenders.indexOf(lineRender))
-  }
-
-  addMeshRender(meshRender: MeshRender) {
-    this.meshRenders.push(meshRender)
-  }
-
-  deleteMeshRender(meshRender: MeshRender) {
-    this.meshRenders.splice(this.meshRenders.indexOf(meshRender))
-  }
-
-  addShadowMeshRender(meshRender: MeshRender) {
-    this.shadowMesheRenders.push(meshRender)
-  }
-
-  addBufferMeshRender(meshRender: MeshRender) {
-    this.bufferMesheRenders.push(meshRender)
-  }
-
-  setAxisLineRender(axisLineRender: LineRender) {
-    this.axisLineRender = axisLineRender
-  }
-
-  addToManagers<T extends BaseRenderManager>(manager: T, name: string) {
-    if (Object.keys(this.managers).includes(name)) {
-      console.log(`⚠️ A manager named ${name} already exists! Please delete the old one first.`)
-      console.log(`❌ Adding ${name} failed!`)
-      return
+  removeRenderPass(name: string): void {
+    const index = this.renderPasses.findIndex((pass) => pass.name === name)
+    if (index > -1) {
+      this.renderPasses[index]?.dispose()
+      this.renderPasses.splice(index, 1)
     }
-    this.managers[name] = manager
   }
 
-  getManager<T extends BaseRenderManager>(name: string): T {
-    const manager = this.managers[name]
-    if (!manager) {
-      throw new Error(`❌ No ${name} in Managers!`)
-    }
-    // 添加运行时类型检查（如果可能）
-    if (!(manager instanceof Object.getPrototypeOf(manager).constructor)) {
-      throw new TypeError(`Type mismatch for ${name}`)
-    }
-    return manager as T
+  getRenderPass<T extends RenderPass>(name: string): T | null {
+    return (this.renderPasses.find((pass) => pass.name === name) as T) ?? null
   }
 
-  deleteManager(name: string) {
-    if (!Object.keys(this.managers).includes(name)) {
-      console.log(`❌ No manager named ${name}.`)
-      return
-    }
-    Reflect.deleteProperty(this.managers, name)
+  getOverlayRenderPass(): OverlayRenderPass {
+    return this.overlayRenderPass
+  }
+
+  // ============================================================
+  //  HUD 管理
+  // ============================================================
+  /**
+   * 注册一个 HUD 渲染器
+   *
+   * HUD 渲染器不参与场景的 draw() 流程，
+   * 而是在每帧最后调用 renderAsHUD()。
+   *
+   * @param renderer  渲染器实例（通常是 createAxisRenderer() 的返回值）
+   * @param position  屏幕位置（归一化坐标，左下角为原点）
+   * @param size      HUD 视口大小（像素）
+   */
+  addHUDRenderer(
+    renderer: BaseRenderer,
+    position: { x: number; y: number } = { x: 0.05, y: 0.05 },
+    size: number = 120
+  ): void {
+    // this.hudEntries.push({ renderer, position, size })
+    this.overlayRenderPass.addHUDEntry({ renderer, position, size })
   }
 
   render() {
-    console.assert(this.lights.length != 0, 'No light')
-    console.assert(this.lights.length == 1, 'Multiple lights')
-    const light = this.lights[0]
-
     const gl = this.gl
     gl.clearColor(0.0, 0.0, 0.0, 1.0)
     gl.clearDepth(1.0)
@@ -125,106 +79,41 @@ export class WebGLRenderer {
     gl.depthFunc(gl.LEQUAL)
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT)
 
-    // TEXTUREi 的默认偏移量为 0
-    this.drawControlParams.globalTextureNum = 0
-
-    /**
-     * 更新参数
-     * Update light parameters
-     * Update time
-     * 合并参数
-     */
-    // 每一帧光源的位置、方向可能会变化，需要重新计算
-    const lightVP = light.entity.CalcDirectionalLightVP()
-    const lightDir = light.entity.CalcDirectionalShadingDirection()
-    const updatedLightParamters: UpdatedLightParamters = {
-      uLightVP: lightVP,
-      uLightDir: lightDir
+    // ========== 构建完整的 FrameContext ==========
+    const now = (Date.now() - this.startTime) / 1000
+    const context: FrameContext = {
+      elapsedTime: now,
+      deltaTime: now - this.lastTime,
+      frame: this.frameCount++,
+      resolution: {
+        width: gl.canvas.width,
+        height: gl.canvas.height
+      },
+      mouse: { x: 0, y: 0, clickX: 0, clickY: 0, pressed: false }, // TODO: 接入鼠标事件
+      textureUnitCounter: 0
     }
+    this.lastTime = now
 
-    // 动画需要时间更新
-    const updatedTimeParameter: UpdatedTimeParameter = {
-      uTime: (Date.now() - this.startTime) / 1000
-    }
-    // 合并参数
-    const updatedParameters: UpdatedParamters = {
-      ...updatedLightParamters,
-      ...updatedTimeParameter
+    // ========== 执行所有 pass（shadow, upscale, deferred 等） ==========
+    for (const pass of this.renderPasses) {
+      // pass.execute(this.meshRenderers, context, this.camera)
+      // pass.execute(this.meshRenderers, context, this.camera)
+      pass.execute(context, this.camera)
     }
 
-    // Draw light
-    light.meshRender.mesh.transform.translate = light.entity.lightPos
-    light.meshRender.draw(
-      this.camera,
-      this.gl_draw_buffers,
-      null,
-      updatedParameters,
-      this.drawControlParams
-    )
-    // console.log(light.meshRender)
+    // ========== Pass Overlay: 替代原有的 Pass 4 & Pass 5 ==========
+    // Pass 4: Draw light visualizers & Pass 5: HUD pass（最后渲染，覆盖在场景之上）
+    // 永远最后执行，不需要场景注册
+    this.overlayRenderPass.execute(context, this.camera)
+  }
 
-    // Shadow pass
-    gl.bindFramebuffer(gl.FRAMEBUFFER, light.entity.fbo)
-    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT)
-    for (let i = 0; i < this.shadowMesheRenders.length; i++) {
-      //   console.log(this.shadowMeshes[i])
-      this.shadowMesheRenders[i].draw(
-        this.camera,
-        this.gl_draw_buffers,
-        light.entity.fbo,
-        updatedParameters,
-        this.drawControlParams
-      )
-      // this.shadowMeshes[i].draw(this.camera);
-    }
+  clearRenderPasses(): void {
+    console.log(111)
+    console.log(this.renderPasses)
 
-    // Buffer pass
-    gl.bindFramebuffer(gl.FRAMEBUFFER, this.camera.fbo)
-    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT)
-    for (let i = 0; i < this.bufferMesheRenders.length; i++) {
-      this.bufferMesheRenders[i].draw(
-        this.camera,
-        this.gl_draw_buffers,
-        this.camera.fbo,
-        updatedParameters,
-        this.drawControlParams
-      )
-      // this.bufferMeshes[i].draw(this.camera);
+    for (const pass of this.renderPasses) {
+      pass.dispose()
     }
-
-    // FFT Ocean Spatial Pass
-    const fftOceanRenderManager = this.getManager<FFTOceanRenderManager>('fftOceanRenderManager')
-    if (fftOceanRenderManager) {
-      fftOceanRenderManager.update(updatedTimeParameter.uTime)
-    }
-    // Camera pass
-    // 坐标轴HUD渲染 - 在所有其他渲染完成后
-    for (let i = 0; i < this.lineRenders.length; i++) {
-      this.lineRenders[i].draw(
-        this.camera,
-        this.gl_draw_buffers,
-        null,
-        updatedParameters,
-        this.drawControlParams
-      )
-    }
-    for (let i = 0; i < this.meshRenders.length; i++) {
-      this.meshRenders[i].draw(
-        this.camera,
-        this.gl_draw_buffers,
-        null,
-        updatedParameters,
-        this.drawControlParams
-      )
-    }
-    if (this.axisLineRender) {
-      // 假设您有一个专门的轴线渲染器
-      this.axisLineRender.renderAsHUD(
-        this.camera,
-        this.drawControlParams,
-        { x: 0.05, y: 0.05 }, // 左下角，距离边缘5%
-        120 // HUD区域120x120像素
-      )
-    }
+    this.renderPasses = []
   }
 }
