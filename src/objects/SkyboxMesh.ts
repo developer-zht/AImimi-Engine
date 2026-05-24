@@ -3,7 +3,12 @@ import { Mesh } from './Mesh'
 import { Transform } from './utils/Transform'
 
 export class SkyboxMesh extends Mesh {
-  constructor(gl: WebGLRenderingContext, label: string) {
+  constructor(
+    gl: WebGLRenderingContext,
+    label: string
+    // 在 src/shaders/environment/converters/equirectToCubemap/fragment.frag 中进行了 Y 轴旋转，因此这里就不需要旋转网格了
+    // transform: Transform = Transform.identity()
+  ) {
     const skyboxVertices: number[] = [
       -1.0, 1.0, -1.0, -1.0, -1.0, -1.0, 1.0, -1.0, -1.0, 1.0, -1.0, -1.0, 1.0, 1.0, -1.0, -1.0,
       1.0, -1.0,
