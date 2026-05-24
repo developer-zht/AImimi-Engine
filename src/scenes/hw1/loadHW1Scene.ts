@@ -14,7 +14,7 @@ import { ForwardRenderPass } from '@/renderers/passes/forward/ForwardRenderPass'
 import { GUI } from 'dat.gui'
 
 /** 加载 HW1 完整场景：Mary + Floor */
-export async function loadHW1Scene(ctx: SceneContext) {
+export async function loadHW1Scene(ctx: SceneContext): Promise<() => void> {
   const { gl, renderer, camera, controls, gui } = ctx
 
   const config = HW1_SCENE_CONFIG // 加载场景配置
@@ -120,6 +120,14 @@ export async function loadHW1Scene(ctx: SceneContext) {
   }
 
   return () => {
+    // 1. 先撤销往 overlay 中添加的 visualizer（副作用对称撤销）
+    const overlayPass = renderer.getOverlayRenderPass()
+    if (overlayPass) {
+      for (const [id] of lightSystem.getVisualizers()) {
+        overlayPass.removeLightVisualizer(id)
+      }
+    }
+    // 2. 再 dispose 自己的资源
     lightSystem.dispose()
     // HW1 没有手动创建的纹理，模型纹理都是 factory 自动生成的 1x1 fallback
     // 它们跟着 MeshRenderer → Mesh 的 dispose 走
