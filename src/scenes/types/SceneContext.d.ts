@@ -1,4 +1,4 @@
-import { WebGLRenderer } from '@/renderers/WebGLRenderer-refactor'
+import { WebGLRenderer } from '@/renderers/WebGLRenderer'
 import { GUI } from 'dat.gui'
 import { PerspectiveCamera } from 'three'
 import { OrbitControls } from 'three/examples/jsm/Addons.js'
