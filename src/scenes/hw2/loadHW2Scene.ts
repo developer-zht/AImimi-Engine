@@ -7,7 +7,7 @@ import { ForwardRenderPass } from '@/renderers/passes/forward/ForwardRenderPass'
 import { PRTScenePreset } from './types/PRTScenePreset'
 import { GUI } from 'dat.gui'
 
-export async function loadHW2Scene(ctx: SceneContext) {
+export async function loadHW2Scene(ctx: SceneContext): Promise<() => void> {
   const { gl, renderer, camera, controls, gui } = ctx
 
   // ── 相机 ──
