@@ -13,6 +13,10 @@ export const WATER_MATERIAL_DEFAULTS: Required<WaterMaterialConfig> = {
   useEnvironmentMap: 0,
   environmentMap: null,
 
+  // ── 1.5 多层 FFT shader 独有的子通路开关 ──
+  useFoam: 1, // 默认开（按需关闭以 debug PBR 主体）
+  useFog: 1, // 默认开（horizon 蓝灰更自然，关闭可观察远场原色）
+
   // ── 2. 水体颜色 ──
   ambientColor: [0.35, 0.5, 0.65],
   // waterColor: [0.1, 0.3, 0.5],
@@ -54,22 +58,28 @@ export const WATER_MATERIAL_DEFAULTS: Required<WaterMaterialConfig> = {
 
   // ── 10. Foam ──
   foamColor: [1.0, 1.0, 1.0],
+  foamUVScale: 0.5, // Mesh 中的 2m 为一个采样周期
   foamRoughness: 0.2,
   foamBias: 0.2,
   foamPower: 1.5,
   foamAdd: 0.1,
   foamDecayRate: 0.05,
 
-  // ---- 11. 近/远法线过渡 ----
+  // ---- 11. Fog ----
+  fogColor: [0.7, 0.78, 0.85], // horizon 蓝灰
+  fogDensity: 0.004, // = 1/256m
+  fogPower: 1.0, // 标准 exp fog
+
+  // ---- 12. 近/远法线过渡 ----
   varMaskRange: 3.0,
   varMaskPower: 3.0,
   varMaskTexScale: 2.0,
 
-  // ── 12. 远近距离衰减（相机距离，与几何方法无关）──
+  // ── 13. 远近距离衰减（相机距离，与几何方法无关）──
   displaceDepthAttenuation: 10.0,
   foamDepthAttenuation: 20.0,
 
-  // ── 13. 表面缩放（任何有 normal/height 的水都能用）──
+  // ── 14. 表面缩放（任何有 normal/height 的水都能用）──
   normalStrength: 0.2,
   heightStrength: 1.0
 }
