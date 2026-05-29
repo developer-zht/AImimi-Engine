@@ -1,0 +1,476 @@
+import { FFT_OCEAN_MATERIAL_DEFAULTS } from '@/materials/water/_config/defaults'
+import { Transform } from '@/objects/utils/Transform'
+import { FFTOceanConfig } from '../types/FFTOceanConfig-MultiLayers'
+import { FFTOceanMaterialConfig } from '@/materials/water/types/FFTOceanMaterialConfig'
+import { LineRenderMode } from '@/renderers/types/LineRenderMode'
+
+/**
+ * FFTOceanScene（multi-layers / cascade=4）的场景配置。
+ *
+ * 文件分两段：
+ *   1. FFT_OCEAN_MATERIAL_OVERRIDES — 仅覆盖 FFT_OCEAN_MATERIAL_DEFAULTS 中
+ *      与"远洋海面"风格不一致的字段。其余字段沿用 defaults.ts 中的默认值。
+ *      → 对应 shader：fragment-multi-layers.frag
+ *      → 对应 material：FFTOceanMaterial-MultiLayers.ts
+ *
+ *   2. DEFAULT_FFT_OCEAN_CONFIG — 完整的 FFTOceanConfig：
+ *      Mesh + Material + Renderer + FFT cascade（4 层）。
+ *      ⚠️ oceanParamsCascade 的长度若 > 4，多余层会被 shader 忽略。
+ *
+ * 物理量单位约定：
+ *   - 长度 / size / fetch：米
+ *   - windSpeed：m/s（U10：海面上方 10 m 处的 1 小时均值）
+ *   - windDirection：度（0° 沿 +X，逆时针为正；与 spectrum.frag 的 θ 一致）
+ *   - amplitude / scale：无量纲艺术增益（频谱 √S(k) 的整体放大）
+ *   - λ_peak ≈ U₁₀² / g (Pierson–Moskowitz 估计)，用于判断 fetch 是否落在 size 内
+ */
+
+// ============================================================
+// 1) 材质覆盖：默认 + 远洋风格定制
+// ============================================================
+export const FFT_OCEAN_MATERIAL_OVERRIDES: FFTOceanMaterialConfig = {
+  // ==================== Toggles ====================
+  useEnvironmentMap: 1, // IBL specular（textureCubeLodEXT → 关时 envReflect = 0）
+  useFoam: 1, // foam 末尾混色（关时只看 PBR 主体，debug specular aliasing 用）
+  useFog: 0, // 大气透视（关时远场不会被 horizon 蓝灰染色）
+
+  // ==================== Fresnel ====================
+  refractiveIndex: 1.33, // η（海水）→ F0 = ((η-1)/(η+1))² ≈ 0.02
+
+  // ==================== SSS (Subsurface Scattering)  ====================
+  /**
+   * SSS (Subsurface Scattering) 四项经验模型
+   *   k1 = σ_peak · H · (L·-V)⁴ · (0.5 - 0.5·L·N)³   逆光波峰透光
+   *   k2 = σ_view · (V·N)²                            视线垂直穿水
+   *   k3 = σ_sh   · (N·L)                             类 Lambert
+   *   k4 = ρ_amb                                      环境散射
+   *
+   * ── 经验配色表（线性空间）─────────────────────────────────────
+   *  水域类型   | scatterColor       | scatterPeakColor    | 视觉效果
+   *  ----------|---------------------|---------------------|----------
+   *  深远洋    | [0.0,  0.05, 0.15] | [0.0,  0.25, 0.4]  | 黑蓝主体 + 蓝色透光
+   *  中深海    | [0.0,  0.15, 0.35] | [0.1,  0.4,  0.55] | 深蓝主体 + 青蓝峰
+   *  沿岸      | [0.05, 0.4,  0.5]  | [0.3,  0.7,  0.65] | 青绿主体 + 翠绿峰
+   *  热带浅海  | [0.1,  0.6,  0.7]  | [0.4,  0.9,  0.8]  | 蓝绿主体 + 亮翠绿峰
+   *
+   * 经验规则：
+   *   - scatterPeakColor 略偏绿（波尖薄、绿光吸收少），并比 scatterColor 亮
+   *   - wavePeakScatterStrength 建议范围 0.3~5（依 H 而定）
+   */
+  // scatterColor: [0.0, 0.05, 0.15],
+  // scatterPeakColor: [0.0, 0.25, 0.4],
+  // 加少量 R，让蓝"有重量"而不是"塑料感"
+  scatterPeakColor: [0.05, 0.22, 0.35],
+  scatterColor: [0.02, 0.06, 0.14],
+  wavePeakScatterStrength: 0.3, // σ_peak（k1）
+  scatterStrength: 0.15, // σ_view（k2）
+  scatterShadowStrength: 0.25, // σ_sh  （k3）
+  ambientDensity: 0.01, // ρ_amb （k4），开了 IBL 后兜底权重可以非常小
+  heightStrength: 1.0, // 波高缩放（H，给 SSS k1 用）
+
+  // ==================== Cook-Torrance ====================
+  roughness: 0.05, // Beckmann RMS 斜率 m（水非常光滑）
+  foamRoughness: 0.9, // foam 覆盖处的 roughness 增量（接近 lambertian）
+
+  // ==================== IBL ====================
+  envirLightStrength: 0.8, // envReflect 艺术增益（HDR 解码 + tonemap 前曝光补偿）
+
+  // ==================== 兜底环境色 ====================
+  // IBL 关闭时给 SSS k4 用
+  ambientColor: [0.3, 0.42, 0.55],
+
+  // Deprecated
+  // ambientColor: [0.4, 0.55, 0.65], // 近似 ShadeSH9 兜底
+
+  // Deprecated
+  // shallowWaterColor: [0.05, 0.17, 0.22], // 浅海青蓝（不要太绿）
+  // waterColor: [0.05, 0.25, 0.45], // 中等蓝
+  // deepWaterColor: [0.01, 0.04, 0.08], // 深海深蓝
+
+  // ==================== Foam ====================
+  // ⚠️ scale 越大颗粒越细，但 tile 重复越明显（近距离会看到网格感）
+  foamUVScale: 1.5, // uv = worldXZ · 1.5 → 单 tile ≈ 0.67 m
+  foamColor: [0.85, 0.9, 0.95], // 微蓝白（模拟泡沫里残留的水色）
+
+  // Deprecated
+  // foamBias: 0.2, // FoamBias
+  // foamPower: 1.5, // FoamPower
+  // foamAdd: 0.1, // FoamAdd
+  // foamDecayRate: 0.05, // FoamDecayRate
+
+  // ==================== 阴影 ====================
+  shadowIntensity: 0.2, // 软阴影 lift：S̃ = sat(shadow + 0.2)
+
+  // ==================== 大气透视（fog）====================
+  fogColor: [0.7, 0.78, 0.85], // horizon 蓝灰
+  fogDensity: 0.004, // ≈ 1/256m，远场约 256 m 起有明显雾感
+  fogPower: 1.0, // 1.0 = 标准 exp fog，>1 远雾更厚
+
+  // ==================== 近/远法线过渡 ====================
+  // calcSurfaceByLayerSize 中的 varMask
+  varMaskRange: 1.0, // 远场过渡开始距离的总倍率（大 → 早开始）
+  varMaskPower: 1.5, // 过渡曲线锐度（大 → S 形更陡）
+  varMaskTexScale: 2.0, // disp0.y 当 hash 的 uv 缩放（控制斑块尺度）
+
+  // ==================== 水深衰减 ====================
+  displaceDepthAttenuation: 1.0,
+  foamDepthAttenuation: 2.0,
+
+  // ==================== 表面缩放 ====================
+  normalStrength: 0.8 // slope 总闸（视觉粗糙感）
+}
+
+// ============================================================
+// 2) 场景完整配置：Mesh + Material + Renderer + FFT cascade
+// ============================================================
+export const DEFAULT_FFT_OCEAN_CONFIG: FFTOceanConfig = {
+  // ==================== Mesh ====================
+  transform: new Transform([0, 0, 0], [0, 0, 0], [1, 1, 1]),
+  surfaceSize: 256, // 屏幕上海面 mesh 的物理尺寸 [m]
+  surfaceMeshResolution: 1024, // mesh 顶点密度（与 FFT 纹理分辨率独立）
+
+  // ==================== Material ====================
+  materialConfig: {
+    ...FFT_OCEAN_MATERIAL_DEFAULTS,
+    ...FFT_OCEAN_MATERIAL_OVERRIDES
+  },
+
+  // ==================== Renderer ====================
+  renderingMode: 'MESH', // 'MESH' | LineRenderMode.LINES（debug 用）
+  // renderingMode: LineRenderMode.LINES,
+
+  // ==================== FFT Calculate ====================
+  /**
+   * 4 层级联（cascade）的频谱参数。
+   *
+   * 物理动机：单层 FFT 的 (size, fftResolution) 决定了它能表达的波长范围
+   *   k_min ≈ 2π / size，k_max ≈ π · fftResolution / size。
+   * 单层很难同时覆盖大涌浪（λ~100 m）和毛细波（λ~0.1 m），所以分 4 层：
+   *
+   *   Layer 0 (size=256) — 主涌浪 / swell        λ_peak ~ 60-100 m
+   *   Layer 1 (size= 64) — 风浪 / wind sea       λ_peak ~ 15-30  m
+   *   Layer 2 (size= 16) — 短波 / chop           λ_peak ~  2-6   m
+   *   Layer 3 (size=  4) — 毛细波 / ripple       λ_peak ~  0.3-1 m
+   *
+   * 每层 kMin/kMax 用于硬切窗口避免跨层重复（避免低频被高分辨率层重复合成）。
+   *
+   * ⚠️ 若 oceanParamsCascade.length > 4，多出的层会被 shader 忽略。
+   */
+  oceanParamsCascade: [
+    // ----- Layer 0：主涌浪 (size=256) -----
+    {
+      size: 256,
+      fftResolution: 512,
+      gravity: 9.81,
+      depth: 1000,
+      amplitude: 1.3,
+      layerContribute: 0.95,
+      choppiness: [1.2, 1.2],
+      kMin: 0.025,
+      kMax: 0.25,
+      foamBias: 0.15,
+      foamAdd: 0.1,
+      foamDecayRate: 0.03,
+      foamPower: 1.5,
+      // ----- spectrum0/1：双方向风谱叠加，制造方向多样性 -----
+      // windSpeed↑ + ωp↓ → α↑ → 整体能量近似指数增长；波变高也变长
+      // fetch    ↑ → α↑ + ωp↓（弱于风速）→ 模拟 "远海 vs 近岸"
+      // peakEnhancement(γ)↑ → 频带变窄 → swell 形态；↓ → wind-sea 多尺度
+      // spreadBlend ∈ [0,1]：0 = 各向同性，1 = 完全沿风向（cos²ˢ 峰）
+      // swell ∈ [0,1]：低频方向的额外集中度（s ≈ 50+），主要影响长涌浪
+      // shortWavesFade(f)：exp(-f²k²) 衰减；f↑ → 杀掉短波 → 海面变光滑
+      spectrum0: {
+        scale: 0.75,
+        windSpeed: 10,
+        windDirection: 0,
+        fetch: 150000,
+        spreadBlend: 0.15,
+        swell: 0.3,
+        peakEnhancement: 3.3,
+        shortWavesFade: 0.5
+      },
+      spectrum1: {
+        scale: 0.75,
+        windSpeed: 10,
+        windDirection: 90, // 主风向 +90°，制造交叉涌浪
+        fetch: 100000,
+        spreadBlend: 0.15,
+        swell: 0.3,
+        peakEnhancement: 3.3,
+        shortWavesFade: 0.5
+      }
+    },
+
+    // ----- Layer 1：风浪 (size=64) -----
+    {
+      size: 64,
+      fftResolution: 512,
+      gravity: 9.81,
+      depth: 1000,
+      amplitude: 1.1,
+      layerContribute: 0.75,
+      choppiness: [1.9, 1.9],
+      kMin: 0.001,
+      kMax: 2.1,
+      foamBias: 0.08,
+      foamAdd: 0.12,
+      foamDecayRate: 0.05,
+      foamPower: 1.5,
+      spectrum0: {
+        scale: 0.65,
+        windSpeed: 7,
+        windDirection: 270,
+        fetch: 50000,
+        spreadBlend: 0.15,
+        swell: 0,
+        peakEnhancement: 3.3,
+        shortWavesFade: 0.05
+      },
+      spectrum1: {
+        scale: 0.65,
+        windSpeed: 6,
+        windDirection: 180,
+        fetch: 60000,
+        spreadBlend: 0.15,
+        swell: 0,
+        peakEnhancement: 3.3,
+        shortWavesFade: 0.05
+      }
+    },
+
+    // ----- Layer 2：短波 / chop (size=16) -----
+    {
+      size: 16,
+      fftResolution: 512,
+      gravity: 9.81,
+      depth: 1000,
+      amplitude: 0.8,
+      layerContribute: 0.6,
+      choppiness: [2.3, 2.3],
+      kMin: 0.025,
+      kMax: 9.0,
+      foamBias: 0.1,
+      foamAdd: 0.05,
+      foamDecayRate: 0.05,
+      foamPower: 1.5,
+      spectrum0: {
+        scale: 0.6,
+        windSpeed: 4.5,
+        windDirection: 90,
+        fetch: 2200,
+        spreadBlend: 0.1,
+        swell: 0.1,
+        peakEnhancement: 3.3,
+        shortWavesFade: 0.03
+      },
+      spectrum1: {
+        scale: 0.3,
+        windSpeed: 4.0,
+        windDirection: 180,
+        fetch: 1500,
+        spreadBlend: 0.1,
+        swell: 0.15,
+        peakEnhancement: 3.3,
+        shortWavesFade: 0.03
+      }
+    },
+
+    // ----- Layer 3：毛细波 / ripple (size=4) -----
+    {
+      size: 4,
+      fftResolution: 512,
+      gravity: 9.81,
+      depth: 1000,
+      amplitude: 0.7,
+      layerContribute: 0.35,
+      choppiness: [2.8, 2.8],
+      kMin: 12.5,
+      kMax: 45,
+      foamBias: 0.1,
+      foamAdd: 0.0,
+      foamDecayRate: 0.05,
+      foamPower: 1.5,
+      spectrum0: {
+        scale: 0.45,
+        windSpeed: 3.0,
+        windDirection: 135,
+        fetch: 320,
+        spreadBlend: 0.5,
+        swell: 0.1,
+        peakEnhancement: 3.3,
+        shortWavesFade: 0.001
+      },
+      spectrum1: {
+        scale: 0.15,
+        windSpeed: 2.5,
+        windDirection: 225,
+        fetch: 220,
+        spreadBlend: 0.5,
+        swell: 0.08,
+        peakEnhancement: 3.3,
+        shortWavesFade: 0.001
+      }
+    }
+  ]
+
+  // oceanParamsCascade: [
+  //   // ==================== Layer 0：主涌浪 size=512 ====================
+  //   // λ_peak ≈ 100m, H_s 贡献 ≈ 1.0m
+  //   {
+  //     size: 256,
+  //     fftResolution: 256,
+  //     gravity: 9.81,
+  //     depth: 1000,
+  //     amplitude: 0.2, // 比之前 0.9 小很多
+  //     layerContribute: 0.7,
+  //     choppiness: [1.0, 1.0],
+  //     spectrum0: {
+  //       // 主风向
+  //       scale: 1.0,
+  //       windSpeed: 10,
+  //       windDirection: 45,
+  //       fetch: 80000, // λ_peak ≈ 75m，落在 size 内
+  //       spreadBlend: 1.0,
+  //       swell: 0.0,
+  //       peakEnhancement: 6.0,
+  //       shortWavesFade: 1000 // 砍掉 < 50m 的内容（让其他层做）
+  //     },
+  //     spectrum1: {
+  //       // 副向，制造方向多样性
+  //       scale: 0.4,
+  //       windSpeed: 8,
+  //       windDirection: 70, // 偏 +25°
+  //       fetch: 60000, // λ_peak ≈ 55m
+  //       spreadBlend: 0.85,
+  //       swell: 0.3,
+  //       peakEnhancement: 4.0,
+  //       shortWavesFade: 100
+  //     }
+  //   },
+
+  //   // ==================== Layer 1：中浪 size=128 ====================
+  //   // λ_peak ≈ 25m, H_s 贡献 ≈ 0.4m
+  //   {
+  //     size: 63,
+  //     fftResolution: 256,
+  //     gravity: 9.81,
+  //     depth: 1000,
+  //     amplitude: 0.0,
+  //     layerContribute: 0.6,
+  //     choppiness: [1.2, 1.2],
+  //     spectrum0: {
+  //       scale: 0.6,
+  //       windSpeed: 5,
+  //       windDirection: 30,
+  //       fetch: 20000, // λ_peak ≈ 22m
+  //       spreadBlend: 0.95,
+  //       swell: 0.3,
+  //       peakEnhancement: 4.0,
+  //       shortWavesFade: 2.5
+  //     },
+  //     spectrum1: {
+  //       scale: 0.4,
+  //       windSpeed: 5,
+  //       windDirection: 50, // 大角度差打散重复感
+  //       fetch: 15000, // λ_peak ≈ 18m
+  //       spreadBlend: 0.9,
+  //       swell: 0.4,
+  //       peakEnhancement: 3.0,
+  //       shortWavesFade: 2.0
+  //     }
+  //   },
+
+  //   // ==================== Layer 2：小浪 size=32 ====================
+  //   // λ_peak ≈ 5m, H_s 贡献 ≈ 0.15m
+  //   {
+  //     size: 17,
+  //     fftResolution: 256,
+  //     gravity: 9.81,
+  //     depth: 1000,
+  //     amplitude: 0,
+  //     layerContribute: 0.5,
+  //     choppiness: [2.8, 2.8],
+  //     spectrum0: {
+  //       scale: 0.4,
+  //       windSpeed: 4,
+  //       windDirection: 20,
+  //       fetch: 3000, // λ_peak ≈ 5m
+  //       spreadBlend: 0.85,
+  //       swell: 0.4,
+  //       peakEnhancement: 2.5,
+  //       shortWavesFade: 0.6
+  //     },
+  //     spectrum1: {
+  //       scale: 0.3,
+  //       windSpeed: 4,
+  //       windDirection: 40,
+  //       fetch: 2000, // λ_peak ≈ 4m
+  //       spreadBlend: 0.7,
+  //       swell: 0.3,
+  //       peakEnhancement: 2.0,
+  //       shortWavesFade: 0.4
+  //     }
+  //   },
+
+  //   // ==================== Layer 3：涟漪 size=8 ====================
+  //   // λ_peak ≈ 1m, H_s 贡献 ≈ 0.05m
+  //   {
+  //     size: 5,
+  //     fftResolution: 256,
+  //     gravity: 9.81,
+  //     depth: 1000,
+  //     amplitude: 0, // 涟漪不能高，否则 64 倍 tile 变噪声
+  //     layerContribute: 0.2,
+  //     choppiness: [2.8, 2.8],
+  //     spectrum0: {
+  //       scale: 0.3,
+  //       windSpeed: 3,
+  //       windDirection: 5,
+  //       fetch: 600, // λ_peak ≈ 1.2m
+  //       spreadBlend: 0.6,
+  //       swell: 0.3,
+  //       peakEnhancement: 1.5,
+  //       shortWavesFade: 0.15
+  //     },
+  //     spectrum1: {
+  //       scale: 0.2,
+  //       windSpeed: 2,
+  //       windDirection: 10,
+  //       fetch: 400, // λ_peak ≈ 0.7m
+  //       spreadBlend: 0.4,
+  //       swell: 0.2,
+  //       peakEnhancement: 1.0,
+  //       shortWavesFade: 0.1
+  //     }
+  //   }
+  //   // {
+  //   //   size: 7,
+  //   //   fftResolution: 256,
+  //   //   gravity: 9.81,
+  //   //   depth: 1000,
+  //   //   amplitude: 0.9, // 涟漪不能高，否则 64 倍 tile 变噪声
+  //   //   layerContribute: 0.2,
+  //   //   choppiness: [2.8, 2.8],
+  //   //   spectrum0: {
+  //   //     scale: 0.3,
+  //   //     windSpeed: 3,
+  //   //     windDirection: -5,
+  //   //     fetch: 600, // λ_peak ≈ 1.2m
+  //   //     spreadBlend: 0.6,
+  //   //     swell: 0.3,
+  //   //     peakEnhancement: 1.5,
+  //   //     shortWavesFade: 0.15
+  //   //   },
+  //   //   spectrum1: {
+  //   //     scale: 0.2,
+  //   //     windSpeed: 2,
+  //   //     windDirection: 5,
+  //   //     fetch: 400, // λ_peak ≈ 0.7m
+  //   //     spreadBlend: 0.4,
+  //   //     swell: 0.2,
+  //   //     peakEnhancement: 1.0,
+  //   //     shortWavesFade: 0.1
+  //   //   }
+  //   // }
+  // ]
+}
