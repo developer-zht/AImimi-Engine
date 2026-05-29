@@ -8,3 +8,18 @@ export interface ShaderProgram {
   uniforms: Record<string, WebGLUniformLocation>
   attribs: Record<string, GLint>
 }
+
+export type ShaderType = 'vertex' | 'fragment' | 'compute'
+// | 'program'
+
+export type ShaderFile = ShaderPath & ShaderCode
+
+export interface ShaderCode {
+  vShaderCode: string
+  fShaderCode: string
+}
+
+export interface ShaderPath {
+  vShaderPath: string
+  fShaderPath: string
+}

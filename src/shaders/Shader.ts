@@ -1,276 +1,336 @@
+import { HttpError } from '@/errors/EngineError/NetworkError/HTTPError'
+import { NetworkTimeoutError } from '@/errors/EngineError/NetworkError/NetworkTimeoutError'
+import { ShaderLoadError } from '@/errors/EngineError/ShaderError/ShaderLoadError'
+import { fetchTextWithTimeout } from '@/network/fetchText'
+import { ShaderCode, ShaderFile, ShaderType } from './types/Shader'
+import { ShaderCreationError } from '@/errors/EngineError/ShaderError/ShaderCreationError'
 import { ShaderCompilationError } from '@/errors/EngineError/ShaderError/ShaderCompilationError'
+import { ShaderLinkError } from '@/errors/EngineError/ShaderError/ShaderLinkError'
+import { mat4, vec2, vec3 } from 'gl-matrix'
 import { Vec2, Vec3 } from '@/math/types/math'
-import type { ShaderParameters, ShaderProgram } from '@/shaders/types/Shader'
-import { mat3, mat4 } from 'gl-matrix'
 
+// ============================================================
+// Shader 类（只负责编译和工具方法）
+// ============================================================
 export class Shader {
-  private gl: WebGLRenderingContext
-  public program: ShaderProgram
+  // 模块级缓存，所有 Shader 实例共享
+  private static cache: Map<string, Shader> = new Map()
 
-  constructor(
-    gl: WebGLRenderingContext,
-    vertexShaderContent: string,
-    fragmentShaderContent: string,
-    shaderParameters: ShaderParameters
-  ) {
+  // static cacheKey = ''
+
+  private readonly gl: WebGLRenderingContext
+  public readonly program: WebGLProgram
+
+  public readonly name: string
+
+  private constructor(gl: WebGLRenderingContext, program: WebGLProgram, name: string) {
     this.gl = gl
-    const vs = this.compileShader(vertexShaderContent, gl.VERTEX_SHADER)
-    const fs = this.compileShader(fragmentShaderContent, gl.FRAGMENT_SHADER)
+    this.program = program
 
-    this.program = this.addShaderLocations(this.linkShader(vs, fs), shaderParameters)
+    // this.name = this.constructor.name // 如果未来打包后 Mesh 这个类名变成了 a 怎么办？那 name 是不是也就跟着变成了 a ？
+    this.name = name
   }
 
-  private compileShader(shaderSource: string, shaderType: GLenum): WebGLShader {
-    const shader = this.gl.createShader(shaderType)
-    this.gl.shaderSource(shader, shaderSource)
-    this.gl.compileShader(shader)
+  /**
+   * 工具方法：获取 attribute location
+   */
+  getAttribLocation(name: string): number {
+    return this.gl.getAttribLocation(this.program, name)
+  }
 
-    if (!this.gl.getShaderParameter(shader, this.gl.COMPILE_STATUS)) {
-      const shaderTypeName = shaderType === this.gl.VERTEX_SHADER ? 'VERTEX' : 'FRAGMENT'
-      console.error(`❌ ${shaderTypeName} Shader 编译失败:`)
-      console.error('Shader 源码:')
-      console.error(shaderSource)
-      console.error('编译错误:')
-      console.error(this.gl.getShaderInfoLog(shader))
+  /**
+   * 工具方法：获取 uniform location
+   */
+  getUniformLocation(name: string): WebGLUniformLocation | null {
+    return this.gl.getUniformLocation(this.program, name)
+  }
 
-      // ❌ 抛出错误而不是继续
-      throw new ShaderCompilationError(
-        shaderType === this.gl.VERTEX_SHADER ? 'vertex' : 'fragment',
-        '',
-        '编译失败'
-      )
+  /** 通过 location 设置 mat4 uniform */
+  setMat4ByLoc(location: WebGLUniformLocation, value: Float32Array | mat4) {
+    this.gl.uniformMatrix4fv(location, false, value)
+  }
+
+  /** 通过 location 设置 vec3 uniform */
+  setVec3ByLoc(location: WebGLUniformLocation, value: Float32Array | Vec3 | vec3): void {
+    this.gl.uniform3fv(location, value)
+  }
+
+  /** 通过 location 设置 float uniform */
+  set1fByLoc(location: WebGLUniformLocation, value: number): void {
+    this.gl.uniform1f(location, value)
+  }
+
+  /** 通过 location 设置 int uniform */
+  set1iByLoc(location: WebGLUniformLocation, value: number): void {
+    this.gl.uniform1i(location, value)
+  }
+
+  /** 通过 location 设置 Texture2D uniform */
+  setTexture2DByLoc(location: WebGLUniformLocation, value: WebGLTexture, unit: GLint): void {
+    this.gl.activeTexture(this.gl.TEXTURE0 + unit)
+    this.gl.bindTexture(this.gl.TEXTURE_2D, value)
+    this.gl.uniform1i(location, unit)
+  }
+
+  /** 通过 location 设置 TextureCube uniform */
+  setTextureCubeByLoc(location: WebGLUniformLocation, value: WebGLTexture, unit: GLint): void {
+    this.gl.activeTexture(this.gl.TEXTURE0 + unit)
+    this.gl.bindTexture(this.gl.TEXTURE_CUBE_MAP, value)
+    this.gl.uniform1i(location, unit)
+  }
+
+  /** 通过名称设置 mat4 uniform */
+  setMat4(name: string, value: Float32Array | mat4): void {
+    const loc = this.getUniformLocation(name)
+    if (!loc) {
+      console.warn(`[Shader "${this.name}"] Uniform "${name}" not found, skipping`)
+      return
+    }
+    this.gl.uniformMatrix4fv(loc, false, value)
+  }
+
+  /** 通过名称设置 float uniform */
+  set1f(name: string, value: number): void {
+    const loc = this.getUniformLocation(name)
+    if (!loc) {
+      console.warn(`[Shader "${this.name}"] Uniform "${name}" not found, skipping`)
+      return
+    }
+    this.gl.uniform1f(loc, value)
+  }
+
+  /** 通过名称设置 int uniform */
+  set1i(name: string, value: number): void {
+    const loc = this.getUniformLocation(name)
+    if (!loc) {
+      console.warn(`[Shader "${this.name}"] Uniform "${name}" not found, skipping`)
+      return
+    }
+    this.gl.uniform1i(loc, value)
+  }
+
+  /** 通过名称设置 vec2 uniform */
+  setVec2(name: string, value: Float32Array | Vec2 | vec2) {
+    const loc = this.getUniformLocation(name)
+    if (!loc) {
+      console.warn(`[Shader "${this.name}"] Uniform "${name}" not found, skipping`)
+      return
+    }
+    this.gl.uniform2fv(loc, value)
+  }
+
+  /** 通过名称设置 vec3 uniform */
+  setVec3(name: string, value: Float32Array | Vec3 | vec3): void {
+    const loc = this.getUniformLocation(name)
+    if (!loc) {
+      console.warn(`[Shader "${this.name}"] Uniform "${name}" not found, skipping`)
+      return
+    }
+    this.gl.uniform3fv(loc, value)
+  }
+
+  /** 通过名称绑定 texture_2D 到指定纹理单元 */
+  setTexture2D(name: string, value: WebGLTexture, unit: GLint) {
+    const loc = this.getUniformLocation(name)
+    if (!loc) {
+      console.warn(`[Shader "${this.name}"] Uniform "${name}" not found, skipping`)
+      return
+    }
+    this.gl.activeTexture(this.gl.TEXTURE0 + unit)
+    this.gl.bindTexture(this.gl.TEXTURE_2D, value)
+    this.gl.uniform1i(loc, unit)
+  }
+
+  /** 通过名称绑定 texture_cube_map 到指定纹理单元 */
+  setTextureCube(name: string, value: WebGLTexture, unit: GLint) {
+    const loc = this.getUniformLocation(name)
+    if (!loc) {
+      console.warn(`[Shader "${this.name}"] Uniform "${name}" not found, skipping`)
+      return
+    }
+    this.gl.activeTexture(this.gl.TEXTURE0 + unit)
+    this.gl.bindTexture(this.gl.TEXTURE_CUBE_MAP, value)
+    this.gl.uniform1i(loc, unit)
+  }
+
+  /** 激活程序 */
+  use() {
+    this.gl.useProgram(this.program)
+  }
+
+  /** 静态方法：工厂方法创建 Shader 实例 */
+  static async createShader(
+    gl: WebGLRenderingContext,
+    vertexShaderPath: string,
+    fragmentShaderPath: string
+  ): Promise<Shader> {
+    // 用 路径 + 名称 表示 cache key，因为同一套 shader 源码编译结果一定一样
+    const filePath = vertexShaderPath.split('/').slice(0, -1).join('/')
+    let fileName = vertexShaderPath.split('/').slice(-1)[0]?.split('.')[0]
+    if (fileName?.includes('vert')) {
+      fileName = vertexShaderPath.split('/').slice(-2, -1)[0]
     }
 
-    console.log(
-      `✅ ${shaderType === this.gl.VERTEX_SHADER ? 'Vertex' : 'Fragment'} Shader 编译成功`
-    )
+    // console.debug(fileName)
 
+    const shaderName = `${filePath}/${fileName}-shader`
+
+    // console.debug(shaderName)
+
+    const cached = Shader.cache.get(shaderName)
+    if (cached) {
+      console.debug('cached')
+      return cached
+    }
+
+    // console.debug(vertexShaderPath.split('/').slice(-2, -1))
+
+    // 加载 ShaderFile -- shader code & shader path
+    const shaderFile = await Shader.loadShaderFiles(vertexShaderPath, fragmentShaderPath)
+
+    // 编译 shader
+    const program = Shader.createProgram(gl, shaderFile)
+    // 查看 shader program 中所有 active 的 attribute
+    // const attribCount = gl.getProgramParameter(program, gl.ACTIVE_ATTRIBUTES)
+    // for (let i = 0; i < attribCount; i++) {
+    //   const info = gl.getActiveAttrib(program, i)
+    //   console.debug(`attribute ${i}: ${info?.name}, type=${info?.type}, size=${info?.size}`)
+    // }
+    // 查看所有 active 的 uniform
+    // const uniformCount = gl.getProgramParameter(program, gl.ACTIVE_UNIFORMS)
+    // for (let i = 0; i < uniformCount; i++) {
+    //   const info = gl.getActiveUniform(program, i)
+    //   console.debug(`uniform ${i}: ${info?.name}, type=${info?.type}, size=${info?.size}`)
+    // }
+
+    const shader = new Shader(gl, program, shaderName)
+
+    Shader.cache.set(shaderName, shader)
     return shader
   }
 
-  private linkShader(vs: WebGLShader, fs: WebGLShader): WebGLProgram {
-    const program = this.gl.createProgram()
-    this.gl.attachShader(program, vs)
-    this.gl.attachShader(program, fs)
-    this.gl.linkProgram(program)
-
-    if (!this.gl.getProgramParameter(program, this.gl.LINK_STATUS)) {
-      console.log('shader linker error:\n' + this.gl.getProgramInfoLog(program))
-      throw new Error('Failed to create program')
+  /**
+   * 静态方法：加载并字符串化 shader
+   */
+  private static async loadShaderFiles(
+    vertexShaderPath: string,
+    fragmentShaderPath: string
+  ): Promise<ShaderFile> {
+    const shaderCode: ShaderCode = {
+      vShaderCode: '',
+      fShaderCode: ''
     }
+
+    // 加载顶点着色器
+    try {
+      shaderCode.vShaderCode = await fetchTextWithTimeout(vertexShaderPath)
+    } catch (error) {
+      throw Shader.wrapLoadError(error, 'vertex', vertexShaderPath)
+    }
+
+    // 加载片段着色器
+    try {
+      shaderCode.fShaderCode = await fetchTextWithTimeout(fragmentShaderPath)
+    } catch (error) {
+      throw Shader.wrapLoadError(error, 'fragment', fragmentShaderPath)
+    }
+
+    const shaderFile: ShaderFile = {
+      ...shaderCode,
+      vShaderPath: vertexShaderPath,
+      fShaderPath: fragmentShaderPath
+    }
+    return shaderFile
+  }
+
+  /**
+   * 静态方法：从代码编译并链接 shader
+   */
+  private static createProgram(gl: WebGLRenderingContext, shaderFile: ShaderFile): WebGLProgram {
+    // 编译顶点着色器
+    const vShader = gl.createShader(gl.VERTEX_SHADER)
+    if (!vShader) throw new ShaderCreationError('vertex')
+    gl.shaderSource(vShader, shaderFile.vShaderCode)
+    gl.compileShader(vShader)
+
+    if (!gl.getShaderParameter(vShader, gl.COMPILE_STATUS)) {
+      throw new ShaderCompilationError(
+        'vertex',
+        shaderFile.vShaderPath,
+        gl.getShaderInfoLog(vShader) ?? 'vertex shader compilation failed'
+      )
+    }
+
+    // 编译片段着色器
+    const fShader = gl.createShader(gl.FRAGMENT_SHADER)
+    if (!fShader) throw new ShaderCreationError('fragment')
+    gl.shaderSource(fShader, shaderFile.fShaderCode)
+    gl.compileShader(fShader)
+
+    if (!gl.getShaderParameter(fShader, gl.COMPILE_STATUS)) {
+      throw new ShaderCompilationError(
+        'fragment',
+        shaderFile.fShaderPath,
+        gl.getShaderInfoLog(fShader) ?? 'fragment shader compilation failed'
+      )
+    }
+
+    // 链接程序
+    const program = gl.createProgram()
+    gl.attachShader(program, vShader)
+    gl.attachShader(program, fShader)
+    gl.linkProgram(program)
+
+    if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
+      throw new ShaderLinkError(`${shaderFile.vShaderPath} & ${shaderFile.fShaderPath}`, 'program')
+    }
+
+    // 清理
+    gl.deleteShader(vShader)
+    gl.deleteShader(fShader)
 
     return program
   }
 
   /**
-   * 添加 Shader 中的 attri 和 uniform 的定位
-   * @param {WebGLShader} glShaderProgram 已经链接完毕的 shader 对象
-   * @param {ShaderParameters} shaderParameters 简单的例子 {uniforms:['uViewMatrix', 'uModelMatrix', 'uProjectionMatrix', 'uCameraPos'],attribs:['aVertexPosition','aNormalPosition','aTextureCoord']}
-   * @returns {ShaderProgram}
+   * 包装 load 错误
    */
-  private addShaderLocations(
-    glShaderProgram: WebGLShader,
-    shaderParameters: ShaderParameters
-  ): ShaderProgram {
-    const result: ShaderProgram = {
-      glShaderProgram,
-      uniforms: {},
-      attribs: {}
-    }
-    // result.uniforms = {}
-    // result.attribs = {}
-
-    if (shaderParameters?.uniforms?.length) {
-      for (let i = 0; i < shaderParameters.uniforms.length; ++i) {
-        result.uniforms = Object.assign(result.uniforms, {
-          [shaderParameters.uniforms[i]]: this.gl.getUniformLocation(
-            result.glShaderProgram,
-            shaderParameters.uniforms[i]
-          )
-        })
-      }
-    }
-    if (shaderParameters?.attribs?.length) {
-      for (let i = 0; i < shaderParameters.attribs.length; ++i) {
-        result.attribs = Object.assign(result.attribs, {
-          [shaderParameters.attribs[i]]: this.gl.getAttribLocation(
-            result.glShaderProgram,
-            shaderParameters.attribs[i]
-          )
-        })
-      }
+  private static wrapLoadError(error: unknown, shaderType: ShaderType, shaderPath: string) {
+    // HTTP 错误
+    if (error instanceof HttpError) {
+      return new ShaderLoadError(error.url, shaderType, {
+        reason: `HTTP ${error.httpStatus}: ${error.statusText}`,
+        statusCode: error.httpStatus
+      })
     }
 
-    return result
+    // 超时错误
+    if (error instanceof NetworkTimeoutError) {
+      return new ShaderLoadError(error.url, shaderType, {
+        reason: `Timeout after ${error.timeout}ms`,
+        timeout: error.timeout
+      })
+    }
+
+    // 其他错误
+    return new ShaderLoadError(shaderPath, shaderType, {
+      reason: error instanceof Error ? error.message : 'Unknown error'
+    })
   }
 
   /**
-   * 直接设置 uniform 的辅助方法
-   * 用于 IBL 预计算等不需要 Material 的场景
+   * 清除 Shader cache
    */
-  // 使用 shader 程序
-  use(): void {
-    this.gl.useProgram(this.program.glShaderProgram)
+  static clearCache(): void {
+    for (const shader of Shader.cache.values()) {
+      shader.dispose() // gl.deleteProgram()
+    }
+    Shader.cache.clear()
   }
 
-  // 自动确保当前 program 被激活
-  private ensureCurrentShader() {
-    // 获取当前激活的 program
-    const currentProgram = this.gl.getParameter(this.gl.CURRENT_PROGRAM)
-
-    // 如果不是当前 shader，自动激活
-    if (currentProgram !== this.program.glShaderProgram) {
-      this.use()
-    }
-  }
-
-  // 确保激活了自身的 program
-  public useCurrentShader() {
-    this.ensureCurrentShader()
-    this.use()
-  }
-
-  // 获取 attribute 变量位置
-  getAtrributeLocation(name: string): GLint {
-    // 优先从缓存中获取
-    if (this.program.attribs[name]) {
-      return this.program.attribs[name]
-    }
-
-    // 如果缓存中没有，动态查询
-    const location = this.gl.getAttribLocation(this.program.glShaderProgram, name)
-    if (location === -1) {
-      console.log(`❌ Attribute '${name}' not found in shader`)
-      return location
-    }
-
-    // 缓存结果
-    this.program.attribs[name] = location
-    return location
-  }
-
-  // 获取 uniform 变量位置
-  // private uniformLocationCache: Map<string, WebGLUniformLocation | null> = new Map() // location 缓存
-  getUniformLocation(name: string): WebGLUniformLocation | null {
-    // 优先从缓存中获取
-    // if (this.uniformLocationCache.has(name)) {
-    //   return this.uniformLocationCache.get(name)
-    // }
-    if (this.program.uniforms[name]) {
-      return this.program.uniforms[name]
-    }
-
-    // 如果缓存中没有，动态查询
-    const location = this.gl.getUniformLocation(this.program.glShaderProgram, name)
-
-    // if (location !== null) {
-    //   this.uniformLocationCache.set(name, location)
-    // } else {
-    //   console.log(`❌ Uniform '${name}' not found in shader`)
-    // }
-
-    if (location === null) {
-      console.log(`❌ Uniform '${name}' not found in shader`)
-      return location
-    }
-    if (location === undefined) {
-      console.warn(`⚠️ Uniform '${name}' 未在 shader 中声明或未使用`)
-      return null
-    }
-
-    // 缓存结果
-    this.program.uniforms[name] = location
-    return location
-  }
-
-  // 设置 4 维矩阵
-  setMat4(name: string, value: mat4): void {
-    this.ensureCurrentShader()
-    const location = this.getUniformLocation(name)
-    if (location !== null) {
-      this.gl.uniformMatrix4fv(location, false, value)
-    } else {
-      console.log(`⚠️ Mat4 ${name} 的 location 不存在`)
-    }
-  }
-
-  // 设置 3 维矩阵
-  setMat3(name: string, value: mat3): void {
-    this.ensureCurrentShader()
-    const location = this.getUniformLocation(name)
-    if (location !== null) {
-      this.gl.uniformMatrix3fv(location, false, value)
-    } else {
-      console.log(`⚠️ Mat3 ${name} 的 location 不存在`)
-    }
-  }
-
-  // 设置 3 维向量
-  setVec3(name: string, value: Vec3) {
-    this.ensureCurrentShader()
-    const location = this.getUniformLocation(name)
-    if (location !== null) {
-      this.gl.uniform3fv(location, value)
-    } else {
-      console.log(`⚠️ Vec3 ${name} 的 location 不存在`)
-    }
-  }
-
-  // 设置 2 维向量
-  setVec2(name: string, value: Vec2): void {
-    this.ensureCurrentShader()
-    const location = this.getUniformLocation(name)
-    if (location !== null) {
-      this.gl.uniform2fv(location, value)
-    } else {
-      console.log(`⚠️ Vec2 ${name} 的 location 不存在`)
-    }
-  }
-
-  // 设置 float
-  setFloat(name: string, value: number): void {
-    const location = this.getUniformLocation(name)
-    if (location !== null) {
-      this.gl.uniform1f(location, value)
-    } else {
-      console.log(`⚠️ Float ${name} 的 location 不存在`)
-    }
-  }
-
-  // 设置 int
-  setInt(name: string, value: number): void {
-    this.ensureCurrentShader()
-    const location = this.getUniformLocation(name)
-    if (location !== null) {
-      this.gl.uniform1i(location, value)
-    } else {
-      console.log(`⚠️ Int ${name} 的 location 不存在`)
-    }
-  }
-
-  // 设置 texture 2D
-  setTexture2D(name: string, texture2D: WebGLTexture, unit: number): void {
-    this.ensureCurrentShader()
-    const location = this.getUniformLocation(name)
-    if (location !== null) {
-      this.gl.activeTexture(this.gl.TEXTURE0 + unit)
-      this.gl.bindTexture(this.gl.TEXTURE_2D, texture2D)
-      this.gl.uniform1i(location, unit)
-    } else {
-      console.log(`⚠️ Texture2D ${name} 的 location 不存在`)
-    }
-  }
-
-  // 设置 texture Cube
-  setTextureCube(name: string, textureCube: WebGLTexture, unit: number): void {
-    this.ensureCurrentShader()
-    const location = this.getUniformLocation(name)
-    if (location !== null) {
-      this.gl.activeTexture(this.gl.TEXTURE0 + unit)
-      this.gl.bindTexture(this.gl.TEXTURE_CUBE_MAP, textureCube)
-      this.gl.uniform1i(location, unit)
-    } else {
-      console.log(`⚠️ TextureCube ${name} 的 location 不存在`)
-    }
+  /** 清理 */
+  dispose() {
+    this.gl.deleteProgram(this.program)
+    Shader.cache.delete(this.name)
   }
 }
