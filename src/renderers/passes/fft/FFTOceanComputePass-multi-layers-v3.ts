@@ -2,7 +2,7 @@ import { FBO } from '@/framebuffers/FBO'
 import { RealtimeSpectrum } from '@/simulation/ocean/fft/RealtimeSpectrum-v2'
 import { RenderPass } from '../types/RenderPass'
 import { FullScreenQuad } from '@/objects/FullScreenQuad'
-import { Shader } from '@/shaders/Shader-refactor'
+import { Shader } from '@/shaders/Shader'
 import { BaseRenderer } from '@/renderers/BaseRenderer'
 import { OceanParams } from '@/simulation/ocean/fft/types/OceanParams'
 import { Spectrum } from '@/simulation/ocean/spectrums/Spectrum'
@@ -14,6 +14,7 @@ import { FrameContext } from '@/renderers/types/FrameContext'
 import { PerspectiveCamera } from 'three'
 import { Vec2 } from '@/math/types/math'
 import { RealtimeSpectrumGPU } from '@/simulation/ocean/fft/RealtimeSpectrumGPU'
+import { captureGLState, restoreGLState } from '@/utils/gl/withCleanGLState'
 
 interface LayerState {
   N: number
@@ -198,6 +199,7 @@ export class FFTOceanComputePass implements RenderPass {
       fbo.bind()
       gl.clearColor(0, 0, 0, 0)
       gl.clear(gl.COLOR_BUFFER_BIT)
+      fbo.unbind()
     }
 
     this.layerStates.push({
@@ -257,13 +259,13 @@ export class FFTOceanComputePass implements RenderPass {
   execute(context: FrameContext, _camera: PerspectiveCamera): void {
     const gl = this.gl
     // 保存 GL 状态
-    const savedFramebuffer = gl.getParameter(gl.FRAMEBUFFER_BINDING) as WebGLFramebuffer
-    const savedViewport = gl.getParameter(gl.VIEWPORT) as Int32Array
-    const vpX = savedViewport[0] ?? 0
-    const vpY = savedViewport[1] ?? 0
-    const vpW = savedViewport[2] ?? gl.canvas.width
-    const vpH = savedViewport[3] ?? gl.canvas.height
-
+    const saved = captureGLState(gl)
+    // const savedFramebuffer = gl.getParameter(gl.FRAMEBUFFER_BINDING) as WebGLFramebuffer
+    // const savedViewport = gl.getParameter(gl.VIEWPORT) as Int32Array
+    // const vpX = savedViewport[0] ?? 0
+    // const vpY = savedViewport[1] ?? 0
+    // const vpW = savedViewport[2] ?? gl.canvas.width
+    // const vpH = savedViewport[3] ?? gl.canvas.height
     gl.disable(gl.DEPTH_TEST)
 
     for (let i = 0; i < this.layerStates.length; i++) {
@@ -295,9 +297,10 @@ export class FFTOceanComputePass implements RenderPass {
       layerState.finalFBOs[latestFinalIdx].regenerateMipmaps()
     }
 
-    gl.bindFramebuffer(gl.FRAMEBUFFER, savedFramebuffer)
-    gl.viewport(vpX, vpY, vpW, vpH)
-    gl.enable(gl.DEPTH_TEST)
+    // gl.bindFramebuffer(gl.FRAMEBUFFER, savedFramebuffer)
+    // gl.viewport(vpX, vpY, vpW, vpH)
+    restoreGLState(gl, saved)
+    // gl.enable(gl.DEPTH_TEST)
 
     // 把最新输出贴图绑给所有 receiver
     for (const recv of this.receivers) {

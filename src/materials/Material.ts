@@ -1,4 +1,4 @@
-import { Shader } from '@/shaders/Shader-refactor'
+import { Shader } from '@/shaders/Shader'
 
 import { UniformEntry, UniformType, type Uniforms } from '@/materials/types/Material'
 import { assertNever } from '@/errors/helper/helpers'

@@ -4,7 +4,7 @@ import { UniformType } from '@/materials/types/Material'
 import { FullScreenQuad } from '@/objects/FullScreenQuad'
 import { MeshRenderer } from '@/renderers/MeshRenderer'
 import { ShaderPaths } from '@/shaders/_config/shaderPaths'
-import { Shader } from '@/shaders/Shader-refactor'
+import { Shader } from '@/shaders/Shader'
 
 export async function createRenderer(gl: WebGLRenderingContext): Promise<MeshRenderer> {
   const ctx = '[Lerrian createRenderer]'

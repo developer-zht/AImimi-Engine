@@ -1,7 +1,7 @@
 import { Mesh } from '@/objects/Mesh'
 import { BaseRenderer } from './BaseRenderer'
 import { Material } from '@/materials/Material'
-import { Shader } from '@/shaders/Shader-refactor'
+import { Shader } from '@/shaders/Shader'
 import { assertNever } from '@/errors/helper/helpers'
 import { LineRenderMode } from './types/LineRenderMode'
 

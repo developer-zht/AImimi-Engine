@@ -3,7 +3,7 @@ import { BaseRenderer } from '../../BaseRenderer'
 import { FrameContext } from '../../types/FrameContext'
 import { RenderPass } from '../types/RenderPass'
 import { DownscaleFBO } from '@/framebuffers/DownscaleFBO'
-import { Shader } from '@/shaders/Shader-refactor'
+import { Shader } from '@/shaders/Shader'
 import { FullScreenQuad } from '@/objects/FullScreenQuad'
 import { ShaderPaths } from '@/shaders/_config/shaderPaths'
 

@@ -1,7 +1,7 @@
 import { MeshRendererFromGLTFConfig } from '../types/MeshRendererFromGLTFConfig'
 import { Uniforms, UniformType } from '@/materials/types/Material'
 import { Material } from '@/materials/Material'
-import { Shader } from '@/shaders/Shader-refactor'
+import { Shader } from '@/shaders/Shader'
 import { MeshRenderer } from '../../../MeshRenderer'
 import { Mesh } from '@/objects/Mesh'
 import { GLTFMeshData } from '@/loaders/types/GLTFMeshData'

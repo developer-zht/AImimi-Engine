@@ -1,4 +1,4 @@
-import { Shader } from '@/shaders/Shader-refactor'
+import { Shader } from '@/shaders/Shader'
 import { ShaderPaths } from '@/shaders/_config/shaderPaths'
 import { BaseRenderer } from '@/renderers/BaseRenderer'
 import { ShadowMapFBO } from '@/framebuffers/ShadowMapFBO'

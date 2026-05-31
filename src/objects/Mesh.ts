@@ -1,4 +1,4 @@
-import { Shader } from '@/shaders/Shader-refactor'
+import { Shader } from '@/shaders/Shader'
 import { mat4, quat } from 'gl-matrix'
 import { WebGLExtensionError } from '@/errors/EngineError/WebGLError/WebGLExtensionError'
 import { Transform } from './utils/Transform'

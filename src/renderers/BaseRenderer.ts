@@ -1,7 +1,7 @@
 import { RenderManager } from '@/managers/types/RenderManager'
 import { Material } from '@/materials/Material'
 import { Mesh } from '@/objects/Mesh'
-import { Shader } from '@/shaders/Shader-refactor'
+import { Shader } from '@/shaders/Shader'
 import { mat3, mat4 } from 'gl-matrix'
 import { PerspectiveCamera } from 'three'
 import { FrameContext } from './types/FrameContext'

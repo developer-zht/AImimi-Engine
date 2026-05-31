@@ -1,6 +1,6 @@
 import { Mesh } from '@/objects/Mesh'
 import { Material } from '@/materials/Material'
-import { Shader } from '@/shaders/Shader-refactor'
+import { Shader } from '@/shaders/Shader'
 import { BaseRenderer } from './BaseRenderer'
 
 /**

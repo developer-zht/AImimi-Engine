@@ -1,5 +1,5 @@
 import { Transform } from '@/objects/utils/Transform'
-import { Shader } from '@/shaders/Shader-refactor'
+import { Shader } from '@/shaders/Shader'
 
 import { LineRenderer } from '@/renderers/LineRenderer'
 

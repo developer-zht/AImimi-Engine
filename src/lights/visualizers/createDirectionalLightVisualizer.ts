@@ -2,7 +2,7 @@ import { Mesh } from '@/objects/Mesh'
 import { ILight } from '../types/light'
 import { Transform } from '@/objects/utils/Transform'
 
-import { Shader } from '@/shaders/Shader-refactor'
+import { Shader } from '@/shaders/Shader'
 import { ShaderPaths } from '@/shaders/_config/shaderPaths'
 import { MeshRenderer } from '@/renderers/MeshRenderer'
 import { registerVisualizer } from './visualizerRegistry'
