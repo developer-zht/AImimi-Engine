@@ -2,7 +2,7 @@
   "explorer.fileNesting.enabled": true,
   "explorer.fileNesting.patterns": {
     "tsconfig.json": "tsconfig.*.json, env.d.ts",
-    "vite.config.*": "jsconfig*, vitest.config.*, cypress.config.*, playwright.config.*, legacy.config.ts",
+    "vite.config.*": "jsconfig*, vitest.*, cypress.config.*, playwright.config.*, legacy.config.ts",
     "package.json": "package-lock.json, pnpm*, .yarnrc*, yarn*, .eslint*, eslint*, .prettier*, prettier*, .editorconfig,.stylelintrc.ts,postcss.config.cjs, commitlint*",
     ".env": ".env.*",
     ".gitignore": ".gitattributes, .gitmodules, .gitmessage, .mailmap"
@@ -11,5 +11,6 @@
   "[glsl]": {
     "editor.defaultFormatter": "esbenp.prettier-vscode",
     "editor.formatOnSave": true
-  }
+  },
+  "cmake.sourceDirectory": "/Users/zhanghaoting/code-projects/Games/Games202/Homework/refactored-games202-project/lut-gen"
 }
