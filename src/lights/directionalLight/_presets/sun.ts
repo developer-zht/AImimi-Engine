@@ -46,10 +46,11 @@ export const morningSun = new DirectionalLight({
 
 // 正午（高角度，最亮、近白）
 const NOON_POS: Vec3 = [-200, 100, 400]
-const NOON_DIR: Vec3 = [0.3, -0.2, -0.6]
-// const NOON_DIR: Vec3 = [0.05, -0.95, -0.1]
+// const NOON_DIR: Vec3 = [0.3, -0.2, -0.6]
+// const NOON_DIR: Vec3 = [0.3, -0.3, -0.6]
+const NOON_DIR: Vec3 = [0.05, -0.95, -0.1]
 export const noonSun = new DirectionalLight({
-  radiance: [5.0, 4.8, 4.5],
+  radiance: [6.0, 5.8, 5.5],
   position: NOON_POS,
   target: targetFromDirection(NOON_POS, NOON_DIR),
   up: [1, 0, 0], // 接近垂直时需要非 Y 的 up，避免 lookAt 退化
