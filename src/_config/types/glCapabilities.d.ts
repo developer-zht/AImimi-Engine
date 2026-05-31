@@ -248,6 +248,34 @@ export interface GLCapabilities {
   standardDerivatives: boolean
 
   /**
+   * 是否支持 32-bit 索引（uint32 element index）
+   *
+   * 👉 对应扩展：
+   * - WebGL1: OES_element_index_uint
+   * - WebGL2: 内建支持
+   *
+   * 👉 作用：
+   * - 允许 gl.drawElements 使用 gl.UNSIGNED_INT（32 bit）作为索引类型
+   * - 突破 gl.UNSIGNED_SHORT（16 bit）的 65535 顶点上限
+   *
+   * 👉 常见用途（本项目关键）：
+   * - 高分辨率 mesh（FFT 海面 surfaceMeshResolution=1024 → 1M+ 顶点）
+   * - 单一大场景共用一个 IBO
+   *
+   * ❗ 不支持时：
+   * - 单个 IBO 的索引值受限于 65535
+   * - 需要拆分 mesh，或改用 gl.drawArrays（无索引绘制，重复顶点 → 显存浪费）
+   *
+   * ⚠️ 注意：
+   * - WebGL1 必须显式 gl.getExtension('OES_element_index_uint') 才生效
+   * - 只影响 gl.drawElements 的 type 参数；不影响 attribute 数据本身
+   *
+   * 👉 示例：
+   * const elementIndexUint = !!gl.getExtension('OES_element_index_uint');
+   */
+  elementIndexUint: boolean
+
+  /**
    * 默认 framebuffer 每通道位深 [R, G, B, A]
    *
    * 👉 来源：
