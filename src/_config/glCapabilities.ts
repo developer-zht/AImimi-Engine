@@ -12,12 +12,71 @@ export function initCapabilities(gl: WebGLRenderingContext): GLCapabilities {
     return _capabilities
   }
 
+  const dbg = gl.getExtension('WEBGL_debug_renderer_info')
+
   _capabilities = {
-    floatTexture: !!gl.getExtension('OES_texture_float'),
-    halfFloatTexture: !!gl.getExtension('OES_texture_half_float'),
-    floatLinearFilter: !!gl.getExtension('OES_texture_float_linear'),
+    // ---- 扩展检查 ----
+    /**
+     * OES（OpenGL ES Working Group，最早来自 GLES）
+     * 例如：
+     *   - OES_texture_float
+     *   - OES_texture_half_float
+     *   - OES_standard_derivatives
+     *
+     * EXT（OpenGL Extension Registry，多个厂商共同提出的通用扩展）
+     * 例如：
+     *   - EXT_color_buffer_half_float
+     *   - EXT_shader_texture_lod
+     *   - EXT_disjoint_timer_query
+     *
+     * WEBGL（WebGL Working Group 自己发明的扩展）
+     * 例如：
+     *   - WEBGL_depth_texture
+     *   - WEBGL_color_buffer_float
+     *   - WEBGL_debug_renderer_info
+     */
+    // | 创建纹理                 | 渲染到纹理                   |
+    // | ---------------------- | --------------------------- |
+    // | OES_texture_float      | WEBGL_color_buffer_float    |
+    // | OES_texture_half_float | EXT_color_buffer_half_float |
+    halfFloatTexture: !!gl.getExtension('OES_texture_half_float'), // 允许创建和使用 RGBA16F Texture 作为纹理源（可被采样），但不一定能作为渲染目标
+    colorBufferHalfFloat: !!gl.getExtension('EXT_color_buffer_half_float'), // 允许 RGBA16F Texture 渲染到 Framebuffer Attachment
+    floatTexture: !!gl.getExtension('OES_texture_float'), // 允许创建和使用 Float Texture 作为纹理源（可被采样），但不一定能作为渲染目标
+    colorBufferFloat: !!gl.getExtension('WEBGL_color_buffer_float'), // 允许 Float Texture 渲染到 Framebuffer Attachment
     depthTexture: !!gl.getExtension('WEBGL_depth_texture'),
-    drawBuffers: !!gl.getExtension('WEBGL_draw_buffers')
+    floatLinearFilter: !!gl.getExtension('OES_texture_float_linear'),
+    fboRenderMipmap: !!gl.getExtension('OES_fbo_render_mipmap'),
+    textureLOD: !!gl.getExtension('EXT_shader_texture_lod'),
+    standardDerivatives: !!gl.getExtension('OES_standard_derivatives'),
+    drawBuffers: !!gl.getExtension('WEBGL_draw_buffers'),
+
+    // ---- 默认 framebuffer 的格式 ----
+    colorBits: [
+      gl.getParameter(gl.RED_BITS),
+      gl.getParameter(gl.GREEN_BITS),
+      gl.getParameter(gl.BLUE_BITS),
+      gl.getParameter(gl.ALPHA_BITS)
+    ] as [number, number, number, number],
+    depthBits: gl.getParameter(gl.DEPTH_BITS),
+    contextAttributes: gl.getContextAttributes(),
+
+    // ---- 硬件上限 ----
+    maxTextureSize: gl.getParameter(gl.MAX_TEXTURE_SIZE),
+    maxVertexTextureUnits: gl.getParameter(gl.MAX_VERTEX_TEXTURE_IMAGE_UNITS),
+    maxFragmentTextureUnits: gl.getParameter(gl.MAX_TEXTURE_IMAGE_UNITS),
+    maxVaryingVectors: gl.getParameter(gl.MAX_VARYING_VECTORS),
+    maxVertexUniformVectors: gl.getParameter(gl.MAX_VERTEX_UNIFORM_VECTORS),
+    maxFragmentUniformVectors: gl.getParameter(gl.MAX_FRAGMENT_UNIFORM_VECTORS),
+
+    // ---- 片元 highp 精度（移动端关键）----
+    fragHighpSupported: (() => {
+      const p = gl.getShaderPrecisionFormat(gl.FRAGMENT_SHADER, gl.HIGH_FLOAT)
+      return !!p && p.precision > 0
+    })(),
+
+    // ---- GPU 型号（排查移动端/集显问题）----
+    gpuRenderer: dbg ? gl.getParameter(dbg.UNMASKED_RENDERER_WEBGL) : 'unknown',
+    gpuVendor: dbg ? gl.getParameter(dbg.UNMASKED_VENDOR_WEBGL) : 'unknown'
   }
 
   console.log(`${ctx} `, _capabilities)
