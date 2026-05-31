@@ -100,15 +100,19 @@ void main() {
  * 数值实现：
  *   分母 denomX = 1 + α·∂Dx/∂x
  *     - denomX > 0：常规
- *     - denomX = 0：折叠边界（数学奇点）
- *     - denomX < 0：物理上折叠（J < 0），斜率自然翻向 —— 此时上层 Foam 覆盖
- *   用 max(denomX, 0.01) 做下界 clamp，让翻负前的极端拉伸不爆炸。
+ *     - denomX → 0：折叠边界（数学奇点），slope 会被除到爆炸
+ *     - denomX < 0：物理上折叠（J < 0），slope 自然翻向
+ *   用 max(denomX, 0.3) 做下界 clamp：
+ *     0.3 不是为了"防 0 除"那么简单——掠射角下折叠边缘附近 denom 接近 0 时，
+ *     slope 会被放大成极大值，重建出的法线乱跳，在画面上表现为"暗色条纹"伪影。
+ *     把下界抬到 0.3（而非 0.01）相当于牺牲折叠边缘一点物理精度，
+ *     换取抑制这些 streak —— 该区域本就该被上层 foam 覆盖，精度损失不可见。
  */
   // 在折叠区域 (Jacobian < 0) 分母自然变负，slope 会翻向——这是物理正确的。
   float denomX = 1.0 + uChoppiness.x * dDx_dx;
   float denomZ = 1.0 + uChoppiness.y * dDz_dz;
-  // 为防 0 除，clamp 下界到一个小正数（或允许翻负，看上层 foam 是否覆盖）
-  float slopeX_corr = slopeX / max(denomX, 0.3); // 或者直接 / denomX 配合 foam 遮丑
+  // 下界 clamp 到 0.3：抑制折叠边缘 slope 爆炸导致的暗条纹（streak），该区域由 foam 覆盖
+  float slopeX_corr = slopeX / max(denomX, 0.3);
   float slopeZ_corr = slopeZ / max(denomZ, 0.3);
 
   // ---- 4) Jacobian 行列式（折叠检测 / Foam 触发） ----
@@ -156,8 +160,6 @@ void main() {
   float biased = max(0.0, -(jClamped - uFoamBias));
   float prevFoam = texture2D(uPrevDisplacement, vTexCoord).a;
   float foam = clamp(prevFoam * exp(-uFoamDecayRate) + uFoamAdd * biased, 0.0, 1.0);
-  // 备选：硬切换方案（无 EMA），调试时可启用
-  // float foam = clamp(max(prevFoam * 0.6, biased * 3.0), 0.0, 1.0);
 
   // ---- 6) MRT 输出 ----
   // attachment 0 : (Dx·α, Dy, Dz·β, foam)

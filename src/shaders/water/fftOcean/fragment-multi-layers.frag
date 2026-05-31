@@ -600,7 +600,6 @@ void main() {
   // J=1 时平衡，J 越小越压缩 → foam 累积
   float shadow = 1.0;
   float foamMask = calcFoamMaskByLayerSize(shadow);
-  // foamMask = clamp(foamMask * 1.5, 0.0, 1.0);
 
   // ---- roughness ----
   // 物理含义：foam 是无数小气泡 + 破碎水沫，微表面取向高度无序 → 等效 roughness 大
@@ -656,19 +655,22 @@ void main() {
 
   // ---- foam：贴图采样 + 混色（受 uUseFoam 控制） ----
   if (uUseFoam == 1) {
-    vec2 foamUV = vWorldXZ * uFoamUVScale; // 让 UV 在世界空间稳定（不随相机/网格 LOD 漂移）
-    vec3 foamAlbedo = texture2D(uFoamMap, foamUV).rgb;
+    vec2 foamUV = vWorldXZ * uFoamUVScale; // uv = worldXZ · 1.5 → 单 tile ≈ 0.67 m
+    // ---- 双频采样破 0.67m 平铺 ----
+    vec3 foamHigh = texture2D(uFoamMap, foamUV).rgb; // 0.67m 周期：细颗粒
+    vec3 foamLow = texture2D(uFoamMap, foamUV * 0.23 + vec2(0.37, 0.61)).rgb; // ~2.9m 周期：破规律
+    vec3 foamTex = foamHigh * foamLow * 1.8; // 相乘→非周期不规则（×1.8 补亮度）
+
     float NdotL = max(0.0, dot(nMeso, lightDir));
-    // IBL ambient
     vec3 foamIBL = textureCubeLodEXT(uPrefilteredEnvMap, nMeso, uMaxReflectionLod).rgb;
-    vec3 foamLit = foamAlbedo * uFoamColor * (uLightRadiance * NdotL + foamIBL);
 
-    // 用 Rec.709 线性亮度当灰度，对任何颜色的 albedo 都成立
-    float foamTexAlpha = dot(foamAlbedo, vec3(0.2126, 0.7152, 0.0722));
-    float foamCoverage = foamMask * mix(0.7, 1.0, foamTexAlpha);
+    // ---- 近白主体：贴图只当 15% 微调，消黑斑 + 弱化 cell 规律 ----
+    float foamTexLum = dot(foamTex, vec3(0.2126, 0.7152, 0.0722));
+    vec3 foamBaseColor = uFoamColor * (0.85 + 0.15 * foamTexLum);
+    vec3 foamLit = foamBaseColor * (uLightRadiance * NdotL + foamIBL);
 
+    float foamCoverage = foamMask * mix(0.6, 1.0, foamTexLum);
     color = mix(color, foamLit, foamCoverage);
-    // color = mix(color, foamLit, foamMask);
   }
 
   // ---- fog: Atmospheric perspective（受 uUseFog 控制） ----
@@ -704,7 +706,6 @@ void main() {
   // gl_FragColor = vec4(specular, 1.0);
   // gl_FragColor = vec4(envReflect, 1.0);
   // gl_FragColor = vec4(vec3(foamMask), 1.0);
-  // gl_FragColor = vec4(vec3(foamLit), 1.0);
   // gl_FragColor = vec4(vec3(1.0 - fresnel), 1.0);
   // gl_FragColor = vec4(vec3(surf.jacobian), 1.0);
   // debug: 显示 meso 法线偏离 macro 的程度
