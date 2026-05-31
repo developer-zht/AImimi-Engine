@@ -4,7 +4,7 @@ import {
   SKYBOX_KLOOFENDAL_06_PURESKY_2K_EXR,
   SKYBOX_KLOOFENDAL_43D_CLEAR_PURESKY_2K_EXR
 } from '@/scenes/environment/skybox/_config/skyboxSceneConfig'
-import { createSkyboxRenderer } from '@/scenes/environment/skybox/createSkyboxRenderer-refactor'
+import { createSkyboxRenderer } from '@/scenes/environment/skybox/createSkyboxRenderer'
 
 import { FFTOceanConfig } from './types/FFTOceanConfig-MultiLayers'
 import { DEFAULT_FFT_OCEAN_CONFIG } from './_config/fftOceanSceneConfig-MultiLayers'
@@ -95,16 +95,12 @@ export async function loadFFTOceanScene(ctx: SceneContext) {
   })
 
   const spectrum = new JONSWAPSpectrum()
-  const spectrumAnalyzer = new SpectrumAnalyzer(spectrum)
-  let index = 5
-  for (const oceanParam of oceanParamsCascade) {
-    if (index === 3 || index === 2 || index === 1 || index === 0) {
-      const report = spectrumAnalyzer.analyze(oceanParam)
-      spectrumAnalyzer.printReport(report, oceanParam)
-    }
-    index++
-    // spectrumAnalyzer.drawLogLogSpectrum(report, gl.canvas as HTMLCanvasElement)
-  }
+  // const spectrumAnalyzer = new SpectrumAnalyzer(spectrum)
+  // for (const oceanParam of oceanParamsCascade) {
+  //   const report = spectrumAnalyzer.analyze(oceanParam)
+  //   spectrumAnalyzer.printReport(report, oceanParam)
+  //   // spectrumAnalyzer.drawLogLogSpectrum(report, gl.canvas as HTMLCanvasElement)
+  // }
   const computePass = await FFTOceanComputePass.create(gl, oceanParamsCascade, spectrum)
   computePass.addReceiver(fftOceanRenderer)
 

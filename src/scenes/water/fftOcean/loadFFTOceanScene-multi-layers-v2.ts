@@ -7,7 +7,7 @@ import {
   SKYBOX_KLOOFENDAL_43D_CLEAR_PURESKY_2K_EXR
 } from '@/scenes/environment/skybox/_config/skyboxSceneConfig'
 // import { createSkyboxRenderer } from '@/scenes/environment/skybox/createSkyboxRenderer'
-import { createSkyboxRenderer } from '@/scenes/environment/skybox/createSkyboxRenderer-refactor'
+import { createSkyboxRenderer } from '@/scenes/environment/skybox/createSkyboxRenderer'
 
 import { FFTOceanConfig } from './types/FFTOceanConfig-MultiLayers'
 import { DEFAULT_FFT_OCEAN_CONFIG } from './_config/fftOceanSceneConfig-MultiLayers'

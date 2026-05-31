@@ -5,7 +5,7 @@ import {
   SKYBOX_SKY_18_CUBEMAP,
   SKYBOX_SKY_SUNSET_CUBEMAP
 } from '@/scenes/environment/skybox/_config/skyboxSceneConfig'
-import { createSkyboxRenderer } from '@/scenes/environment/skybox/createSkyboxRenderer'
+import { createSkyboxRenderer } from '@/scenes/environment/skybox/deprecated/createSkyboxRenderer'
 
 import { FFTOceanConfig } from './types/FFTOceanConfig-MultiLayers'
 import { DEFAULT_FFT_OCEAN_CONFIG } from './_config/fftOceanSceneConfig-MultiLayers'

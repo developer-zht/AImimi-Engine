@@ -79,24 +79,10 @@ export const FFT_OCEAN_MATERIAL_OVERRIDES: FFTOceanMaterialConfig = {
   // IBL 关闭时给 SSS k4 用
   ambientColor: [0.3, 0.42, 0.55],
 
-  // Deprecated
-  // ambientColor: [0.4, 0.55, 0.65], // 近似 ShadeSH9 兜底
-
-  // Deprecated
-  // shallowWaterColor: [0.05, 0.17, 0.22], // 浅海青蓝（不要太绿）
-  // waterColor: [0.05, 0.25, 0.45], // 中等蓝
-  // deepWaterColor: [0.01, 0.04, 0.08], // 深海深蓝
-
   // ==================== Foam ====================
-  // ⚠️ scale 越大颗粒越细，但 tile 重复越明显（近距离会看到网格感）
+  // scale 越大颗粒越细，但 tile 重复越明显（近距离会看到网格感）
   foamUVScale: 1.5, // uv = worldXZ · 1.5 → 单 tile ≈ 0.67 m
   foamColor: [0.85, 0.9, 0.95], // 微蓝白（模拟泡沫里残留的水色）
-
-  // Deprecated
-  // foamBias: 0.2, // FoamBias
-  // foamPower: 1.5, // FoamPower
-  // foamAdd: 0.1, // FoamAdd
-  // foamDecayRate: 0.05, // FoamDecayRate
 
   // ==================== 阴影 ====================
   shadowIntensity: 0.2, // 软阴影 lift：S̃ = sat(shadow + 0.2)
@@ -136,8 +122,8 @@ export const DEFAULT_FFT_OCEAN_CONFIG: FFTOceanConfig = {
   },
 
   // ==================== Renderer ====================
-  renderingMode: 'MESH', // 'MESH' | LineRenderMode.LINES（debug 用）
-  // renderingMode: LineRenderMode.LINES,
+  renderingMode: 'MESH', // 'MESH'
+  // renderingMode: LineRenderMode.LINES, //  LineRenderMode.LINES（debug 用）
 
   // ==================== FFT Calculate ====================
   /**
@@ -169,8 +155,8 @@ export const DEFAULT_FFT_OCEAN_CONFIG: FFTOceanConfig = {
       kMin: 0.025,
       kMax: 0.25,
       foamBias: 0.15,
-      foamAdd: 0.1,
-      foamDecayRate: 0.03,
+      foamAdd: 0.07,
+      foamDecayRate: 0.07,
       foamPower: 1.5,
       // ----- spectrum0/1：双方向风谱叠加，制造方向多样性 -----
       // windSpeed↑ + ωp↓ → α↑ → 整体能量近似指数增长；波变高也变长
@@ -213,8 +199,8 @@ export const DEFAULT_FFT_OCEAN_CONFIG: FFTOceanConfig = {
       kMin: 0.001,
       kMax: 2.1,
       foamBias: 0.08,
-      foamAdd: 0.12,
-      foamDecayRate: 0.05,
+      foamAdd: 0.08,
+      foamDecayRate: 0.08,
       foamPower: 1.5,
       spectrum0: {
         scale: 0.65,
@@ -249,9 +235,9 @@ export const DEFAULT_FFT_OCEAN_CONFIG: FFTOceanConfig = {
       choppiness: [2.3, 2.3],
       kMin: 0.025,
       kMax: 9.0,
-      foamBias: 0.1,
-      foamAdd: 0.05,
-      foamDecayRate: 0.05,
+      foamBias: 0.07,
+      foamAdd: 0.03,
+      foamDecayRate: 0.08,
       foamPower: 1.5,
       spectrum0: {
         scale: 0.6,
@@ -312,165 +298,4 @@ export const DEFAULT_FFT_OCEAN_CONFIG: FFTOceanConfig = {
       }
     }
   ]
-
-  // oceanParamsCascade: [
-  //   // ==================== Layer 0：主涌浪 size=512 ====================
-  //   // λ_peak ≈ 100m, H_s 贡献 ≈ 1.0m
-  //   {
-  //     size: 256,
-  //     fftResolution: 256,
-  //     gravity: 9.81,
-  //     depth: 1000,
-  //     amplitude: 0.2, // 比之前 0.9 小很多
-  //     layerContribute: 0.7,
-  //     choppiness: [1.0, 1.0],
-  //     spectrum0: {
-  //       // 主风向
-  //       scale: 1.0,
-  //       windSpeed: 10,
-  //       windDirection: 45,
-  //       fetch: 80000, // λ_peak ≈ 75m，落在 size 内
-  //       spreadBlend: 1.0,
-  //       swell: 0.0,
-  //       peakEnhancement: 6.0,
-  //       shortWavesFade: 1000 // 砍掉 < 50m 的内容（让其他层做）
-  //     },
-  //     spectrum1: {
-  //       // 副向，制造方向多样性
-  //       scale: 0.4,
-  //       windSpeed: 8,
-  //       windDirection: 70, // 偏 +25°
-  //       fetch: 60000, // λ_peak ≈ 55m
-  //       spreadBlend: 0.85,
-  //       swell: 0.3,
-  //       peakEnhancement: 4.0,
-  //       shortWavesFade: 100
-  //     }
-  //   },
-
-  //   // ==================== Layer 1：中浪 size=128 ====================
-  //   // λ_peak ≈ 25m, H_s 贡献 ≈ 0.4m
-  //   {
-  //     size: 63,
-  //     fftResolution: 256,
-  //     gravity: 9.81,
-  //     depth: 1000,
-  //     amplitude: 0.0,
-  //     layerContribute: 0.6,
-  //     choppiness: [1.2, 1.2],
-  //     spectrum0: {
-  //       scale: 0.6,
-  //       windSpeed: 5,
-  //       windDirection: 30,
-  //       fetch: 20000, // λ_peak ≈ 22m
-  //       spreadBlend: 0.95,
-  //       swell: 0.3,
-  //       peakEnhancement: 4.0,
-  //       shortWavesFade: 2.5
-  //     },
-  //     spectrum1: {
-  //       scale: 0.4,
-  //       windSpeed: 5,
-  //       windDirection: 50, // 大角度差打散重复感
-  //       fetch: 15000, // λ_peak ≈ 18m
-  //       spreadBlend: 0.9,
-  //       swell: 0.4,
-  //       peakEnhancement: 3.0,
-  //       shortWavesFade: 2.0
-  //     }
-  //   },
-
-  //   // ==================== Layer 2：小浪 size=32 ====================
-  //   // λ_peak ≈ 5m, H_s 贡献 ≈ 0.15m
-  //   {
-  //     size: 17,
-  //     fftResolution: 256,
-  //     gravity: 9.81,
-  //     depth: 1000,
-  //     amplitude: 0,
-  //     layerContribute: 0.5,
-  //     choppiness: [2.8, 2.8],
-  //     spectrum0: {
-  //       scale: 0.4,
-  //       windSpeed: 4,
-  //       windDirection: 20,
-  //       fetch: 3000, // λ_peak ≈ 5m
-  //       spreadBlend: 0.85,
-  //       swell: 0.4,
-  //       peakEnhancement: 2.5,
-  //       shortWavesFade: 0.6
-  //     },
-  //     spectrum1: {
-  //       scale: 0.3,
-  //       windSpeed: 4,
-  //       windDirection: 40,
-  //       fetch: 2000, // λ_peak ≈ 4m
-  //       spreadBlend: 0.7,
-  //       swell: 0.3,
-  //       peakEnhancement: 2.0,
-  //       shortWavesFade: 0.4
-  //     }
-  //   },
-
-  //   // ==================== Layer 3：涟漪 size=8 ====================
-  //   // λ_peak ≈ 1m, H_s 贡献 ≈ 0.05m
-  //   {
-  //     size: 5,
-  //     fftResolution: 256,
-  //     gravity: 9.81,
-  //     depth: 1000,
-  //     amplitude: 0, // 涟漪不能高，否则 64 倍 tile 变噪声
-  //     layerContribute: 0.2,
-  //     choppiness: [2.8, 2.8],
-  //     spectrum0: {
-  //       scale: 0.3,
-  //       windSpeed: 3,
-  //       windDirection: 5,
-  //       fetch: 600, // λ_peak ≈ 1.2m
-  //       spreadBlend: 0.6,
-  //       swell: 0.3,
-  //       peakEnhancement: 1.5,
-  //       shortWavesFade: 0.15
-  //     },
-  //     spectrum1: {
-  //       scale: 0.2,
-  //       windSpeed: 2,
-  //       windDirection: 10,
-  //       fetch: 400, // λ_peak ≈ 0.7m
-  //       spreadBlend: 0.4,
-  //       swell: 0.2,
-  //       peakEnhancement: 1.0,
-  //       shortWavesFade: 0.1
-  //     }
-  //   }
-  //   // {
-  //   //   size: 7,
-  //   //   fftResolution: 256,
-  //   //   gravity: 9.81,
-  //   //   depth: 1000,
-  //   //   amplitude: 0.9, // 涟漪不能高，否则 64 倍 tile 变噪声
-  //   //   layerContribute: 0.2,
-  //   //   choppiness: [2.8, 2.8],
-  //   //   spectrum0: {
-  //   //     scale: 0.3,
-  //   //     windSpeed: 3,
-  //   //     windDirection: -5,
-  //   //     fetch: 600, // λ_peak ≈ 1.2m
-  //   //     spreadBlend: 0.6,
-  //   //     swell: 0.3,
-  //   //     peakEnhancement: 1.5,
-  //   //     shortWavesFade: 0.15
-  //   //   },
-  //   //   spectrum1: {
-  //   //     scale: 0.2,
-  //   //     windSpeed: 2,
-  //   //     windDirection: 5,
-  //   //     fetch: 400, // λ_peak ≈ 0.7m
-  //   //     spreadBlend: 0.4,
-  //   //     swell: 0.2,
-  //   //     peakEnhancement: 1.0,
-  //   //     shortWavesFade: 0.1
-  //   //   }
-  //   // }
-  // ]
 }
