@@ -1,6 +1,4 @@
 import { loadGLTF } from '@/loaders/loadGLTF'
-import { SceneContext } from '../types/SceneContext'
-import { BALL_SCENE_CONFIG, ROUGHNESS_LEVELS } from './_config/ballSceneConfig'
 import { ForwardRenderPass } from '@/renderers/passes/forward/ForwardRenderPass'
 import { MeshRenderer } from '@/renderers/MeshRenderer'
 import { createMeshRendererFromGLTF } from '@/renderers/factories/meshRendererFromModel/fromGLTF/createMeshRendererFromGLTF'
@@ -13,10 +11,12 @@ import { CubeMapTexture } from '@/textures/CubeMapTexture'
 import { loadCubeMapImages } from '@/loaders/loadCubeMapImages'
 import { ResourceLoadError } from '@/errors/EngineError/ResourceError/ResourceLoadError'
 import { SharedTextures } from './types/loadHW4Scene'
-import { createCubemapBackground } from '../environment/background/createCubemapBackground'
 import { Transform } from '@/objects/utils/Transform'
 import { CookTorranceMaterial } from '@/materials/pbr/CookTorranceMaterial'
 import { KullaContyMaterial } from '@/materials/pbr/KullaContyMaterial'
+import { SceneContext } from '@/scenes/types/SceneContext'
+import { BALL_SCENE_CONFIG, ROUGHNESS_LEVELS } from './_config/ballSceneConfig'
+import { createCubemapBackground } from '@/scenes/environment/background/createCubemapBackground'
 
 export async function loadHW4Scene(ctx: SceneContext) {
   const { gl, camera, renderer, controls } = ctx

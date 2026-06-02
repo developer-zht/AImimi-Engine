@@ -1,10 +1,11 @@
 import { hw1CaveLight } from '@/lights/directionalLight/_presets/hw1Lights'
 import { hw3GbufferPassLight } from '@/lights/directionalLight/_presets/hw3Lights'
 import { ModelPaths } from '@/models/_config/modelPaths'
-import { CaveSceneConfig } from '@/scenes/hw3/types/CaveSceneConfig'
-import { ShaderPaths } from '@/shaders/_config/shaderPaths'
 
-/** Cave 场景配置 -- HW1 Shadow Map*/
+import { ShaderPaths } from '@/shaders/_config/shaderPaths'
+import { CaveSceneConfig } from '../../types/CaveSceneConfig'
+
+/** Cave 场景配置 -- HW1 Shadow Map */
 export const CAVE_SCENE_CONFIG_DIRECTIONAL_LIGHT: CaveSceneConfig = {
   cameraConfig: {
     position: [0, 30, 50],
@@ -46,7 +47,7 @@ export const CAVE_SCENE_CONFIG_DIRECTIONAL_LIGHT: CaveSceneConfig = {
   // 没有天空盒
 }
 
-/** Cave 场景配置 -- HW3 GBuffer & SSR*/
+/** Cave 场景配置 -- HW3 GBuffer & SSR */
 export const CAVE_SCENE_CONFIG_GBUFFER: CaveSceneConfig = {
   cameraConfig: {
     position: [30, 10, 30],

@@ -1,9 +1,9 @@
-import { SceneContext } from '../types/SceneContext'
+import { SceneContext } from '../../types/SceneContext'
 import { HW1_SCENE_CONFIG } from './_config/hw1SceneConfig'
 import { loadOBJ } from '@/loaders/loadOBJ'
 import { createMeshRendererFromOBJ } from '@/renderers/factories/meshRendererFromModel/fromOBJ/createMeshRendererFromOBJ'
-import { setupLightGUI } from '@/gui/setupLightGUI'
-import { setupShadowGUI } from '@/gui/setupShadowGUI'
+import { setupLightGUI } from '@/gui/light/setup'
+import { setupShadowGUI } from '@/gui/shadow/setup'
 
 import { UniformType } from '@/materials/types/Material'
 import { DEFAULT_SHADOW_RENDER } from '@/renderers/passes/shadow/_config/defaultConfig'

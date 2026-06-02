@@ -1,7 +1,6 @@
 import { loadGLTF } from '@/loaders/loadGLTF'
-import { SceneContext } from '../../types/SceneContext'
 import { CAVE_SCENE_CONFIG_GBUFFER } from './_config/caveSceneConfig'
-import { setupLightGUI } from '@/gui/setupLightGUI'
+import { setupLightGUI } from '@/gui/light/setup'
 import { createGBufferRendererFromGLTF } from '@/renderers/factories/deferred/fromGLTF/createGBufferRendererFromGLTF'
 import { GBufferRenderPass } from '@/renderers/passes/deferred/GBufferRenderPass'
 import { DepthMipmapPass } from '@/renderers/passes/deferred/DepthMipmapPass'
@@ -12,6 +11,7 @@ import { LightSystem } from '@/lights/LightSystem'
 import { MeshRenderer } from '@/renderers/MeshRenderer'
 import { ShadowRenderPass } from '@/renderers/passes/shadow/ShadowRenderPass'
 import { LightNotFoundError } from '@/errors/EngineError/LightError/LightNotFoundError'
+import { SceneContext } from '@/scenes/types/SceneContext'
 import { GUI } from 'dat.gui'
 
 /**
