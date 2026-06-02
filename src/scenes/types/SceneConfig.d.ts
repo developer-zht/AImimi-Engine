@@ -1,7 +1,7 @@
 import { ModelConfig } from '@/renderers/factories/meshRendererFromModel/types/ModelConfig'
 import { Vec3 } from '@/math/types/math'
 import { ILight } from '@/lights/types/light'
-import { LightGUIConfig } from '@/gui/types/setupLightGUI'
+import { LightGUIConfig } from '@/gui/light/types/setup'
 
 /** 相机参数 */
 export interface CameraConfig {
