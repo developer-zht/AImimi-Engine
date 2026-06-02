@@ -1,11 +1,6 @@
 import { SceneContext } from '../../types/SceneContext'
 import { UniformType } from '@/materials/types/Material'
-import {
-  SKYBOX_CITRUS_ORCHARD_PURESKY_2K_HDR,
-  SKYBOX_CITRUS_ORCHARD_ROAD_PURESKY_2K_HDR,
-  SKYBOX_CITRUS_INDUSTRIAL_SUNSET_PURESKY_2K_HDR,
-  SKYBOX_KLOOFENDAL_43D_CLEAR_PURESKY_2K_EXR
-} from '@/scenes/environment/skybox/_config/skyboxSceneConfig'
+import { SKYBOX_KLOOFENDAL_43D_CLEAR_PURESKY_2K_EXR } from '@/scenes/environment/skybox/_config/skyboxSceneConfig'
 // import { createSkyboxRenderer } from '@/scenes/environment/skybox/createSkyboxRenderer'
 import { createSkyboxRenderer } from '@/scenes/environment/skybox/createSkyboxRenderer'
 
@@ -18,7 +13,7 @@ import { LightSystem } from '@/lights/LightSystem'
 import { noonSun } from '@/lights/directionalLight/_presets/sun'
 import { JONSWAPSpectrum } from '@/simulation/ocean/spectrums/JONSWAPSpectrum'
 import { linearizeCubemap } from '@/textures/cubemap/linearizeCubemap'
-import { setupFFTOceanGUI } from '@/gui/setupFFTOceanGUI-v1'
+import { setupFFTOceanGUI } from '@/gui/fftOcean/v1/setup'
 import { SpectrumAnalyzer } from '@/simulation/ocean/analysis/SpectrumAnalyzer'
 import { prefilterEnvironment } from '@/textures/cubemap/IBL/prefilterEnvironment'
 import { generateBRDFLUT } from '@/textures/cubemap/IBL/generateBRDFLUT'
