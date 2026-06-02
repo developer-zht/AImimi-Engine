@@ -10,6 +10,8 @@ export interface CameraConfig {
   fov?: number // 默认 75
   near?: number // 默认 0.1
   far?: number // 默认 1000
+  autoRotate?: boolean
+  autoRotateSpeed?: number
 }
 
 /** 光源列表 */
