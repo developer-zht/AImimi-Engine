@@ -1,5 +1,5 @@
 import { GUI } from 'dat.gui'
-import { LightGUIConfig } from './types/setupLightGUI'
+import { LightGUIConfig } from './types/setup'
 import { ILight } from '@/lights/types/light'
 import { DirectionalLight } from '@/lights/directionalLight/DirectionalLight-refactor'
 
