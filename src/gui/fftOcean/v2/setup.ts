@@ -1,6 +1,6 @@
 import { GUI } from 'dat.gui'
 import { UniformType } from '@/materials/types/Material'
-import { FFTOceanGUIDeps } from './types/setupFFTOceanGUI'
+import { FFTOceanGUIDeps } from '../types/setup-v2'
 
 /**
  * 简易 debounce：高频调用合并到尾部一次
