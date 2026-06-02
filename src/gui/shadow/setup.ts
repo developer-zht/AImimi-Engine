@@ -1,5 +1,5 @@
 import { GUI } from 'dat.gui'
-import { ShadowGUIConfig } from './types/setupShadowGUI'
+import { ShadowGUIConfig } from './types/setup'
 import { UniformType } from '@/materials/types/Material'
 import { BaseRenderer } from '@/renderers/BaseRenderer'
 
