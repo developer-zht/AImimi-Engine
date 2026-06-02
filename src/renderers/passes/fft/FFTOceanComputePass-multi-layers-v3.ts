@@ -1,5 +1,4 @@
 import { FBO } from '@/framebuffers/FBO'
-import { RealtimeSpectrum } from '@/simulation/ocean/fft/RealtimeSpectrum-v2'
 import { RenderPass } from '../types/RenderPass'
 import { FullScreenQuad } from '@/objects/FullScreenQuad'
 import { Shader } from '@/shaders/Shader'
@@ -260,12 +259,7 @@ export class FFTOceanComputePass implements RenderPass {
     const gl = this.gl
     // 保存 GL 状态
     const saved = captureGLState(gl)
-    // const savedFramebuffer = gl.getParameter(gl.FRAMEBUFFER_BINDING) as WebGLFramebuffer
-    // const savedViewport = gl.getParameter(gl.VIEWPORT) as Int32Array
-    // const vpX = savedViewport[0] ?? 0
-    // const vpY = savedViewport[1] ?? 0
-    // const vpW = savedViewport[2] ?? gl.canvas.width
-    // const vpH = savedViewport[3] ?? gl.canvas.height
+
     gl.disable(gl.DEPTH_TEST)
 
     for (let i = 0; i < this.layerStates.length; i++) {
@@ -297,10 +291,7 @@ export class FFTOceanComputePass implements RenderPass {
       layerState.finalFBOs[latestFinalIdx].regenerateMipmaps()
     }
 
-    // gl.bindFramebuffer(gl.FRAMEBUFFER, savedFramebuffer)
-    // gl.viewport(vpX, vpY, vpW, vpH)
     restoreGLState(gl, saved)
-    // gl.enable(gl.DEPTH_TEST)
 
     // 把最新输出贴图绑给所有 receiver
     for (const recv of this.receivers) {
