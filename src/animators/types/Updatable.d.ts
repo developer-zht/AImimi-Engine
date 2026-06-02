@@ -17,7 +17,7 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
  *                 球坐标偏移（spherical offset）覆盖回去。
  */
 export interface UpdatableContext {
-  context: FrameContext
+  frameContext: FrameContext
   camera: PerspectiveCamera
   controls: OrbitControls
 }
@@ -52,7 +52,13 @@ export interface Updatable {
   readonly name: string
 
   /**
-   * 每帧调用一次，在此读写 `ctx.camera` / `ctx.controls` 等场景状态。
+   * 每帧调用一次，在此「写场景状态数据」：camera.position / controls.target 等。
+   *
+   * ❗ 职责边界（数据 vs 行为）：
+   *   - ✅ 只负责更新「数据」(state)：写 camera.position、controls.target 等字段
+   *   - ❌ 不负责更新「行为」(sync)：不要调用 controls.update()
+   *   controls.update() 由 Engine.mainLoop 统一收口，重复调用会导致每帧多次同步。
+   *
    * @param ctx 本帧上下文，见 {@link UpdatableContext}
    */
   update(ctx: UpdatableContext): void

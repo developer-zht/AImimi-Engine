@@ -62,10 +62,10 @@ export class CameraOrbitAnimator implements Updatable {
    * @param ctx 本帧上下文（提供 elapsedTime、camera、controls）
    */
   update(ctx: UpdatableContext): void {
-    const { context, camera, controls } = ctx
+    const { frameContext, camera, controls } = ctx
 
     // 当前角度 = 累计时间 × 角速度（弧度）
-    const angle = context.elapsedTime * this.angularSpeed
+    const angle = frameContext.elapsedTime * this.angularSpeed
 
     // --- camera position ----
     // 圆的参数方程：在 XZ 平面绕 center 画圆，Y 恒定
