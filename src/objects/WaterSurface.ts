@@ -44,12 +44,13 @@ export class WaterSurface extends Mesh {
    *
    * @param transform 模型变换参数
    * @param surfaceSize 水面物理尺寸（世界空间单位）
-   * @param vertexCount 网格分辨率（每行/列顶点数）
+   * @param resolution 网格分辨率（每行/列顶点数）
    *
+   * @remark
    * resolution 说明：
-   * - resolution 表示“顶点数量”而不是“网格数量”
-   * - 实际生成 resolution × resolution 个顶点
-   * - 实际生成 (resolution - 1)^2 个网格
+   * - resolution 表示“网格数量”
+   * - 实际生成 (resolution + 1) × (resolution + 1) 个顶点
+   * - 实际生成 resolution^2 个网格
    */
 
   // private size: number
@@ -59,9 +60,9 @@ export class WaterSurface extends Mesh {
     gl: WebGLRenderingContext,
     transform: Transform,
     surfaceSize: number,
-    vertexCount: number
+    resolution: number
   ) {
-    const meshData = generateGridMeshData(gl, surfaceSize, vertexCount)
+    const meshData = generateGridMeshData(gl, surfaceSize, resolution + 1)
 
     // const transform = new Transform(
     //   [transformParams.modelTransX, transformParams.modelTransY, transformParams.modelTransZ],

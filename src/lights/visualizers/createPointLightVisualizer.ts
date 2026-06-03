@@ -3,7 +3,7 @@ import { Transform } from '@/objects/utils/Transform'
 import { MeshRenderer } from '@/renderers/MeshRenderer'
 import { ILight } from '../types/light'
 
-import { Shader } from '@/shaders/Shader-refactor'
+import { Shader } from '@/shaders/Shader'
 import { ShaderPaths } from '@/shaders/_config/shaderPaths'
 import { registerVisualizer } from './visualizerRegistry'
 import { IPointLight } from '../pointLight/types/pointLight'

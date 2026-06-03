@@ -1,23 +1,24 @@
-interface Performance {
-  memory?: {
-    jsHeapSizeLimit: number
-    totalJSHeapSize: number
-    usedJSHeapSize: number
-  }
-}
+import { getCapabilities } from '@/_config/glCapabilities'
+import { Performance } from './types/Performance'
 
 // 性能监控工具
 export class PerformanceMonitor {
+  private gl: WebGLRenderingContext
+
   private frameCount: number
   private lastTime: number
   private fps: number
   private frameTimeHistory: number[]
   private maxHistoryLength: number
-  private perfDiv: HTMLElement
 
-  private glExtension: WEBGL_debug_renderer_info | null
+  private bodyDiv: HTMLElement | null
+  private perfDiv: HTMLElement | null
+  private collapsed: boolean
+
   private memoryInfo: string | null
-  constructor() {
+  constructor(gl: WebGLRenderingContext) {
+    this.gl = gl
+
     this.frameCount = 0
     this.lastTime = window.performance.now()
     this.fps = 0
@@ -25,38 +26,30 @@ export class PerformanceMonitor {
     this.maxHistoryLength = 60 // 保留60帧的历史数据
 
     // GPU内存使用监控（如果支持）
-    this.glExtension = null
     this.memoryInfo = null
+
+    this.bodyDiv = null
+    this.perfDiv = null
+    this.collapsed = false
 
     this.initGPUMonitoring()
     this.createUI()
   }
 
   initGPUMonitoring() {
-    // 尝试获取WebGL内存信息扩展
-    const canvas = document.getElementById('glcanvas') as HTMLCanvasElement
-    const gl =
-      canvas.getContext('webgl') ||
-      (canvas.getContext('experimental-webgl') as WebGLRenderingContext)
+    const gl = this.gl
 
-    if (gl) {
-      // 设置颜色空间
-      gl.drawingBufferColorSpace = 'srgb'
+    // 设置颜色空间
+    gl.drawingBufferColorSpace = 'srgb'
 
-      // 检查内存信息扩展
-      this.glExtension = gl.getExtension('WEBGL_debug_renderer_info')
-
-      // 尝试获取内存使用信息
-      const debugInfo = gl.getExtension('WEBGL_debug_renderer_info')
-      if (debugInfo) {
-        console.log('GPU:', gl.getParameter(debugInfo.UNMASKED_RENDERER_WEBGL))
-        console.log('Vendor:', gl.getParameter(debugInfo.UNMASKED_VENDOR_WEBGL))
-      }
-    }
+    // 检查内存信息扩展
+    const { gpuRenderer, gpuVendor } = getCapabilities()
+    console.debug('GPU:', gpuRenderer)
+    console.debug('Vendor:', gpuVendor)
   }
 
   createUI() {
-    // 创建性能显示UI
+    // 性能显示 panel
     const perfDiv = document.createElement('div')
     perfDiv.id = 'performance-monitor'
     perfDiv.style.cssText = `
@@ -71,8 +64,48 @@ export class PerformanceMonitor {
             z-index: 10000;
             border-radius: 5px;
         `
+
+    // 标题栏：常显 + 点击折叠
+    const header = document.createElement('div')
+    header.style.cssText = `
+            padding: 6px 10px;
+            cursor: pointer;
+            user-select: none;
+            display: flex;
+            justify-content: space-between;
+            gap: 12px;
+            font-weight: bold;
+    `
+    header.innerHTML = `
+            <span>性能监控</span>
+            <span class="pm-arrow">▾</span>
+    `
+    header.classList.add('perfHeader')
+    header.addEventListener('click', () => {
+      this.collapsed = !this.collapsed
+
+      if (this.bodyDiv) this.bodyDiv.style.maxHeight = this.collapsed ? '0px' : '500px'
+
+      const arrow = header.querySelector('.pm-arrow')
+      if (arrow) arrow.textContent = this.collapsed ? '▸' : '▾'
+    })
+
+    // 内容区：可隐藏
+    const body = document.createElement('div')
+    body.classList.add('perfBody')
+    body.style.cssText = `
+          overflow: hidden;
+          max-height: 500px;
+          padding: 0 10px;
+          transition: max-height 0.2s ease;
+    `
+
+    perfDiv.appendChild(header)
+    perfDiv.appendChild(body)
+
     document.body.appendChild(perfDiv)
     this.perfDiv = perfDiv
+    this.bodyDiv = body
   }
 
   update() {
@@ -99,6 +132,7 @@ export class PerformanceMonitor {
     // 计算平均帧率
     const avgFrameTime =
       this.frameTimeHistory.reduce((a, b) => a + b, 0) / this.frameTimeHistory.length
+
     this.fps = 1000 / avgFrameTime
 
     // 计算最小和最大帧时间
@@ -106,26 +140,28 @@ export class PerformanceMonitor {
     const maxFrameTime = Math.max(...this.frameTimeHistory)
 
     // 检查内存使用
-    const memoryInfo = this.getMemoryInfo()
+    this.memoryInfo = this.getMemoryInfo()
 
-    // 更新显示
-    this.perfDiv.innerHTML = `
-            <div><strong>性能监控</strong></div>
+    if (this.perfDiv) {
+      if (this.bodyDiv)
+        // 更新显示
+        this.bodyDiv.innerHTML = `
             <div>FPS: ${this.fps.toFixed(1)}</div>
             <div>平均帧时间: ${avgFrameTime.toFixed(2)}ms</div>
             <div>最小帧时间: ${minFrameTime.toFixed(2)}ms</div>
             <div>最大帧时间: ${maxFrameTime.toFixed(2)}ms</div>
-            ${memoryInfo}
+            ${this.memoryInfo}
             <div>总帧数: ${this.frameCount}</div>
         `
 
-    // 如果帧率太低，显示警告
-    if (this.fps < 15) {
-      this.perfDiv.style.borderLeft = '5px solid red'
-    } else if (this.fps < 30) {
-      this.perfDiv.style.borderLeft = '5px solid yellow'
-    } else {
-      this.perfDiv.style.borderLeft = '5px solid green'
+      // 如果帧率太低，显示警告
+      if (this.fps < 15) {
+        this.perfDiv.style.borderLeft = '5px solid red'
+      } else if (this.fps < 30) {
+        this.perfDiv.style.borderLeft = '5px solid yellow'
+      } else {
+        this.perfDiv.style.borderLeft = '5px solid green'
+      }
     }
   }
 
@@ -149,11 +185,10 @@ export class PerformanceMonitor {
   }
 
   // 记录特定操作的性能
-  measureOperation(name: string, operation) {
+  measureOperation<T>(name: string, operation: () => T): T {
     const startTime = performance.now()
     const result = operation()
     const endTime = performance.now()
-
     console.log(`${name}: ${(endTime - startTime).toFixed(2)}ms`)
     return result
   }

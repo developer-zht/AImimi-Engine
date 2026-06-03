@@ -1,11 +1,12 @@
 # AI 相关
-claude-desktop-examples
+claude-*
 .claude
+codex-*
 
-# .md
-src/**/*.md
+# deprecated
+src/**/*deprecated*
 
-# Logs
+# Log
 logs
 *.log
 npm-debug.log*

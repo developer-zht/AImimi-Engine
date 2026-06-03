@@ -6,72 +6,74 @@ import importPlugin from 'eslint-plugin-import'
 import html from '@html-eslint/eslint-plugin'
 
 export default [
-  // 1️⃣ 忽略目录（等价于 ignorePatterns）
-  { ignores: ['dist', 'node_modules', '*.min.js', 'coverage'] },
+  // ==========================================
+  // Global
+  // ==========================================
 
-  // 2️⃣ JS 推荐规则（等价于 eslint:recommended）
+  // ==================== 忽略目录（等价于 ignorePatterns）====================
+  {
+    ignores: ['**/dist/**', '**/dist-ssr/**', '**/coverage/**', '**/node_modules/**', '**/*.min.js']
+  },
+
+  // ==================== Third Party cCnfig ====================
+  // JS 推荐规则（等价于 eslint:recommended）
   js.configs.recommended,
-
-  // 3️⃣ TypeScript 配置
+  // TypeScript 配置
   ...tseslint.configs.recommended,
 
-  // 4️⃣ 你自己的规则 & parserOptions
-  // 全局配置（适用于项目中的所有文件）
+  // Customed Config
   {
     languageOptions: {
+      parser: tseslint.parser,
+      parserOptions: {
+        ecmaVersion: 2020,
+        sourceType: 'module'
+      },
       globals: {
         ...globals.browser,
         ...globals.node,
-        ...globals.es2022
-      },
-      parser: tseslint.parser,
-      parserOptions: {
-        ecmaVersion: 2022,
-        sourceType: 'module'
+        ...globals.es2020
       }
+    },
+
+    plugins: {
+      import: importPlugin,
+      '@typescript-eslint': tseslint.plugin
+      // markdown: markdown,
     },
 
     settings: {
       'import/resolver': {
         alias: {
           map: [['@', './src']],
-          extensions: ['.ts', '.js', '.jsx', '.tsx', '.json', '.d.ts']
+          extensions: ['.ts', '.js', '.json', '.d.ts']
         }
       }
     },
 
-    plugins: {
-      '@typescript-eslint': tseslint.plugin,
-      markdown: markdown,
-      import: importPlugin
-    },
-
     rules: {
+      // prettier format
       'no-console': 'warn',
       semi: ['error', 'never'],
       quotes: ['error', 'single'],
       'prefer-const': 'warn',
-      '@typescript-eslint/no-unused-vars': ['warn'],
-      '@typescript-eslint/explicit-function-return-type': 'off',
-      'import/no-mutable-exports': 'error'
-    }
-  },
-  // ==========================================
-  // 全局基础配置(不需要类型信息的规则)
-  // ==========================================
-  {
-    files: ['**/*.ts'],
-    languageOptions: {
-      parser: tseslint.parser, // 使用 TS parser
-      parserOptions: {
-        ecmaVersion: 2020,
-        sourceType: 'module'
-      }
-    },
-    rules: {
-      // ==========================================
-      // 不需要类型信息的规则
-      // ==========================================
+      // 强制注释符号后必须有空格
+      'spaced-comment': [
+        'error',
+        'always',
+        {
+          line: {
+            markers: ['/'],
+            exceptions: ['-', '+', '=']
+          },
+          block: {
+            markers: ['!'],
+            exceptions: ['*'],
+            balanced: true
+          }
+        }
+      ],
+      // typescript
       '@typescript-eslint/no-unused-vars': [
         'warn',
         {
@@ -94,16 +96,26 @@ export default [
           selector: 'typeAlias',
           format: ['PascalCase']
         }
-      ]
+      ],
+      // import plugin
+      // 禁止导出 let 声明的变量，解决 ESModule 的符号绑定(Live Binding)问题
+      'import/no-mutable-exports': 'error'
     }
   },
-  // 局部配置
+
   // ==========================================
-  // 源代码:需要类型信息的规则
+  // Local
   // ==========================================
+
+  // ==================== src ====================
   {
     files: ['src/**/*.ts'],
-    ignores: ['**/*.test.ts', '**/*.spec.ts'], // 排除测试文件
+    ignores: [
+      '**/*.test.ts', // 排除测试文件
+      '**/*.spec.ts', // 排除测试文件
+      '**/*.md/**', // 排除 Markdown 虚拟文件
+      '**/*.md/*.ts' // 排除 Markdown 虚拟文件
+    ],
     languageOptions: {
       parserOptions: {
         project: './tsconfig.app.json' // 源代码用 app 配置
@@ -134,6 +146,8 @@ export default [
       '@typescript-eslint/strict-boolean-expressions': 'off' // 可能太严格
     }
   },
+
+  // ==================== test ====================
   {
     files: ['tests/**/*.ts', 'src/**/*.{test,spec}.ts'],
     languageOptions: {
@@ -152,6 +166,8 @@ export default [
       '@typescript-eslint/no-floating-promises': 'off'
     }
   },
+
+  // ==================== config ====================
   {
     files: ['*.config.ts', '*.config.*.ts', 'scripts/**/*.ts'],
     languageOptions: {
@@ -164,22 +180,36 @@ export default [
       'no-console': 'off'
     }
   },
-  // ========== Markdown 文件 ==========
+
+  // ==================== Markdown ====================
   {
     files: ['**/*.md'],
     processor: markdown.processors.markdown
   },
-  // ========== Markdown 中的 JS 代码块 ==========
+  // Markdown 中的代码块
   {
-    files: ['**/*.md/*.js'], // Markdown processor 生成的虚拟文件
+    files: ['**/*.md/*.ts', '**/*.md/*.js'], // Markdown processor 生成的虚拟文件
+    languageOptions: {
+      parser: tseslint.parser,
+      parserOptions: {
+        ecmaVersion: 2020,
+        sourceType: 'module'
+        // ✅ 不设置 project
+      }
+    },
     rules: {
       // Markdown 中的示例代码可以放宽规则
       'no-console': 'off',
       'no-unused-vars': 'off',
-      'import/no-unresolved': 'off' // 示例代码可能导入不存在的模块
+      '@typescript-eslint/no-unused-vars': 'off',
+      '@typescript-eslint/no-explicit-any': 'off',
+      'import/no-unresolved': 'off', // 示例代码可能导入不存在的模块
+      '@typescript-eslint/no-floating-promises': 'off', // ✅ 关闭需要类型信息的规则
+      '@typescript-eslint/await-thenable': 'off'
     }
   },
-  // ========== HTML 文件 ==========
+
+  // ==================== HTML 文件 ====================
   {
     files: ['**/*.html', '**/*.htm'],
     plugins: {

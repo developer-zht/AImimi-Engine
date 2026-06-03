@@ -35,4 +35,6 @@ export interface ColorTextureConfig {
   wrapS?: GLenum
   /** T 方向环绕，默认 CLAMP_TO_EDGE */
   wrapT?: GLenum
+  /** 是否生成 mipmap */
+  generateMipmap?: boolean
 }

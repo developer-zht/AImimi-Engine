@@ -1,6 +1,6 @@
 import { vec2, vec3 } from 'gl-matrix'
 
-function calculateTangentBitangent(
+export function calculateTangentBitangent(
   pos1: vec3,
   pos2: vec3,
   pos3: vec3,

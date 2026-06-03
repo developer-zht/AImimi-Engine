@@ -1,6 +1,6 @@
 import { Mesh } from '@/objects/Mesh'
 import { Transform } from '@/objects/utils/Transform'
-import { Shader } from '@/shaders/Shader-refactor'
+import { Shader } from '@/shaders/Shader'
 import { MeshRenderer } from '@/renderers/MeshRenderer'
 import { ILight } from '../types/light'
 import { ShaderPaths } from '@/shaders/_config/shaderPaths'

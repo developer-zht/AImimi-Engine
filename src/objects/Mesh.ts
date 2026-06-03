@@ -1,4 +1,4 @@
-import { Shader } from '@/shaders/Shader-refactor'
+import { Shader } from '@/shaders/Shader'
 import { mat4, quat } from 'gl-matrix'
 import { WebGLExtensionError } from '@/errors/EngineError/WebGLError/WebGLExtensionError'
 import { Transform } from './utils/Transform'
@@ -8,6 +8,7 @@ import { MeshLocationCacheError } from '@/errors/EngineError/MeshError/MeshLocat
 import { MeshVBOCreationError } from '@/errors/EngineError/MeshError/MeshVBOCreationError'
 import { SphereGeometry } from '@/geometry/SphereGeometry'
 import { AttributeData, IndexData, TypedArrayType } from './types/Mesh'
+import { ExhaustiveMatchError } from '@/errors/LanguageError/ExhaustiveMatchError'
 
 // ============================================================
 //  Mesh 类（管理几何数据、VBO、attribute locations）
@@ -34,7 +35,7 @@ export class Mesh {
 
   constructor(
     attributes: AttributeData[],
-    rawIndices: number[] | null,
+    rawIndices: number[] | Uint8Array | Uint16Array | Uint32Array | null,
     transform: Transform,
     name: string,
     gl: WebGLRenderingContext
@@ -77,7 +78,10 @@ export class Mesh {
    * 将普通的 number[] 转换为 {@linkcode IndexData | 索引缓冲数据类型}。
    * 该函数不涉及 GPU 操作，仅进行数据结构转换。
    */
-  private static chooseIndexType(indices: number[], gl: WebGLRenderingContext): IndexData {
+  private static chooseIndexType(
+    indices: number[] | Uint8Array | Uint16Array | Uint32Array,
+    gl: WebGLRenderingContext
+  ): IndexData {
     // 使用 ... 展开运算符时，在 V8 里，大致会做：
     // 1. 创建一个 arguments list
     // 2. 遍历 indices
@@ -85,29 +89,46 @@ export class Mesh {
     // 因此，当 indices 元素太多时会造成 RangeError: Maximum call stack size exceeded 错误
     // const maxIndex = Math.max(...indices)
 
-    let maxIndex = -Infinity
-    for (let i = 0; i < indices.length; i++) {
-      if (indices[i]! > maxIndex) {
-        maxIndex = indices[i]!
+    if (Array.isArray(indices)) {
+      let maxIndex = -Infinity
+      for (let i = 0; i < indices.length; i++) {
+        if (indices[i]! > maxIndex) {
+          maxIndex = indices[i]!
+        }
+      }
+
+      if (maxIndex < 256) {
+        return { array: new Uint8Array(indices), type: gl.UNSIGNED_BYTE }
+      }
+      if (maxIndex < 65536) {
+        return { array: new Uint16Array(indices), type: gl.UNSIGNED_SHORT }
+      }
+
+      const ext = gl.getExtension('OES_element_index_uint')
+      if (!ext) throw new WebGLExtensionError('OES_element_index_uint')
+
+      return {
+        array: new Uint32Array(indices),
+        type: gl.UNSIGNED_INT
+      }
+    } else if (ArrayBuffer.isView(indices)) {
+      if (indices instanceof Uint8Array) {
+        return { array: indices, type: gl.UNSIGNED_BYTE }
+      }
+      if (indices instanceof Uint16Array) {
+        return { array: indices, type: gl.UNSIGNED_SHORT }
+      }
+      if (indices instanceof Uint32Array) {
+        const ext = gl.getExtension('OES_element_index_uint')
+        if (!ext) throw new WebGLExtensionError('OES_element_index_uint')
+        return {
+          array: indices,
+          type: gl.UNSIGNED_INT
+        }
       }
     }
 
-    if (maxIndex < 256) {
-      return { array: new Uint8Array(indices), type: WebGLRenderingContext.UNSIGNED_BYTE }
-    }
-    if (maxIndex < 65536) {
-      return { array: new Uint16Array(indices), type: WebGLRenderingContext.UNSIGNED_SHORT }
-    }
-
-    if (gl) {
-      const ext = gl.getExtension('OES_element_index_uint')
-      if (!ext) throw new WebGLExtensionError('OES_element_index_uint')
-    }
-
-    return {
-      array: new Uint32Array(indices),
-      type: WebGLRenderingContext.UNSIGNED_INT
-    }
+    throw new ExhaustiveMatchError(indices, 'Invalid indices type')
   }
 
   /**

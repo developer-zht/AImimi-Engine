@@ -9,7 +9,7 @@ on:
     branches: [main, dev]
 
 env:
-  NODE_VERSION: '18'
+  NODE_VERSION: '20'
 
 jobs:
   # 代码质量检查（所有分支都执行）

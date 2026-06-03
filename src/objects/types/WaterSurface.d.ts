@@ -5,5 +5,6 @@ export interface GridMeshData {
   normData: AttributeData
   texCoordsData: AttributeData
 
-  indices: number[]
+  // indices: number[]
+  indices: Uint32Array
 }

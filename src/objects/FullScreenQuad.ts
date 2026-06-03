@@ -26,6 +26,7 @@ export class FullScreenQuad extends Mesh {
   constructor(gl: WebGLRenderingContext, label: string, depth: number = 0) {
     // 两个三角形覆盖整个 NDC [-1, 1]
     const positions = new Float32Array([-1, -1, depth, 1, -1, depth, 1, 1, depth, -1, 1, depth])
+    const texCoords = new Float32Array([0, 0, 1, 0, 1, 1, 0, 1])
     const indices = [0, 1, 2, 0, 2, 3]
 
     super(
@@ -35,7 +36,8 @@ export class FullScreenQuad extends Mesh {
           array: positions,
           size: 3,
           type: gl.FLOAT
-        }
+        },
+        { name: 'aTextureCoord', array: texCoords, size: 2, type: gl.FLOAT }
       ],
       indices,
       new Transform([0, 0, 0], [0, 0, 0], [1, 1, 1]),
