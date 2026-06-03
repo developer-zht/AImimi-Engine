@@ -85,7 +85,7 @@ src/renderers/passes/
 ├── forward/       — 前向渲染主 pass
 ├── shadow/        — 阴影深度 pass（point / directional）
 ├── deferred/      — 延迟渲染 (GBuffer、Depth Mipmap、SSR)
-├── fft/           — FFT 海洋 GPU 计算 pass（单层 / 多层 v1/v2/v3 / WASM）
+├── fft/           — FFT 海洋 GPU 计算 pass（单层 / 多层 v1/v2/v3）
 ├── overlay/       — HUD/UI 覆盖层
 ├── lowResolution/ — 低分辨率渲染（性能优化）
 └── types/         — RenderPass 接口
