@@ -4,6 +4,8 @@ import { loadHW4Scene } from '@/scenes/games202/hw4/loadHW4Scene'
 import { loadHW3Scene } from '@/scenes/games202/hw3/cave/loadHW3Scene'
 import { SceneContext } from '@/scenes/types/SceneContext'
 import { SceneDisposer } from '@/scenes/types/SceneDisposer'
+import { GUI } from 'dat.gui'
+import { mountDatGUI } from '../_shared/mountGUI'
 
 /**
  * 注册 dat.GUI 下拉菜单 (dropdown)，运行时切换 Games202 作业场景 HW1..HW4
@@ -31,6 +33,10 @@ export async function setupGames202HWSceneGUI(ctx: SceneContext) {
 
   /** 当前活跃场景的清理函数 */
   let activeSceneDisposer: SceneDisposer | null = null
+
+  const gui = mountDatGUI()
+  const name = 'switch scenes'
+  const folder = gui.addFolder(name)
 
   /**
    * 卸载当前场景 → 清空渲染通道 (render pass) → 加载新场景
@@ -85,9 +91,10 @@ export async function setupGames202HWSceneGUI(ctx: SceneContext) {
 
   await switchScene(state.scene)
 
-  ctx.gui!.add(state, 'scene', sceneNames).onChange((name: string) => {
+  folder.add(state, 'scene', sceneNames).onChange((name: string) => {
     switchScene(name).catch(() =>
       console.error('[Engine setupSceneGUI] Function switchScene failed.')
     )
   })
+  folder.open()
 }

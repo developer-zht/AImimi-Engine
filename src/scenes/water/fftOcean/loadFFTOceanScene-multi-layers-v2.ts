@@ -17,9 +17,10 @@ import { setupFFTOceanGUI } from '@/gui/fftOcean/v1/setup'
 import { SpectrumAnalyzer } from '@/simulation/ocean/analysis/SpectrumAnalyzer'
 import { prefilterEnvironment } from '@/textures/cubemap/IBL/prefilterEnvironment'
 import { generateBRDFLUT } from '@/textures/cubemap/IBL/generateBRDFLUT'
+import { GUI } from 'dat.gui'
 
 export async function loadFFTOceanScene(ctx: SceneContext) {
-  const { gl, renderer, camera, controls, gui } = ctx
+  const { gl, renderer, camera, controls } = ctx
 
   // 相机
   camera.position.set(30, 5, -10)
@@ -97,12 +98,11 @@ export async function loadFFTOceanScene(ctx: SceneContext) {
   renderer.addRenderPass(computePass)
   renderer.addRenderPass(forwardRenderPass)
 
-  if (gui) {
-    setupFFTOceanGUI(gui, {
-      config: fftOceanConfig,
-      oceanRenderer: fftOceanRenderer,
-      computePass,
-      spectrum
-    })
-  }
+  const gui = new GUI()
+  setupFFTOceanGUI(gui, {
+    config: fftOceanConfig,
+    oceanRenderer: fftOceanRenderer,
+    computePass,
+    spectrum
+  })
 }

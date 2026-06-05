@@ -1,9 +1,6 @@
 import { SceneContext } from '../../types/SceneContext'
 import { UniformType } from '@/materials/types/Material'
-import {
-  SKYBOX_KLOOFENDAL_06_PURESKY_2K_EXR,
-  SKYBOX_KLOOFENDAL_43D_CLEAR_PURESKY_2K_EXR
-} from '@/scenes/environment/skybox/_config/skyboxSceneConfig'
+import { SKYBOX_KLOOFENDAL_43D_CLEAR_PURESKY_2K_EXR } from '@/scenes/environment/skybox/_config/skyboxSceneConfig'
 import { createSkyboxRenderer } from '@/scenes/environment/skybox/createSkyboxRenderer'
 
 import { FFTOceanConfig } from './types/FFTOceanConfig-MultiLayers'
@@ -15,16 +12,19 @@ import { LightSystem } from '@/lights/LightSystem'
 import { noonSun } from '@/lights/directionalLight/_presets/sun'
 import { JONSWAPSpectrum } from '@/simulation/ocean/spectrums/JONSWAPSpectrum'
 import { linearizeCubemap } from '@/textures/cubemap/linearizeCubemap'
-import { setupFFTOceanGUI } from '@/gui/setupFFTOceanGUI-v2'
+// import { setupFFTOceanGUI } from '@/gui/fftOcean/v3/setup'
 import { SpectrumAnalyzer } from '@/simulation/ocean/analysis/SpectrumAnalyzer'
 import { prefilterEnvironment } from '@/textures/cubemap/IBL/prefilterEnvironment'
 import { generateBRDFLUT } from '@/textures/cubemap/IBL/generateBRDFLUT'
 import { Texture } from '@/textures/Texture'
 import { loadImageAsync } from '@/loaders/loadImage'
 import { TexturePaths } from '@/textures/_config/texturePaths'
+import { setupFFTOceanGUI } from '@/gui/fftOcean/v3/setup'
+import { GUI } from 'dat.gui'
+import { mountDatGUI } from '@/gui/_shared/mountGUI'
 
 export async function loadFFTOceanScene(ctx: SceneContext) {
-  const { gl, renderer, camera, controls, gui } = ctx
+  const { gl, renderer, camera, controls } = ctx
 
   // 相机
   camera.position.set(30, 8, -30)
@@ -45,7 +45,6 @@ export async function loadFFTOceanScene(ctx: SceneContext) {
   const { oceanParamsCascade } = fftOceanConfig
 
   // 创建 skybox
-  // const skyboxConfig = SKYBOX_KLOOFENDAL_06_PURESKY_2K_EXR
   const skyboxConfig = SKYBOX_KLOOFENDAL_43D_CLEAR_PURESKY_2K_EXR
   const { renderer: skyboxRenderer, cubemap, isSRGB } = await createSkyboxRenderer(gl, skyboxConfig)
 
@@ -78,6 +77,7 @@ export async function loadFFTOceanScene(ctx: SceneContext) {
   foamTexture.createFromImage(foamImg)
 
   const fftOceanRenderer = await createFFTOceanRenderer(gl, fftOceanConfig)
+  // debug
   // fftOceanRenderer.updateMaterialUniforms({
   //   uEnvironmentMap: {
   //     type: UniformType.TEXTURE_CUBE,
@@ -95,12 +95,12 @@ export async function loadFFTOceanScene(ctx: SceneContext) {
   })
 
   const spectrum = new JONSWAPSpectrum()
-  // const spectrumAnalyzer = new SpectrumAnalyzer(spectrum)
-  // for (const oceanParam of oceanParamsCascade) {
-  //   const report = spectrumAnalyzer.analyze(oceanParam)
-  //   spectrumAnalyzer.printReport(report, oceanParam)
-  //   // spectrumAnalyzer.drawLogLogSpectrum(report, gl.canvas as HTMLCanvasElement)
-  // }
+  const spectrumAnalyzer = new SpectrumAnalyzer(spectrum)
+  for (const oceanParam of oceanParamsCascade) {
+    const report = spectrumAnalyzer.analyze(oceanParam)
+    spectrumAnalyzer.printReport(report, oceanParam)
+    // spectrumAnalyzer.drawLogLogSpectrum(report, gl.canvas as HTMLCanvasElement)
+  }
   const computePass = await FFTOceanComputePass.create(gl, oceanParamsCascade, spectrum)
   computePass.addReceiver(fftOceanRenderer)
 
@@ -110,12 +110,11 @@ export async function loadFFTOceanScene(ctx: SceneContext) {
   renderer.addRenderPass(computePass)
   renderer.addRenderPass(forwardRenderPass)
 
-  if (gui) {
-    setupFFTOceanGUI(gui, {
-      config: fftOceanConfig,
-      oceanRenderer: fftOceanRenderer,
-      computePass,
-      spectrum
-    })
-  }
+  const gui = mountDatGUI()
+  setupFFTOceanGUI(gui, {
+    config: fftOceanConfig,
+    oceanRenderer: fftOceanRenderer,
+    computePass,
+    spectrum
+  })
 }

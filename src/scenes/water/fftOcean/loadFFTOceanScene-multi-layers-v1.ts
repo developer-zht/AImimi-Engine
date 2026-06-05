@@ -1,16 +1,11 @@
 import { SceneContext } from '../../types/SceneContext'
 import { UniformType } from '@/materials/types/Material'
-import {
-  SKYBOX_SKY_09_CUBEMAP,
-  SKYBOX_SKY_18_CUBEMAP,
-  SKYBOX_SKY_SUNSET_CUBEMAP
-} from '@/scenes/environment/skybox/_config/skyboxSceneConfig'
+import { SKYBOX_SKY_09_CUBEMAP } from '@/scenes/environment/skybox/_config/skyboxSceneConfig'
 import { createSkyboxRenderer } from '@/scenes/environment/skybox/deprecated/createSkyboxRenderer'
 
 import { FFTOceanConfig } from './types/FFTOceanConfig-MultiLayers'
 import { DEFAULT_FFT_OCEAN_CONFIG } from './_config/fftOceanSceneConfig-MultiLayers'
 import { createFFTOceanRenderer } from '@/renderers/factories/water/fftOcean/createFFTOceanRenderer-MultiLayers'
-import { PhillipsSpectrum } from '@/simulation/ocean/spectrums/PhillipsSpectrum'
 import { FFTOceanComputePass } from '@/renderers/passes/fft/FFTOceanComputePass-multi-layers-v2'
 import { ForwardRenderPass } from '@/renderers/passes/forward/ForwardRenderPass'
 import { LightSystem } from '@/lights/LightSystem'
@@ -49,14 +44,13 @@ export async function loadFFTOceanScene(ctx: SceneContext) {
     }
   })
 
-  // const spectrum = new PhillipsSpectrum()
   const spectrum = new JONSWAPSpectrum()
 
   const computePass = await FFTOceanComputePass.create(gl, oceanParamsCascade, spectrum)
   computePass.addReceiver(fftOceanRenderer)
 
   const forwardRenderPass = new ForwardRenderPass(lightSystem)
-  // forwardRenderPass.addTargetRenderer(skyboxRenderer)
+  forwardRenderPass.addTargetRenderer(skyboxRenderer)
   forwardRenderPass.addTargetRenderer(fftOceanRenderer)
 
   renderer.addRenderPass(computePass)

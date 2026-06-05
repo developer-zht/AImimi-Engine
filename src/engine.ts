@@ -1,8 +1,6 @@
 import { PerspectiveCamera } from 'three'
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
 
-import { GUI } from 'dat.gui'
-
 import { WebGLRenderer } from '@/renderers/WebGLRenderer'
 import { CameraConfig } from './scenes/types/SceneConfig'
 import { PerformanceMonitor } from '@/monitors/PerformanceMonitor'
@@ -65,9 +63,6 @@ export class Engine {
    */
   public renderer: WebGLRenderer
 
-  // GUI
-  private gui: GUI
-
   // 性能监测
   private perfMonitor: PerformanceMonitor
 
@@ -122,16 +117,13 @@ export class Engine {
     // ----- 初始化渲染器 -----
     const renderer = Engine.initRenderer(gl, camera)
 
-    //  ----- 加载调参面板 -----
-    const gui = Engine.initGUI()
-
     // ----- 初始化性能检测器 -----
     const perfMonitor = Engine.initPerformanceMonitor(gl)
 
     // ----- 窗口变化应对方法 -----
     Engine.setupResizeHandler(canvas, gl, camera)
 
-    const engine = new Engine(gl, camera, cameraControls, frameClock, renderer, gui, perfMonitor)
+    const engine = new Engine(gl, camera, cameraControls, frameClock, renderer, perfMonitor)
 
     return engine
   }
@@ -157,7 +149,6 @@ export class Engine {
     cameraControls: OrbitControls,
     frameClock: FrameClock,
     renderer: WebGLRenderer,
-    gui: GUI,
     perfMonitor: PerformanceMonitor
   ) {
     this.gl = gl
@@ -165,10 +156,9 @@ export class Engine {
     this.cameraControls = cameraControls
     this.frameClock = frameClock
     this.renderer = renderer
-    this.gui = gui
     this.perfMonitor = perfMonitor
 
-    console.log('Class Engine has initialized')
+    console.log('✅ Class Engine has initialized')
   }
 
   /**
@@ -302,20 +292,6 @@ export class Engine {
   private static initRenderer(gl: WebGLRenderingContext, camera: PerspectiveCamera): WebGLRenderer {
     const renderer = new WebGLRenderer(gl, camera)
     return renderer
-  }
-
-  /**
-   * 初始化 dat.GUI 调参面板 (debug GUI)
-   *
-   * 👉 职责：
-   * - 仅 new GUI()，作为各模块（光照 / FFT / Foam / Tonemap 等）后续 addFolder 的根容器
-   * - 不在此处注册任何控件 (controller)；控件由各 loader / preset 在 Engine.init() 阶段挂载，便于按场景动态增删
-   *
-   * @returns dat.GUI 根实例，生命周期与 Engine 同长
-   */
-  private static initGUI(): GUI {
-    const gui = new GUI()
-    return gui
   }
 
   /**
@@ -509,8 +485,7 @@ export class Engine {
       gl: this.gl,
       renderer: this.renderer,
       camera: this.camera,
-      controls: this.cameraControls,
-      gui: this.gui
+      controls: this.cameraControls
     }
     await loader(ctx)
   }
