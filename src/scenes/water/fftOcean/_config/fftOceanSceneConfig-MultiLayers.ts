@@ -32,7 +32,7 @@ export const FFT_OCEAN_MATERIAL_OVERRIDES: FFTOceanMaterialConfig = {
   // ==================== Toggles ====================
   useEnvironmentMap: 1, // IBL specular（textureCubeLodEXT → 关时 envReflect = 0）
   useFoam: 1, // foam 末尾混色（关时只看 PBR 主体，debug specular aliasing 用）
-  useFog: 0, // 大气透视（关时远场不会被 horizon 蓝灰染色）
+  useFog: 1, // 大气透视（关时远场不会被 horizon 蓝灰染色）
 
   // ==================== Fresnel ====================
   refractiveIndex: 1.33, // η（海水）→ F0 = ((η-1)/(η+1))² ≈ 0.02
@@ -90,7 +90,7 @@ export const FFT_OCEAN_MATERIAL_OVERRIDES: FFTOceanMaterialConfig = {
   // ==================== 大气透视（fog）====================
   fogColor: [0.7, 0.78, 0.85], // horizon 蓝灰
   fogDensity: 0.004, // ≈ 1/256m，远场约 256 m 起有明显雾感
-  fogPower: 1.0, // 1.0 = 标准 exp fog，>1 远雾更厚
+  fogPower: 3.0, // 1.0 = 标准 exp fog，>1 远雾更厚。调到 2.0~3.0，pow(d·density, power) 在 d 小时被压得更低（因为 <1 的数高次幂更小）→ 近处雾更淡、远处照样浓
 
   // ==================== 近/远法线过渡 ====================
   // calcSurfaceByLayerSize 中的 varMask

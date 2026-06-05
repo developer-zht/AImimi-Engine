@@ -13,6 +13,7 @@ import { ShadowRenderPass } from '@/renderers/passes/shadow/ShadowRenderPass'
 import { LightNotFoundError } from '@/errors/EngineError/LightError/LightNotFoundError'
 import { SceneContext } from '@/scenes/types/SceneContext'
 import { GUI } from 'dat.gui'
+import { mountDatGUI, unmountDatGUI } from '@/gui/_shared/mountGUI'
 
 /**
  * 把 GLTFMeshData（纯数据）转换为 GPU 资源（Mesh + Texture），
@@ -24,7 +25,7 @@ import { GUI } from 'dat.gui'
 
 /** Cave 场景加载函数 */
 export async function loadHW3Scene(ctx: SceneContext) {
-  const { gl, renderer, camera, controls, gui } = ctx
+  const { gl, renderer, camera, controls } = ctx
   // const config = CAVE_SCENE_CONFIG_DIRECTIONAL_LIGHT
   const config = CAVE_SCENE_CONFIG_GBUFFER
   const { cameraConfig, modelConfigs, lightConfigs } = config
@@ -33,6 +34,7 @@ export async function loadHW3Scene(ctx: SceneContext) {
   camera.position.set(...cameraConfig.position)
   controls.target.set(...cameraConfig.target)
 
+  const gui = mountDatGUI()
   const folders: GUI[] = []
 
   // ============================================================
@@ -43,7 +45,7 @@ export async function loadHW3Scene(ctx: SceneContext) {
     for (const lightConfig of lightConfigs) {
       // await renderer.addLight(lightConfig.id, lightConfig.light)
       await lightSystem.addLight(lightConfig.id, lightConfig.light)
-      if (gui && lightConfig.guiConfig) {
+      if (lightConfig.guiConfig) {
         const folder = setupLightGUI(gui, lightConfig.light, lightConfig.guiConfig)
         folders.push(folder)
         console.debug('[function loadHW3Scene] setupLightGUI has run.')
@@ -164,12 +166,6 @@ export async function loadHW3Scene(ctx: SceneContext) {
   return () => {
     // GBufferFBO、DepthMipmapFBO 等由对应 RenderPass.dispose() 清理
     lightSystem.dispose()
-    if (gui) {
-      for (const folder of folders) {
-        gui.removeFolder(folder)
-      }
-    }
+    unmountDatGUI(gui)
   }
 }
-
-// registerScene('cave', loadCaveScene)

@@ -1,0 +1,205 @@
+/* ============================================================
+ * dat.GUI 主题覆盖：匹配性能监控的"暗底 + 黄色侧条"风格
+ *
+ * 设计原则：
+ * - 主色调：纯黑 / 深灰底 + 鲜黄（#ffeb3b）作为强调色
+ * - 圆角统一 5px（与性能监控气泡一致）
+ * - 等宽字体显示数值，配合 yellow 突出"可调参数"
+ * - 大量 !important 是因为 dat.GUI 内置样式优先级和我们的相同，
+ *   不强制覆盖就被它"反向覆盖"回去
+ *
+ * 接入：main.ts 顶部 import './styles/datgui-theme.css'
+ *      必须放在 dat.GUI import 之后，否则被它注入的 <style> 覆盖
+ * ============================================================ */
+
+/* ──────────────────────────────────────────────────────────
+ * 1) 顶层容器 .dg.main
+ *    选择器解释：.dg.main = 同时具有 .dg 和 .main 两个 class 的元素
+ *                          （= dat.GUI 实例的根 div）
+ *
+ *    本块只统一字体和阴影；故意不在这里设 border-radius：
+ *    圆角下移到了内部 first-child（见第 4 块），这样可以让
+ *    "顶部 Close Controls 条" 与 "首个 folder 顶端" 的圆角分开控制。
+ *
+ *    padding-bottom 是为了当遇到多个 GUI 纵向堆叠放置的情况时，
+ *    保证 position: absolute 的 close-button 能够正常显示
+ * ────────────────────────────────────────────────────────── */
+.dg.main {
+  /* 等宽字体：数值字宽对齐，看起来更"工程感" */
+  font-family: 'SF Mono', 'Menlo', 'Monaco', 'Consolas', monospace;
+  /* 软投影：和性能监控气泡的悬浮感统一 */
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+  /* 当多个 GUI 纵向堆叠放置时，保证 position: absolute 的 close-button 能够正常显示 */
+  padding-bottom: 20px;
+}
+
+/* ──────────────────────────────────────────────────────────
+ * 2) auto-place 容器边距 .dg.a
+ *    选择器解释：.dg.a = dat.GUI 在 auto-place 模式下自动固定到
+ *                       视口右上角时附加的 class（a = auto / auto-attached）
+ *
+ *    默认情况下 dat.GUI 紧贴视口右边缘，看起来"挤"。
+ *    加 10px 边距让它"浮"在右上角，和性能监控保持视觉对称。
+ * ────────────────────────────────────────────────────────── */
+.dg.a {
+  margin-top: 10px;
+  margin-right: 10px !important;
+}
+
+/* ──────────────────────────────────────────────────────────
+ * 3) 顶部 "Close Controls" 条
+ *    位于 .dg.main 内部最底层（auto-place 模式下视觉上是"底"，
+ *    但在 DOM 树里是 .main 直接子元素）
+ *
+ *    半透明黑（0.8）而非纯色：让 close-button 与下方 folder 之间
+ *    有一点透光，强化"它是一个可点击的盖子"的视觉提示。
+ * ────────────────────────────────────────────────────────── */
+.dg.main .close-button {
+  background-color: rgba(0, 0, 0, 0.8) !important;
+  color: #fff !important;
+  border-radius: 5px; /* 和首个 folder 的圆角呼应 */
+  font-weight: 600;
+}
+
+/* ──────────────────────────────────────────────────────────
+ * 4) 首个 folder 的圆角处理
+ *    选择器解释：
+ *      .dg.main > ul          = .dg.main 的直接子元素 ul(所有 folder 的容器)
+ *      > li:first-child       = 该 ul 内的第一个 li（= 顶部第一个 folder）
+ *
+ *    给"第一个 folder"加 border-radius，配合 .close-button 的圆角，
+ *    让整个 GUI 顶部呈现连续的圆角轮廓。
+ * ────────────────────────────────────────────────────────── */
+.dg.main > ul > li:first-child {
+  border-radius: 5px;
+}
+
+/* 再深入一层：第一个 folder 内部的第一行控件也加圆角
+ * 防止"folder 是圆角但内部第一行是方角"的违和感。
+ * 选择器解释：
+ *   .dg.main > ul > li:first-child  = 第一个 folder（同上）
+ *   ul > li:first-child             = 该 folder 内 ul 里的第一个 li（第一行控件）
+ */
+.dg.main > ul > li:first-child ul > li:first-child {
+  border-radius: 5px;
+}
+
+/* ──────────────────────────────────────────────────────────
+ * 5) folder 标题栏：黄色左侧高亮条
+ *    选择器解释：
+ *      .dg .folder > .title  = folder 内的直接子 .title 元素
+ *      .dg .title            = .dg 内任意层级的 .title（双重保险）
+ *
+ *    黄色 4px 侧条 = "这里可以展开/折叠" 的视觉提示。
+ *    背景色被注释掉：保留 dat.GUI 默认（更深的灰），与下方控件行
+ *    形成层级对比；若想统一成纯黑可解开注释。
+ * ────────────────────────────────────────────────────────── */
+.dg .folder > .title,
+.dg .title {
+  /* background-color: #1a1a1a !important; */ /* 故意保留默认，参见上方说明 */
+  border-left: 4px solid #ffeb3b; /* 黄色侧条：强调"分组" */
+  color: #fff !important;
+  font-weight: 600;
+  padding-left: 8px; /* 给侧条 + 文本之间留出呼吸 */
+}
+
+/* ──────────────────────────────────────────────────────────
+ * 6) 控件行（每一个 slider / color / checkbox 等的公共容器）
+ *    选择器解释：
+ *      .dg li:not(.folder):not(.title)
+ *        = .dg 内的 li，但排除 folder 容器和 title 标题
+ *        = 实际的"参数行"
+ *
+ *    极深的近黑底（#0d0d0d）+ 微微的分隔线（#1f1f1f），
+ *    形成"低对比度网格"，让眼睛专注于右侧的数值/滑块。
+ * ────────────────────────────────────────────────────────── */
+.dg li:not(.folder):not(.title) {
+  background-color: #0d0d0d !important;
+  border-bottom: 1px solid #1f1f1f;
+}
+
+/* hover 时微微变亮，反馈"鼠标在哪一行" */
+.dg li:hover {
+  background-color: #1a1a1a !important;
+}
+
+/* ──────────────────────────────────────────────────────────
+ * 7) 左侧 label（property name，即参数名）
+ *    弱化为浅灰：参数名是"上下文"，数值才是"内容"
+ * ────────────────────────────────────────────────────────── */
+.dg .property-name {
+  color: #d0d0d0 !important;
+  font-weight: 400; /* 故意不加粗：让数值的视觉权重更高 */
+}
+
+/* ──────────────────────────────────────────────────────────
+ * 8) 右侧 input / 数字
+ *    选择器解释：attribute 选择器 input[type='text']
+ *               = input 元素 + 同时 type 属性等于 'text'
+ *
+ *    数值用鲜黄突出 = "这是可调的"。这是整个主题最关键的视觉信号。
+ * ────────────────────────────────────────────────────────── */
+.dg .c input[type='text'],
+.dg .c input[type='number'] {
+  background-color: #1a1a1a !important;
+  color: #ffeb3b !important; /* 数值黄：主色调 */
+  border: 1px solid #333 !important;
+  border-radius: 3px;
+}
+
+/* ──────────────────────────────────────────────────────────
+ * 9) slider 轨道 + 填充
+ *    dat.GUI 没有独立的 thumb 元素，靠 .slider-fg 的宽度
+ *    模拟滑块位置——所以填充色 = 滑块色。
+ * ────────────────────────────────────────────────────────── */
+.dg .c .slider {
+  background-color: #1a1a1a !important;
+  border-radius: 3px;
+}
+
+.dg .c .slider-fg {
+  background-color: #ffeb3b !important; /* 填充黄：和数值黄呼应 */
+}
+
+/* ──────────────────────────────────────────────────────────
+ * 10) checkbox
+ *     accent-color 是现代浏览器原生支持的 checkbox/radio 着色，
+ *     无需自己画 ::before / ::after 伪元素就能改对勾颜色。
+ *     浏览器兼容：Chrome 93+ / Firefox 92+ / Safari 15.4+
+ * ────────────────────────────────────────────────────────── */
+.dg .c input[type='checkbox'] {
+  accent-color: #ffeb3b;
+}
+
+/* ──────────────────────────────────────────────────────────
+ * 11) color picker 颜色块
+ *     .dg .c .selector 是 dat.GUI addColor 控件的色块；
+ *     点开会弹出独立的 HSV/RGB 调色面板（那个面板有它自己的
+ *     class .dg .selector .saturation-field 等，本主题暂不覆盖）
+ * ────────────────────────────────────────────────────────── */
+.dg .c .selector {
+  border: 1px solid #333;
+}
+
+/* ──────────────────────────────────────────────────────────
+ * 12) button 行（Save / Clear / Reset Presets 等）
+ *     选择器解释：.dg .cr.function
+ *                 = .dg 内同时具有 .cr 和 .function 两个 class 的元素
+ *                 = dat.GUI 把 button 控件标为 .cr.function
+ *
+ *     hover 时背景偏暖黄（#2a2a1a），强化"这是个动作按钮"的暗示。
+ *     button 文字也染黄 + 左对齐（默认右对齐，因为 dat.GUI 把
+ *     button 当成"无值控件"，但我们语义上希望它像普通按钮）。
+ * ────────────────────────────────────────────────────────── */
+.dg .cr.function {
+  background-color: #0d0d0d !important;
+}
+
+.dg .cr.function:hover {
+  background-color: #2a2a1a !important; /* 偏暖黄的 hover，提示"动作" */
+}
+
+.dg .cr.function .property-name {
+  color: #ffeb3b !important; /* button 文字用黄色 */
+  text-align: left; /* 默认右对齐 → 改为左对齐，更像普通按钮 */
+}

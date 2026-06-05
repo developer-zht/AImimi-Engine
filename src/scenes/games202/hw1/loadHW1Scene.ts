@@ -12,10 +12,11 @@ import { MeshRenderer } from '@/renderers/MeshRenderer'
 import { ShadowRenderPass } from '@/renderers/passes/shadow/ShadowRenderPass'
 import { ForwardRenderPass } from '@/renderers/passes/forward/ForwardRenderPass'
 import { GUI } from 'dat.gui'
+import { mountDatGUI, unmountDatGUI } from '@/gui/_shared/mountGUI'
 
 /** 加载 HW1 完整场景：Mary + Floor */
 export async function loadHW1Scene(ctx: SceneContext): Promise<() => void> {
-  const { gl, renderer, camera, controls, gui } = ctx
+  const { gl, renderer, camera, controls } = ctx
 
   const config = HW1_SCENE_CONFIG // 加载场景配置
   const { cameraConfig, modelConfigs, lightConfigs } = config
@@ -24,13 +25,13 @@ export async function loadHW1Scene(ctx: SceneContext): Promise<() => void> {
   camera.position.set(...cameraConfig.position)
   controls.target.set(...cameraConfig.target)
 
+  const gui = mountDatGUI()
   const folders: GUI[] = []
 
   // ========== 1. 光源 ==========
   const lightSystem = new LightSystem(gl)
   if (lightConfigs) {
     for (const lightConfig of lightConfigs) {
-      // await renderer.addLight(lightConfig.id, lightConfig.light)
       await lightSystem.addLight(lightConfig.id, lightConfig.light)
     }
   }
@@ -55,14 +56,13 @@ export async function loadHW1Scene(ctx: SceneContext): Promise<() => void> {
       })
       meshRenderer.castShadow = true
       meshRenderer.receiveShadow = true
-      // renderer.addRenderer(meshRenderer)
       meshRenderers.push(meshRenderer)
     }
   }
 
   if (lightConfigs) {
     for (const lightConfig of lightConfigs) {
-      if (gui && lightConfig.guiConfig) {
+      if (lightConfig.guiConfig) {
         console.debug('[function loadHW1Scene] setupLightGUI has run.')
         const folder = setupLightGUI(gui, lightConfig.light, lightConfig.guiConfig, (worldSize) => {
           // worldSize 变了 → 同步到对应的 visualizer
@@ -92,16 +92,13 @@ export async function loadHW1Scene(ctx: SceneContext): Promise<() => void> {
     }
     renderer.addRenderPass(shadowRenderPass)
 
-    if (gui) {
-      // 阴影 GUI
-      const folder = setupShadowGUI(gui, () => meshRenderers, {
-        name: 'HW1 Shadow',
-        defaultMethod: DEFAULT_SHADOW_RENDER.method,
-        defaultFilterRadius: DEFAULT_SHADOW_RENDER.filterRadius
-        // defaultLightWorldSize: (lightConfig.light as DirectionalLight).worldSize
-      })
-      folders.push(folder)
-    }
+    // 阴影 GUI
+    const folder = setupShadowGUI(gui, () => meshRenderers, {
+      name: 'HW1 Shadow',
+      defaultMethod: DEFAULT_SHADOW_RENDER.method,
+      defaultFilterRadius: DEFAULT_SHADOW_RENDER.filterRadius
+    })
+    folders.push(folder)
   }
 
   // ========== 4. Forward Pass ==========
@@ -133,10 +130,6 @@ export async function loadHW1Scene(ctx: SceneContext): Promise<() => void> {
     // 它们跟着 MeshRenderer → Mesh 的 dispose 走
     // 但 MeshRenderer 的 dispose 目前不清理 Material 里的纹理
     // 所以这些 1x1 纹理会泄漏——但它们很小，可以接受
-    if (gui) {
-      for (const folder of folders) {
-        gui.removeFolder(folder)
-      }
-    }
+    unmountDatGUI(gui)
   }
 }

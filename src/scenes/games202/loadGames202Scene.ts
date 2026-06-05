@@ -2,5 +2,5 @@ import { SceneContext } from '../types/SceneContext'
 import { setupGames202HWSceneGUI } from '@/gui/games202/setup'
 
 export async function loadGames202Scenes(ctx: SceneContext) {
-  if (ctx.gui) await setupGames202HWSceneGUI(ctx)
+  await setupGames202HWSceneGUI(ctx)
 }

@@ -1,0 +1,39 @@
+/* ──────────────────────────────────────────────────────────
+ * GUI Stack：所有 dat.GUI / Tweakpane 实例的统一容器
+ *
+ * - position: fixed 钉到视口右上角（替代 dat.GUI 默认 auto-place）
+ * - flex-direction: column 让多个 GUI 自动纵向排列
+ * - gap: 10px 每两个 GUI 之间留间距
+ * - z-index: 999 保证在 canvas 之上
+ *
+ * 任何想显示的 GUI 都应该手动 append 到这个 div：
+ *   const gui = new GUI({ autoPlace: false })
+ *   document.getElementById('gui-stack')!.appendChild(gui.domElement)
+ * ────────────────────────────────────────────────────────── */
+#gui-stack {
+  position: fixed;
+  top: 10px;
+  right: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  z-index: 999;
+  /* 防止 GUI 太多撑出屏幕 */
+  max-height: calc(100vh - 20px);
+  overflow-y: auto;
+  /* 隐藏滚动条本身（视觉清爽），但保留滚动功能 */
+  scrollbar-width: thin;
+}
+
+/* ──────────────────────────────────────────────────────────
+ * 当 GUI 手动挂载到 stack 里时，它们不再需要自己的 auto-place 定位
+ * ────────────────────────────────────────────────────────── */
+#gui-stack .dg.main {
+  position: relative !important; /* 推翻 dat.GUI 内置的 absolute */
+  margin: 0 !important; /* 清掉 .dg.a 那块的 margin（让 gap 接管间距） */
+}
+
+#gui-stack .tp-dfwv {
+  position: relative !important; /* 推翻可能的 absolute/fixed */
+  width: 100% !important; /* 撑满 stack 宽度 */
+}

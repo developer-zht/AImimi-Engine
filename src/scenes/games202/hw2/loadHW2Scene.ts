@@ -6,9 +6,10 @@ import { GUI } from 'dat.gui'
 import { SceneContext } from '@/scenes/types/SceneContext'
 import { HW2_PRESETS } from './_config/hw2SceneConfig'
 import { createCubemapBackground } from '@/scenes/environment/background/createCubemapBackground'
+import { mountDatGUI, unmountDatGUI } from '@/gui/_shared/mountGUI'
 
 export async function loadHW2Scene(ctx: SceneContext): Promise<() => void> {
-  const { gl, renderer, camera, controls, gui } = ctx
+  const { gl, renderer, camera, controls } = ctx
 
   // ── 相机 ──
   camera.position.set(0, 20, 50)
@@ -68,54 +69,23 @@ export async function loadHW2Scene(ctx: SceneContext): Promise<() => void> {
 
   renderer.addRenderPass(forwardPass)
 
-  if (gui) {
-    const folder = gui.addFolder('HW2 PRT-SH')
-    const labels = HW2_PRESETS.map((p) => p.label)
-    folder.add({ preset: currentPreset.label }, 'preset', labels).onChange((label: string) => {
-      const preset = HW2_PRESETS.find((p) => p.label === label)
-      if (!preset) return
-      applyPreset(preset).catch((err) => {
-        console.error('[HW2] Failed to apply preset:', err)
-      })
+  const gui = mountDatGUI()
+
+  const folder = gui.addFolder('HW2 PRT-SH')
+  const labels = HW2_PRESETS.map((p) => p.label)
+  folder.add({ preset: currentPreset.label }, 'preset', labels).onChange((label: string) => {
+    const preset = HW2_PRESETS.find((p) => p.label === label)
+    if (!preset) return
+    applyPreset(preset).catch((err) => {
+      console.error('[HW2] Failed to apply preset:', err)
     })
-    folder.open()
-    folders.push(folder)
-  }
+  })
+  folder.open()
+  folders.push(folder)
 
   return () => {
     if (activePRTRenderer) activePRTRenderer.dispose()
     if (activeBgRenderer) activeBgRenderer.dispose()
-    if (gui) for (const folder of folders) gui.removeFolder(folder)
+    unmountDatGUI(gui)
   }
 }
-
-/**
- * 将多个 OBJMeshData 的 positions 拼接成一个 Float32Array
- *
- * 为什么需要拼接：
- * - OBJ 文件可能有多个 group，Three.js 会拆成多个 geometry
- * - transport.txt 按原始 OBJ 面顺序存储，不区分 group
- * - 必须把所有 group 的顶点拼回一个连续数组才能和 transport 对齐
- */
-// function concatPositions(meshDataArr: OBJMeshData[]): Float32Array {
-//   if (meshDataArr.length === 1) {
-//     return meshDataArr[0]!.positions // 只有一个 group，直接用
-//   }
-
-//   // 多个 group：计算总长度 → 拼接
-//   const totalLength = meshDataArr.reduce((sum, d) => sum + d.positions.length, 0)
-//   const result = new Float32Array(totalLength)
-//   let offset = 0
-//   for (const data of meshDataArr) {
-//     result.set(data.positions, offset)
-//     offset += data.positions.length
-//   }
-
-//   console.warn(
-//     `[loadHW2Scene] OBJ has ${meshDataArr.length} groups, ` +
-//       `concatenated ${totalLength / 3} vertices. ` +
-//       'Alignment with transport.txt depends on group order matching face order.'
-//   )
-
-//   return result
-// }
