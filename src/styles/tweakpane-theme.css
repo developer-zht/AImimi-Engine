@@ -1,0 +1,47 @@
+/* Tweakpane 主题 — 匹配性能监控的"暗底 + 黄色侧条 + 等宽字体" */
+
+:root {
+  /* 背景层 */
+  --tp-base-background-color: rgba(13, 13, 13, 0.95);
+  --tp-base-shadow-color: rgba(0, 0, 0, 0.4);
+  --tp-container-background-color: #1a1a1a;
+  --tp-container-background-color-active: #2a2a1a;
+  --tp-container-background-color-focus: #2a2a1a;
+  --tp-container-background-color-hover: #222;
+  --tp-container-foreground-color: #d0d0d0;
+  /* Button */
+  --tp-button-background-color: #1a1a1a;
+  --tp-button-background-color-active: #2a2a1a;
+  --tp-button-background-color-focus: #2a2a1a;
+  --tp-button-background-color-hover: #2a2a1a;
+  --tp-button-foreground-color: #ffeb3b;
+  /* Input */
+  --tp-input-background-color: #1a1a1a;
+  --tp-input-background-color-active: #2a2a2a;
+  --tp-input-background-color-focus: #2a2a2a;
+  --tp-input-background-color-hover: #232323;
+  --tp-input-foreground-color: #ffeb3b;
+  /* Label */
+  --tp-label-foreground-color: #d0d0d0;
+  /* Monitor */
+  --tp-monitor-background-color: #1a1a1a;
+  --tp-monitor-foreground-color: #ffeb3b;
+  /* Groove */
+  --tp-groove-foreground-color: #333;
+}
+
+.tp-rotv,
+.tp-dfwv {
+  border-left: 4px solid #ffeb3b !important;
+  border-radius: 6px;
+  font-family: 'SF Mono', 'Menlo', 'Monaco', 'Consolas', monospace;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+}
+
+.tp-fldv_t {
+  font-weight: 600 !important;
+}
+
+.tp-txtv_i {
+  text-align: right;
+}
