@@ -12,7 +12,14 @@ export default [
 
   // ==================== 忽略目录（等价于 ignorePatterns）====================
   {
-    ignores: ['**/dist/**', '**/dist-ssr/**', '**/coverage/**', '**/node_modules/**', '**/*.min.js']
+    ignores: [
+      '.claude/**',
+      '**/dist/**',
+      '**/dist-ssr/**',
+      '**/coverage/**',
+      '**/node_modules/**',
+      '**/*.min.js'
+    ]
   },
 
   // ==================== Third Party cCnfig ====================
