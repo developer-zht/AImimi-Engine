@@ -15,7 +15,6 @@
   // 通常是构建配置文件
   "include": [
     "vite.config.ts", // Vite 配置文件
-    "vitest.config.ts", // Vitest 配置文件(如果有)
     "*.config.ts", // 其他配置文件
     "scripts/**/*" // 构建脚本(如果有)
   ],

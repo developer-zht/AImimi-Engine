@@ -3,9 +3,10 @@
   "extends": "./tsconfig.json",
 
   "include": [
+    "src/**/*.ts",
     "src/**/*.{test,spec}.ts", // 源文件中的测试
     "tests/**/*", // tests 目录
-    "vitest.config.ts" // Vitest 配置文件
+    "vitest.unit.config.ts" // Vitest 配置文件
   ],
 
   "compilerOptions": {
